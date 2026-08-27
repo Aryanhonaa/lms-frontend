@@ -39,6 +39,21 @@ export function traineeWorkHref(
   return traineePathHref(programId, item, batchId);
 }
 
+/** Open the next step the way a trainee expects: quizzes/assignments go to the work page. */
+export function traineeContinueHref(
+  programId: string,
+  item: { type: string; id: string; status?: AccessStatus } | null | undefined,
+  batchId?: string | null,
+): string {
+  if (!item) {
+    return traineePathHref(programId, null, batchId);
+  }
+  if (item.status === "LOCKED") {
+    return traineePathHref(programId, item, batchId);
+  }
+  return traineeWorkHref(programId, item, batchId);
+}
+
 export function learnReturnHref(programId: string | null | undefined, batchId?: string | null): string {
   if (!programId) {
     return "/trainee/learn";
@@ -50,7 +65,10 @@ export function pathItemLabel(type: string, kind?: string | null): string {
   if (type === "ASSIGNMENT") {
     return "Assignment";
   }
-  if (type === "QUIZ" || kind?.includes("QUIZ") || kind?.includes("EXAM")) {
+  if (kind?.includes("EXAM")) {
+    return "Exam";
+  }
+  if (type === "QUIZ" || kind?.includes("QUIZ")) {
     return "Quiz";
   }
   if (type === "LESSON") {

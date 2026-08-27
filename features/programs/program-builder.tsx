@@ -338,6 +338,7 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
                   }
                 }}
                 onOpenEditor={setEditor}
+                onBackToCurriculum={() => go("curriculum")}
                 onRenameLesson={(id, current) => {
                   const next = window.prompt("Rename lesson", current)?.trim();
                   if (!next || next === current) {

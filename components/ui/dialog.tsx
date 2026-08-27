@@ -7,11 +7,12 @@ type DialogProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
   wide?: boolean;
   side?: boolean;
 };
 
-export function Dialog({ open, title, onClose, children, wide, side }: DialogProps) {
+export function Dialog({ open, title, onClose, children, footer, wide, side }: DialogProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -48,10 +49,10 @@ export function Dialog({ open, title, onClose, children, wide, side }: DialogPro
         className={
           side
             ? "relative ml-auto flex h-full w-full max-w-lg flex-col border-l border-slate-200 bg-white shadow-xl"
-            : `relative m-auto max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-xl ${wide ? "max-w-2xl" : "max-w-lg"}`
+            : `relative m-auto flex max-h-[90vh] w-[calc(100%-2rem)] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-xl ${wide ? "max-w-2xl" : "max-w-lg"} ${footer ? "overflow-hidden" : "overflow-y-auto"}`
         }
       >
-        <div className={`flex items-start justify-between gap-3 ${side ? "border-b border-slate-200 px-5 py-4" : "mb-4"}`}>
+        <div className={`flex shrink-0 items-start justify-between gap-3 ${side ? "border-b border-slate-200 px-5 py-4" : "mb-4"}`}>
           <h2 id={titleId} className="text-base font-semibold text-slate-900">
             {title}
           </h2>
@@ -59,7 +60,10 @@ export function Dialog({ open, title, onClose, children, wide, side }: DialogPro
             Close
           </button>
         </div>
-        <div className={side ? "flex-1 overflow-y-auto px-5 py-4" : undefined}>{children}</div>
+        <div className={side ? "min-h-0 flex-1 overflow-y-auto px-5 py-4" : footer ? "min-h-0 flex-1 overflow-y-auto" : undefined}>{children}</div>
+        {footer ? (
+          <div className={`shrink-0 border-t border-slate-200 bg-white shadow-[0_-6px_16px_rgba(15,23,42,0.04)] ${side ? "px-5 py-4" : "pt-4"}`}>{footer}</div>
+        ) : null}
       </div>
     </div>
   );
