@@ -5,7 +5,20 @@ const extraOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "")
   .map((item) => item.trim())
   .filter(Boolean);
 
+function apiProxyOrigin(): string {
+  const raw = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1").trim();
+  return raw.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "") || "http://localhost:5000";
+}
+
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${apiProxyOrigin()}/api/v1/:path*`,
+      },
+    ];
+  },
   allowedDevOrigins: [
     "10.110.110.75",
     "10.*.*.*",

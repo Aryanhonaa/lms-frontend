@@ -132,19 +132,26 @@ export function uploadTrainerFile(
     }
 
     if (ticket?.direct && ticket.upload && ticket.key) {
-      const direct = putDirect(ticket.upload.url, input.file, ticket.upload.headers, onProgress);
-      cancelInner = direct.cancel;
-      await direct.promise;
-      return apiClient<{ file: UploadedFile }>("/trainer/uploads/confirm", {
-        method: "POST",
-        body: {
-          key: ticket.key,
-          dayId: input.dayId,
-          fileName: input.file.name,
-          mimeType: input.file.type || "application/octet-stream",
-          fileSize: input.file.size,
-        },
-      }).then((payload) => payload.file);
+      try {
+        const direct = putDirect(ticket.upload.url, input.file, ticket.upload.headers, onProgress);
+        cancelInner = direct.cancel;
+        await direct.promise;
+        return apiClient<{ file: UploadedFile }>("/trainer/uploads/confirm", {
+          method: "POST",
+          body: {
+            key: ticket.key,
+            dayId: input.dayId,
+            fileName: input.file.name,
+            mimeType: input.file.type || "application/octet-stream",
+            fileSize: input.file.size,
+          },
+        }).then((payload) => payload.file);
+      } catch (error) {
+        if (error instanceof ApiClientError && error.code === "UPLOAD_CANCELLED") {
+          throw error;
+        }
+        cancelInner = null;
+      }
     }
 
     const body = new FormData();
