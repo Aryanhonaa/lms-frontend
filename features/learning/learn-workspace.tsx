@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
@@ -12,9 +13,10 @@ import { completeTraineeItem } from "@/lib/api/learning";
 import { ApiClientError } from "@/lib/api/client";
 import { requestCourseReviewCheck } from "@/lib/course-review";
 import { isYoutubeShortsUrl, youtubeEmbedSrc, youtubeVideoId } from "@/lib/media/youtube";
-import { nextPathItem, traineePathHref, traineeWorkHref, type PathItem } from "@/lib/learning/path";
+import { nextPathItem, traineeContinueHref, traineePathHref, traineeWorkHref, type PathItem } from "@/lib/learning/path";
 import {
   contentTypeLabel,
+  continueActionLabel,
   currentDayItems,
   doThisFirst,
   flattenLearnPath,
@@ -210,7 +212,7 @@ function PathRow({
   onClick: () => void;
   rowRef?: (node: HTMLAnchorElement | null) => void;
 }) {
-  const href = traineePathHref(programId, { type: item.type, id: item.id }, batchId);
+  const href = traineeContinueHref(programId, item, batchId);
   const done = isDoneStatus(item.status);
   const locked = item.status === "LOCKED";
   const now = isActionableStatus(item.status);
@@ -270,11 +272,14 @@ type LearnWorkspaceProps = {
 };
 
 export function LearnWorkspace({ view, batchId, currentType, currentId, onViewChange, toolbar }: LearnWorkspaceProps) {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const activeRef = useRef<HTMLAnchorElement | null>(null);
+  const advanceTimer = useRef<number | null>(null);
+  const celebrateTimer = useRef<number | null>(null);
 
   const path = useMemo(() => flattenLearnPath(view), [view]);
   const current =
@@ -297,6 +302,32 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
     activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [current?.id, current?.type]);
 
+  useEffect(() => {
+    return () => {
+      if (advanceTimer.current !== null) {
+        window.clearTimeout(advanceTimer.current);
+      }
+      if (celebrateTimer.current !== null) {
+        window.clearTimeout(celebrateTimer.current);
+      }
+    };
+  }, []);
+
+  function goToNextStep(from: PathItem, nextView: LearnView) {
+    const following = nextPathItem(flattenLearnPath(nextView), from) ?? nextView.nextActivity;
+    if (!following) {
+      return;
+    }
+    const href = traineeContinueHref(view.program.id, following, batchId);
+    if (following.type === "QUIZ" || following.type === "ASSIGNMENT") {
+      advanceTimer.current = window.setTimeout(() => {
+        router.push(href);
+      }, 450);
+      return;
+    }
+    router.replace(href);
+  }
+
   async function complete() {
     if (!current || current.status === "LOCKED" || current.type === "QUIZ" || current.type === "ASSIGNMENT") {
       return;
@@ -308,7 +339,11 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
       onViewChange(nextView);
       requestCourseReviewCheck();
       setCelebrate(true);
-      window.setTimeout(() => setCelebrate(false), 1200);
+      if (celebrateTimer.current !== null) {
+        window.clearTimeout(celebrateTimer.current);
+      }
+      celebrateTimer.current = window.setTimeout(() => setCelebrate(false), 1200);
+      goToNextStep(current, nextView);
     } catch (err: unknown) {
       setError(err instanceof ApiClientError ? err.message : "Unable to save completion");
     } finally {
@@ -469,7 +504,7 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
                   doFirst={firstAction && firstAction.id !== current.id ? firstAction : null}
                   doFirstHref={
                     firstAction && firstAction.id !== current.id
-                      ? traineePathHref(view.program.id, firstAction, batchId)
+                      ? traineeContinueHref(view.program.id, firstAction, batchId)
                       : undefined
                   }
                   unlocksTitle={current.title}
@@ -508,14 +543,14 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
                 ) : null}
                 {next && (next.id !== current.id || next.type !== current.type) ? (
                   <Link
-                    href={traineePathHref(view.program.id, next, batchId)}
+                    href={traineeContinueHref(view.program.id, next, batchId)}
                     className={
                       current.type === "QUIZ" || current.type === "ASSIGNMENT" || isDoneStatus(current.status)
                         ? traineePrimaryCtaClass
                         : traineeSecondaryCtaClass
                     }
                   >
-                    Continue
+                    {continueActionLabel(next)}
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                 ) : null}
@@ -524,7 +559,7 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
 
             {next && current.status !== "LOCKED" && (next.id !== current.id || next.type !== current.type) ? (
               <Link
-                href={traineePathHref(view.program.id, next, batchId)}
+                href={traineeContinueHref(view.program.id, next, batchId)}
                 className={`${traineeCardClass} group flex items-center gap-3 p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-violet-200`}
               >
                 <ContentTypeIcon type={next.type} kind={"kind" in next ? next.kind : undefined} size="sm" />

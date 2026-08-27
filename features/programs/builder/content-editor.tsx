@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck } from "lucide-react";
+import { FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck, ChevronLeft } from "lucide-react";
 import { QuizForm } from "@/features/programs/quiz-form";
 import { VideoFields, type VideoDraft } from "@/features/programs/builder/video-fields";
 import { AttachmentUploadField } from "@/components/files/attachment-upload-field";
-import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
+import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import type { QuizInput } from "@/types/program";
 import type { UploadedFile } from "@/types/files";
 
@@ -98,6 +98,30 @@ type ContentEditorProps = {
   onAddMilestone: (input: { title: string; afterWeekIndex: number }) => Promise<void>;
 };
 
+function EditorNav({
+  onBack,
+  onCancel,
+  backLabel = "Back",
+}: {
+  onBack?: () => void;
+  onCancel: () => void;
+  backLabel?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {onBack ? (
+        <button type="button" className={ghostButtonClass} onClick={onBack}>
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          {backLabel}
+        </button>
+      ) : null}
+      <button type="button" className={secondaryButtonClass} onClick={onCancel}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-1 text-sm">
@@ -132,7 +156,9 @@ export function ContentEditor(props: ContentEditorProps) {
 
   if (state.view === "picker") {
     return (
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-3">
+        <EditorNav onCancel={onClose} />
+        <ul className="grid gap-2 sm:grid-cols-2">
         {PICKER_OPTIONS.map((option) => {
           const Icon = option.icon;
           return (
@@ -153,7 +179,8 @@ export function ContentEditor(props: ContentEditorProps) {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
     );
   }
 
@@ -187,9 +214,12 @@ export function ContentEditor(props: ContentEditorProps) {
           </Field>
         ) : null}
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        <button type="submit" className={primaryButtonClass} disabled={disabled || busy}>
-          {busy ? "Adding…" : state.view === "week" ? "Add week" : "Add day"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <EditorNav onCancel={onClose} />
+          <button type="submit" className={primaryButtonClass} disabled={disabled || busy}>
+            {busy ? "Adding…" : state.view === "week" ? "Add week" : "Add day"}
+          </button>
+        </div>
       </form>
     );
   }
@@ -221,16 +251,21 @@ export function ContentEditor(props: ContentEditorProps) {
           <input name="afterWeekIndex" type="number" min={0} defaultValue={0} className={fieldClass} disabled={disabled || busy} />
         </Field>
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        <button type="submit" className={primaryButtonClass} disabled={disabled || busy}>
-          {busy ? "Adding…" : "Add milestone"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <EditorNav onCancel={onClose} />
+          <button type="submit" className={primaryButtonClass} disabled={disabled || busy}>
+            {busy ? "Adding…" : "Add milestone"}
+          </button>
+        </div>
       </form>
     );
   }
 
   if (state.view === "weekly-quiz" || state.view === "weekly-exam" || state.view === "final-exam") {
     return (
-      <QuizForm
+      <div className="grid gap-3">
+        <EditorNav onCancel={onClose} />
+        <QuizForm
         submitLabel={state.view === "final-exam" ? "Create final exam" : state.view === "weekly-exam" ? "Create weekly exam" : "Create weekly quiz"}
         disabled={disabled || busy}
         onSubmit={async (input) => {
@@ -244,6 +279,7 @@ export function ContentEditor(props: ContentEditorProps) {
           onClose();
         }}
       />
+      </div>
     );
   }
 
@@ -253,7 +289,9 @@ export function ContentEditor(props: ContentEditorProps) {
 
   if (state.kind === "QUIZ") {
     return (
-      <QuizForm
+      <div className="grid gap-3">
+        <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
+        <QuizForm
         submitLabel="Create practice quiz"
         disabled={disabled || busy}
         onSubmit={async (input) => {
@@ -261,6 +299,7 @@ export function ContentEditor(props: ContentEditorProps) {
           onClose();
         }}
       />
+      </div>
     );
   }
 
@@ -315,9 +354,12 @@ export function ContentEditor(props: ContentEditorProps) {
           onUploadingChange={setUploading}
         />
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        <button type="submit" className={primaryButtonClass} disabled={disabled || busy || uploading}>
-          {busy ? "Adding…" : uploading ? "Uploading…" : isReel ? "Add reel" : "Add video"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
+          <button type="submit" className={primaryButtonClass} disabled={disabled || busy || uploading}>
+            {busy ? "Adding…" : uploading ? "Uploading…" : isReel ? "Add reel" : "Add video"}
+          </button>
+        </div>
       </form>
     );
   }
@@ -415,9 +457,12 @@ export function ContentEditor(props: ContentEditorProps) {
           </select>
         </Field>
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        <button type="submit" className={primaryButtonClass} disabled={disabled || busy || uploading}>
-          {busy ? "Adding…" : uploading ? "Uploading…" : "Add to day"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
+          <button type="submit" className={primaryButtonClass} disabled={disabled || busy || uploading}>
+            {busy ? "Adding…" : uploading ? "Uploading…" : "Add to day"}
+          </button>
+        </div>
       </form>
     );
   }
@@ -527,6 +572,7 @@ export function ContentEditor(props: ContentEditorProps) {
         </>
       ) : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
       {state.kind === "ASSIGNMENT" ? (
         <div className="flex flex-col-reverse gap-2 sm:flex-row">
           <button type="submit" name="lifecycle" value="DRAFT" className={secondaryButtonClass} disabled={disabled || busy}>

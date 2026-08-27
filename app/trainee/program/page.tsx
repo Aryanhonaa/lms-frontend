@@ -7,7 +7,7 @@ import { TraineeCourseFilters } from "@/components/trainee-course-filters";
 import { TraineeShell } from "@/components/trainee-shell";
 import { getTraineeLearnView } from "@/lib/api/learning";
 import { ApiClientError } from "@/lib/api/client";
-import { traineePathHref } from "@/lib/learning/path";
+import { traineeContinueHref, traineePathHref } from "@/lib/learning/path";
 import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useTraineeEnrollment } from "@/hooks/use-trainee-enrollment";
@@ -115,7 +115,7 @@ function ProgramOverview() {
               <div className="mt-4 flex flex-wrap gap-2">
                 {view.nextActivity ? (
                   <Link
-                    href={traineePathHref(view.program.id, view.nextActivity, filters.batchId)}
+                    href={traineeContinueHref(view.program.id, view.nextActivity, filters.batchId)}
                     className={primaryButtonClass}
                   >
                     Continue Learning
