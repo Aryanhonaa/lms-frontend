@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TrainerCourseBatchFilters } from "@/components/trainer-course-batch-filters";
 import { TrainerShell } from "@/components/trainer-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
@@ -14,7 +15,13 @@ import type { TrainerAssignmentSummary } from "@/types/assignment";
 
 export default function TrainerAssignmentsPage() {
   const { user } = useAuth();
-  const filters = useTrainerCourseBatch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filters = useTrainerCourseBatch({
+    programId: searchParams.get("programId") ?? undefined,
+    batchId: searchParams.get("batchId") ?? undefined,
+  });
   const [assignments, setAssignments] = useState<TrainerAssignmentSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +52,28 @@ export default function TrainerAssignmentsPage() {
     };
   }, [filters.ready, filters.programId, filters.batchId]);
 
+  function replaceScope(programId: string, batchId?: string) {
+    const next = new URLSearchParams();
+    if (programId) {
+      next.set("programId", programId);
+    }
+    if (batchId) {
+      next.set("batchId", batchId);
+    }
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
+
+  function onProgramChange(programId: string) {
+    filters.setProgramId(programId);
+    replaceScope(programId);
+  }
+
+  function onBatchChange(batchId: string) {
+    filters.setBatchId(batchId);
+    replaceScope(filters.programId, batchId);
+  }
+
   if (!user) {
     return null;
   }
@@ -64,8 +93,8 @@ export default function TrainerAssignmentsPage() {
               batches={filters.batches}
               programId={filters.programId}
               batchId={filters.batchId}
-              onProgramChange={filters.setProgramId}
-              onBatchChange={filters.setBatchId}
+              onProgramChange={onProgramChange}
+              onBatchChange={onBatchChange}
             />
           </div>
         </div>

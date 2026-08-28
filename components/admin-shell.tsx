@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -18,6 +18,7 @@ import {
   Megaphone,
   Menu,
   MessageSquare,
+  PanelLeft,
   Search,
   Settings,
   Users,
@@ -122,6 +123,10 @@ function isActiveChild(href: string, pathname: string, role: string | null): boo
   return expectedRole === role;
 }
 
+function isDesktop(): boolean {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
+
 export function AdminShell({
   children,
 }: {
@@ -136,12 +141,29 @@ export function AdminShell({
   const { user } = useAuth();
   const roleFilter = searchParams.get("role");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [sidebarReady, setSidebarReady] = useState(false);
   const [usersOpen, setUsersOpen] = useState(pathname.startsWith("/admin/users"));
   const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [submitted, setSubmitted] = useState<ProgramSummary[]>([]);
   const navItems = user?.role === "ADMIN" ? ADMIN_NAV : SUPER_ADMIN_NAV;
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setCollapsed(sessionStorage.getItem("lms-admin-sidebar") === "1");
+      setSidebarReady(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarReady) {
+      return;
+    }
+    sessionStorage.setItem("lms-admin-sidebar", collapsed ? "1" : "0");
+  }, [collapsed, sidebarReady]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -182,6 +204,14 @@ export function AdminShell({
 
   const chromeValue = useMemo(() => ({ searchQuery, setSearchQuery }), [searchQuery]);
 
+  const onMenuClick = useCallback(() => {
+    if (isDesktop()) {
+      setCollapsed((open) => !open);
+      return;
+    }
+    setSidebarOpen(true);
+  }, []);
+
   if (!user) {
     return null;
   }
@@ -199,15 +229,15 @@ export function AdminShell({
         ) : null}
 
         <aside
-          className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[260px] shrink-0 flex-col border-r border-slate-200/80 bg-[#f3f4f8] transition-transform duration-200 lg:static lg:h-full lg:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[260px] shrink-0 flex-col border-r border-slate-200/80 bg-[#f3f4f8] transition-[width,transform] duration-200 ease-out lg:static lg:h-full ${
+            collapsed ? "lg:w-[76px]" : "lg:w-[260px]"
+          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         >
-          <div className="flex items-center gap-3 px-5 py-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm shadow-violet-600/25">
+          <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? "lg:justify-center lg:px-3" : ""}`}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm shadow-violet-600/25">
               <GraduationCap className="h-5 w-5" />
             </div>
-            <div>
+            <div className={collapsed ? "lg:hidden" : ""}>
               <p className="text-sm font-semibold tracking-tight text-slate-900">LMS</p>
               <p className="text-xs text-slate-500">{user.role === "ADMIN" ? "Admin" : "Super Admin"}</p>
             </div>
@@ -229,6 +259,23 @@ export function AdminShell({
               const hasChildren = Boolean(children && children.length > 0);
 
               if (hasChildren && children) {
+                if (collapsed) {
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={item.label}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition lg:justify-center lg:px-0 ${
+                        active ? "bg-violet-50 font-medium text-violet-700" : "text-slate-600 hover:bg-white hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                      <span className="lg:hidden">{item.label}</span>
+                    </Link>
+                  );
+                }
+
                 return (
                   <div key={item.href}>
                     <button
@@ -238,7 +285,7 @@ export function AdminShell({
                       }`}
                       onClick={() => setUsersOpen((open) => !open)}
                     >
-                      <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
                       <span className="flex-1 text-left">{item.label}</span>
                       <ChevronDown className={`h-4 w-4 transition ${usersOpen ? "rotate-180" : ""}`} />
                     </button>
@@ -270,21 +317,39 @@ export function AdminShell({
                 <Link
                   key={item.href}
                   href={item.href}
+                  title={collapsed ? item.label : undefined}
+                  aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                     active ? "bg-violet-50 font-medium text-violet-700" : "text-slate-600 hover:bg-white hover:text-slate-900"
-                  }`}
+                  } ${collapsed ? "lg:justify-center lg:px-0" : ""}`}
                 >
-                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-                  {item.label}
+                  <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                  <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="border-t border-slate-200/80 px-3 py-4">
-            <SignOutButton className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-white hover:text-slate-900">
-              <LogOut className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              Logout
+          <div className="space-y-1 border-t border-slate-200/80 px-3 py-4">
+            <button
+              type="button"
+              className={`hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition duration-200 hover:bg-white hover:text-slate-900 lg:flex ${
+                collapsed ? "justify-center px-0" : ""
+              }`}
+              onClick={() => setCollapsed((open) => !open)}
+              aria-pressed={collapsed}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <PanelLeft className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+              <span className={collapsed ? "lg:hidden" : ""}>Collapse</span>
+            </button>
+            <SignOutButton
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-white hover:text-slate-900 ${
+                collapsed ? "lg:justify-center lg:px-0" : ""
+              }`}
+            >
+              <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+              <span className={collapsed ? "lg:hidden" : ""}>Logout</span>
             </SignOutButton>
           </div>
         </aside>
@@ -293,9 +358,10 @@ export function AdminShell({
           <header className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur-md md:px-6">
             <button
               type="button"
-              className="rounded-xl p-2 text-slate-600 hover:bg-slate-50 lg:hidden"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
+              className="rounded-xl p-2 text-slate-600 hover:bg-slate-50"
+              onClick={onMenuClick}
+              aria-label={sidebarOpen || !collapsed ? "Toggle sidebar" : "Open menu"}
+              aria-expanded={sidebarOpen}
             >
               <Menu className="h-5 w-5" />
             </button>

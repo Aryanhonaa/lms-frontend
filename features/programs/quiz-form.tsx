@@ -23,6 +23,7 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [questions, setQuestions] = useState([emptyQuestion()]);
+  const [revealMode, setRevealMode] = useState<"HIDDEN" | "IMMEDIATE" | "SCHEDULED">("IMMEDIATE");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,6 +37,12 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       return;
     }
 
+    const revealAtRaw = String(data.get("revealAt") ?? "").trim();
+    if (revealMode === "SCHEDULED" && !revealAtRaw) {
+      setError("Choose when answers become visible");
+      return;
+    }
+
     const payload: QuizInput = {
       title,
       description: String(data.get("description") ?? "").trim(),
@@ -43,6 +50,8 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       timeLimitMin: data.get("timeLimitMin") ? Number(data.get("timeLimitMin")) : null,
       maxAttempts: data.get("maxAttempts") ? Number(data.get("maxAttempts")) : null,
       randomized: data.get("randomized") === "on",
+      revealMode,
+      revealAt: revealMode === "SCHEDULED" ? new Date(revealAtRaw).toISOString() : null,
       questions: questions.map((question) => ({
         prompt: question.prompt.trim(),
         options: question.options.map((option) => ({
@@ -63,6 +72,7 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       await onSubmit(payload);
       form.reset();
       setQuestions([emptyQuestion()]);
+      setRevealMode("IMMEDIATE");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save quiz");
     } finally {
@@ -123,6 +133,28 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
           <input type="checkbox" name="randomized" disabled={disabled || busy} />
           Randomize questions and options
         </label>
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">Show correct answers</span>
+          <select
+            className={fieldClass}
+            value={revealMode}
+            disabled={disabled || busy}
+            onChange={(event) => setRevealMode(event.target.value as typeof revealMode)}
+          >
+            <option value="IMMEDIATE">Right after the trainee submits</option>
+            <option value="HIDDEN">Keep them hidden</option>
+            <option value="SCHEDULED">At a scheduled time</option>
+          </select>
+        </label>
+        {revealMode === "SCHEDULED" ? (
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-slate-800">
+              Answers visible from
+              <RequiredMark />
+            </span>
+            <input name="revealAt" type="datetime-local" className={fieldClass} disabled={disabled || busy} required />
+          </label>
+        ) : null}
       </div>
       {questions.map((question, index) => (
         <div key={index} className="grid gap-2 rounded-xl bg-slate-50 p-3">

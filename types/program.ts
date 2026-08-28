@@ -218,6 +218,8 @@ export type QuizInput = {
   timeLimitMin?: number | null;
   maxAttempts?: number | null;
   randomized?: boolean;
+  revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
+  revealAt?: string | null;
   questions?: Array<{
     prompt: string;
     points?: number;
