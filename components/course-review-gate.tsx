@@ -8,6 +8,7 @@ import { submitFeedback } from "@/lib/api/engagement";
 import { ApiClientError } from "@/lib/api/client";
 import { COURSE_REVIEW_CHECK_EVENT } from "@/lib/course-review";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { PendingCourseReview } from "@/types/certificate";
 
 export function CourseReviewGate() {
@@ -136,7 +137,10 @@ export function CourseReviewGate() {
             Submitting your review is required to receive your certificate.
           </p>
           <div className="mt-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Rating</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">
+              Rating
+              <RequiredMark />
+            </p>
             <div className="mt-2 flex gap-2" role="radiogroup" aria-label="Course rating">
               {[1, 2, 3, 4, 5].map((value) => (
                 <button

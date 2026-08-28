@@ -8,6 +8,7 @@ import { getProgramAttendance, markSessionAttendance } from "@/lib/api/attendanc
 import { addSession } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/providers/auth-provider";
 import type { AttendanceStatus, ProgramAttendancePayload } from "@/types/attendance";
 
@@ -104,19 +105,49 @@ export default function TrainerAttendancePage() {
               }}
             >
               <p className="sm:col-span-2 text-xs uppercase tracking-wide text-stone-500">New training session</p>
-              <select name="weekId" required className={fieldClass} defaultValue={data.weeks[0]?.id ?? ""}>
-                {data.weeks.map((week) => (
-                  <option key={week.id} value={week.id}>
-                    {week.title}
-                  </option>
-                ))}
-              </select>
-              <input name="title" required className={fieldClass} placeholder="Title" />
-              <input name="date" type="date" required className={fieldClass} />
-              <input name="startTime" type="time" className={fieldClass} defaultValue="09:00" />
-              <input name="endTime" type="time" className={fieldClass} defaultValue="10:00" />
-              <input name="meetingLink" className={fieldClass} placeholder="Meeting link" />
-              <textarea name="description" className={`${fieldClass} sm:col-span-2`} placeholder="Description" rows={2} />
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-stone-800">
+                  Week
+                  <RequiredMark />
+                </span>
+                <select name="weekId" required className={fieldClass} defaultValue={data.weeks[0]?.id ?? ""}>
+                  {data.weeks.map((week) => (
+                    <option key={week.id} value={week.id}>
+                      {week.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-stone-800">
+                  Title
+                  <RequiredMark />
+                </span>
+                <input name="title" required className={fieldClass} placeholder="Title" />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-stone-800">
+                  Date
+                  <RequiredMark />
+                </span>
+                <input name="date" type="date" required className={fieldClass} />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-stone-800">Start time</span>
+                <input name="startTime" type="time" className={fieldClass} defaultValue="09:00" />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-stone-800">End time</span>
+                <input name="endTime" type="time" className={fieldClass} defaultValue="10:00" />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-stone-800">Meeting link</span>
+                <input name="meetingLink" className={fieldClass} placeholder="Meeting link" />
+              </label>
+              <label className="grid gap-1 text-sm sm:col-span-2">
+                <span className="font-medium text-stone-800">Description</span>
+                <textarea name="description" className={fieldClass} placeholder="Description" rows={2} />
+              </label>
               <button type="submit" className={primaryButtonClass} disabled={busy || data.weeks.length === 0}>
                 Create session
               </button>

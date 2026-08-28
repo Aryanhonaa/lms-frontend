@@ -8,6 +8,7 @@ import { listAdminCatalog } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { BatchSelect, TraineeSelectList } from "@/features/engagement/trainee-select-list";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { AnnouncementAudience, AnnouncementItem } from "@/types/engagement";
 import type { ProgramSummary } from "@/types/program";
 
@@ -88,6 +89,7 @@ export default function AdminAnnouncementsPage() {
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="audience">
                 Audience
+                <RequiredMark />
               </label>
               <select
                 id="audience"
@@ -106,6 +108,7 @@ export default function AdminAnnouncementsPage() {
               <div>
                 <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="program">
                   Program
+                  <RequiredMark />
                 </label>
                 <select
                   id="program"
@@ -152,12 +155,14 @@ export default function AdminAnnouncementsPage() {
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="title">
                 Title
+                <RequiredMark />
               </label>
               <input id="title" className={fieldClass} value={title} onChange={(event) => setTitle(event.target.value)} required />
             </div>
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="body">
                 Body
+                <RequiredMark />
               </label>
               <textarea
                 id="body"

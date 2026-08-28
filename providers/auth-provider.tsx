@@ -25,13 +25,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getCurrentUser()
       .then((payload) => {
         if (!cancelled) {
-          setUser(payload.user);
+          setUser((current) => {
+            if (!current) {
+              return payload.user;
+            }
+            if (current.id !== payload.user.id) {
+              return payload.user;
+            }
+            return {
+              ...payload.user,
+              avatarUrl: current.avatarUrl ?? payload.user.avatarUrl,
+            };
+          });
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setUser(null);
-        }
+        // Keep a user already set by login or an in-flight avatar upload.
       })
       .finally(() => {
         if (!cancelled) {

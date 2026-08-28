@@ -297,6 +297,13 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
     current && current.type !== "QUIZ" && current.type !== "ASSIGNMENT"
       ? view.weeks.flatMap((week) => week.days).flatMap((day) => day.items).find((item) => item.id === current.id && item.type === current.type)
       : null;
+  const linkedAssignment =
+    current && current.type !== "QUIZ" && current.type !== "ASSIGNMENT"
+      ? path.find(
+          (item) =>
+            item.type === "ASSIGNMENT" && item.linkedItemId === current.id && item.linkedItemType === current.type,
+        )
+      : null;
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -512,7 +519,24 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
               ) : current.type === "QUIZ" || current.type === "ASSIGNMENT" ? (
                 <ActivityCard item={current} programId={view.program.id} batchId={batchId} />
               ) : contentItem ? (
-                <ItemBody item={contentItem} batchId={batchId} />
+                <div className="space-y-4">
+                  <ItemBody item={contentItem} batchId={batchId} />
+                  {linkedAssignment ? (
+                    isDoneStatus(current.status) && linkedAssignment.status !== "LOCKED" ? (
+                      <ActivityCard item={linkedAssignment} programId={view.program.id} batchId={batchId} />
+                    ) : (
+                      <div className={`${traineeCardClass} px-5 py-4 md:px-6`}>
+                        <p className="text-[11px] font-semibold tracking-wide text-violet-600 uppercase">Assignment for this file</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">{linkedAssignment.title}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {isDoneStatus(current.status)
+                            ? friendlyLockReason(linkedAssignment.reason)
+                            : "Mark this file complete to open the assignment."}
+                        </p>
+                      </div>
+                    )
+                  ) : null}
+                </div>
               ) : (
                 <p className="text-sm text-slate-500">This item has no preview yet.</p>
               )}

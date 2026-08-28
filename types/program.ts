@@ -109,6 +109,8 @@ export type Assignment = {
   allowResubmission?: boolean;
   maxAttempts?: number;
   attachments?: ContentAttachment[];
+  linkedItemType?: string | null;
+  linkedItemId?: string | null;
 };
 
 export type TrainingSession = {

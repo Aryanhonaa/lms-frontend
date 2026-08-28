@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { TrainerShell } from "@/components/trainer-shell";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { ErrorState } from "@/components/ui/empty-state";
 import { createProgram } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
@@ -54,7 +55,10 @@ export default function NewProgramPage() {
             }}
           >
             <label className="grid gap-1.5 text-sm">
-              <span className="font-medium text-slate-800">Program title</span>
+              <span className="font-medium text-slate-800">
+                Program title
+                <RequiredMark />
+              </span>
               <input
                 className={fieldClass}
                 value={title}

@@ -9,6 +9,7 @@ import { createAnnouncement, listAnnouncements } from "@/lib/api/engagement";
 import { listTrainerPrograms } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/providers/auth-provider";
 import type { AnnouncementAudience, AnnouncementItem } from "@/types/engagement";
 import type { ProgramSummary } from "@/types/program";
@@ -93,6 +94,7 @@ export default function TrainerAnnouncementsPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="audience">
                 Audience
+                <RequiredMark />
               </label>
               <select
                 id="audience"
@@ -110,6 +112,7 @@ export default function TrainerAnnouncementsPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="program">
                 Program
+                <RequiredMark />
               </label>
               <select
                 id="program"
@@ -155,6 +158,7 @@ export default function TrainerAnnouncementsPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="title">
                 Title
+                <RequiredMark />
               </label>
               <input
                 id="title"
@@ -167,6 +171,7 @@ export default function TrainerAnnouncementsPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="body">
                 Body
+                <RequiredMark />
               </label>
               <textarea
                 id="body"

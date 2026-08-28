@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { verifyCertificate } from "@/lib/api/certificates";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { PublicCertificate } from "@/types/certificate";
 
 function formatWhen(value: string): string {
@@ -65,6 +66,7 @@ function VerifyForm() {
           <div>
             <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="certificateId">
               Certificate ID
+              <RequiredMark />
             </label>
             <input
               id="certificateId"

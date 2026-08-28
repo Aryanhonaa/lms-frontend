@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog } from "@/components/ui/dialog";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { ApiClientError } from "@/lib/api/client";
 import { createAdminUser } from "@/lib/api/admin";
 import {
@@ -100,16 +101,19 @@ export function CreateUserDialog({
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
         <label className="block text-sm font-medium text-slate-800">
           Full Name
+          <RequiredMark />
           <input className={fieldClass} autoComplete="name" {...register("name")} />
           {errors.name ? <span className="mt-1 block text-sm text-red-700">{errors.name.message}</span> : null}
         </label>
         <label className="block text-sm font-medium text-slate-800">
           Email
+          <RequiredMark />
           <input type="email" className={fieldClass} autoComplete="email" {...register("email")} />
           {errors.email ? <span className="mt-1 block text-sm text-red-700">{errors.email.message}</span> : null}
         </label>
         <label className="block text-sm font-medium text-slate-800">
           Role
+          <RequiredMark />
           <select className={fieldClass} {...register("role")}>
             {allowedRoles.map((role) => (
               <option key={role} value={role}>
@@ -121,6 +125,7 @@ export function CreateUserDialog({
         </label>
         <label className="block text-sm font-medium text-slate-800">
           Password
+          <RequiredMark />
           <input type="password" className={fieldClass} autoComplete="new-password" {...register("password")} />
           {errors.password ? <span className="mt-1 block text-sm text-red-700">{errors.password.message}</span> : null}
         </label>

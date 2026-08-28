@@ -2,9 +2,10 @@
 
 import type { ReactNode } from "react";
 import { ClipboardCheck, ListChecks, Plus, Trophy } from "lucide-react";
-import { collectAssignments, collectQuizzes, isExamKind } from "@/features/programs/builder/completion";
+import { collectAssignments, collectQuizzes, isExamKind, linkedFileTitle } from "@/features/programs/builder/completion";
 import { CARD, dangerButtonClass, fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import { QuizForm } from "@/features/programs/quiz-form";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { ProgramTree, QuizInput } from "@/types/program";
 
 export function AssessmentsPanel({
@@ -84,6 +85,9 @@ export function AssessmentsPanel({
                   <p className="text-sm font-medium text-slate-900">{item.title}</p>
                   <p className="text-xs text-slate-500">
                     {item.weekTitle} · {item.dayTitle}
+                    {linkedFileTitle(program, item.linkedItemType, item.linkedItemId)
+                      ? ` · after ${linkedFileTitle(program, item.linkedItemType, item.linkedItemId)}`
+                      : ""}
                   </p>
                 </div>
                 <button type="button" className={secondaryButtonClass} onClick={() => onOpenDay(item.dayId)}>
@@ -214,7 +218,13 @@ export function AssessmentsPanel({
                       event.currentTarget.reset();
                     }}
                   >
-                    <input name="label" className={fieldClass} placeholder="Requirement" />
+                    <label className="grid gap-1 text-sm sm:col-span-1">
+                      <span className="font-medium text-slate-800">
+                        Requirement
+                        <RequiredMark />
+                      </span>
+                      <input name="label" className={fieldClass} placeholder="Requirement" />
+                    </label>
                     <select name="kind" className={fieldClass} defaultValue="CUSTOM">
                       <option value="CUSTOM">Other</option>
                       <option value="WEEKS_COMPLETED">Weeks completed</option>
@@ -256,8 +266,17 @@ export function AssessmentsPanel({
               event.currentTarget.reset();
             }}
           >
-            <input name="title" className={fieldClass} placeholder="Milestone title" disabled={busy} />
-            <input name="afterWeekIndex" type="number" min={0} defaultValue={0} className={fieldClass} disabled={busy} />
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-slate-800">
+                Milestone title
+                <RequiredMark />
+              </span>
+              <input name="title" className={fieldClass} placeholder="Milestone title" disabled={busy} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-slate-800">After week</span>
+              <input name="afterWeekIndex" type="number" min={0} defaultValue={0} className={fieldClass} disabled={busy} />
+            </label>
             <button type="submit" className={secondaryButtonClass} disabled={busy}>
               Add milestone
             </button>

@@ -6,6 +6,7 @@ import { uploadTrainerFile, formatFileSize } from "@/lib/api/files";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, ghostButtonClass } from "@/lib/ui/form-classes";
 import { FileDropZone } from "@/components/files/file-drop-zone";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 export type VideoDraft = {
   mode: "upload" | "url";
@@ -112,6 +113,10 @@ export function VideoFields({
 
       {value.mode === "upload" ? (
         <div>
+          <p className="mb-1.5 text-sm font-medium text-slate-800">
+            {purpose === "REEL" ? "Reel file" : "Video file"}
+            <RequiredMark />
+          </p>
           {value.fileKey ? (
             <div className="rounded-2xl bg-white px-3 py-3 text-sm ring-1 ring-slate-950/5">
               <p className="flex items-center gap-1.5 font-medium text-slate-900">
@@ -146,7 +151,10 @@ export function VideoFields({
         </div>
       ) : (
         <label className="grid gap-1 text-sm">
-          <span className="font-medium">Video URL</span>
+          <span className="font-medium">
+            Video URL
+            <RequiredMark />
+          </span>
           <input
             className={fieldClass}
             placeholder="YouTube or hosted video URL"

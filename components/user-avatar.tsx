@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { formatRoleLabel, initialsFromName, resolvePublicAssetUrl } from "@/lib/user-display";
 
 const SIZE_CLASS = {
@@ -16,12 +19,22 @@ type UserAvatarProps = {
 export function UserAvatar({ name, avatarUrl, size = "md", className = "" }: UserAvatarProps) {
   const src = resolvePublicAssetUrl(avatarUrl);
   const dim = SIZE_CLASS[size];
+  const [failed, setFailed] = useState(false);
 
-  if (src) {
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (src && !failed) {
     return (
       <span className={`relative inline-flex shrink-0 overflow-hidden rounded-full bg-violet-600 ${dim} ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={`${name} profile picture`} className="h-full w-full object-cover" />
+        <img
+          src={src}
+          alt={`${name} profile picture`}
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
       </span>
     );
   }

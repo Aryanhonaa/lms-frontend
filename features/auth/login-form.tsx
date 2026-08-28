@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { ApiClientError } from "@/lib/api/client";
 import { getDashboardPath } from "@/lib/auth/dashboard-path";
 import { loginFormSchema, type LoginFormValues } from "@/lib/auth/login-schema";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -42,12 +43,18 @@ export function LoginForm() {
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-stone-800">Email</span>
+        <span className="font-medium text-stone-800">
+          Email
+          <RequiredMark />
+        </span>
         <input type="email" autoComplete="email" className={fieldClass} {...register("email")} />
         {errors.email ? <span className="text-red-700">{errors.email.message}</span> : null}
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-stone-800">Password</span>
+        <span className="font-medium text-stone-800">
+          Password
+          <RequiredMark />
+        </span>
         <input type="password" autoComplete="current-password" className={fieldClass} {...register("password")} />
         {errors.password ? <span className="text-red-700">{errors.password.message}</span> : null}
       </label>
