@@ -208,7 +208,7 @@ export function AdminShell({
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold tracking-tight text-slate-900">LMS</p>
+              <p className="text-sm font-semibold tracking-tight text-slate-900">Learn Lab</p>
               <p className="text-xs text-slate-500">{user.role === "ADMIN" ? "Admin" : "Super Admin"}</p>
             </div>
             <button
