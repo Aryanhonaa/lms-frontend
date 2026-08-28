@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { UsageChart } from "@/features/app-usage/usage-chart";
 import { formatDuration, shiftYmd, todayYmd } from "@/features/app-usage/format";
-import { getAdminAppUsage, getTrainerAppUsage, getTraineeAppUsage } from "@/lib/api/app-usage";
+import { getAdminAppUsage, getTrainerAppUsage } from "@/lib/api/app-usage";
 import { ApiClientError } from "@/lib/api/client";
 import type { AppUsageAnalytics, AppUsagePeriod } from "@/types/app-usage";
 
@@ -14,16 +14,13 @@ const CARD =
 const SELECT =
   "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm outline-none transition duration-150 hover:border-slate-300 focus-visible:border-violet-400";
 
-type Audience = "admin" | "trainer" | "trainee";
+type Audience = "admin" | "trainer";
 
 function loadAnalytics(audience: Audience, query: Parameters<typeof getAdminAppUsage>[0]) {
   if (audience === "admin") {
     return getAdminAppUsage(query);
   }
-  if (audience === "trainer") {
-    return getTrainerAppUsage(query);
-  }
-  return getTraineeAppUsage(query);
+  return getTrainerAppUsage(query);
 }
 
 export function AppUsagePanel({ audience }: { audience: Audience }) {
@@ -46,7 +43,7 @@ export function AppUsagePanel({ audience }: { audience: Audience }) {
       date,
       programId: programId || undefined,
       batchId: batchId || undefined,
-      traineeIds: audience === "trainee" ? undefined : selectedIds.length > 0 ? selectedIds : undefined,
+      traineeIds: selectedIds.length > 0 ? selectedIds : undefined,
     })
       .then((payload) => {
         if (cancelled) {
@@ -98,22 +95,14 @@ export function AppUsagePanel({ audience }: { audience: Audience }) {
   }, [analytics, period]);
 
   const empty = Boolean(analytics && analytics.summary.totalSeconds === 0 && analytics.summary.activeTrainees === 0);
-  const dayCount = analytics
-    ? Math.max(1, Math.round((new Date(analytics.range.end).getTime() - new Date(analytics.range.start).getTime()) / 86_400_000))
-    : 1;
-  const averageSeconds =
-    audience === "trainee" && analytics ? Math.round(analytics.summary.totalSeconds / dayCount) : analytics?.summary.averageSeconds ?? 0;
+  const averageSeconds = analytics?.summary.averageSeconds ?? 0;
 
   return (
     <section className={`${CARD} p-5 sm:p-6`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">App Usage Time</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {audience === "trainee"
-              ? "How long you have been actively using the LMS."
-              : "Active LMS time for trainees in your scope."}
-          </p>
+          <p className="mt-1 text-sm text-slate-500">Active LMS time for trainees in your scope.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="usage-period">
@@ -151,7 +140,7 @@ export function AppUsagePanel({ audience }: { audience: Audience }) {
         </div>
       </div>
 
-      {audience !== "trainee" && analytics ? (
+      {analytics ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <label className="block text-xs font-medium tracking-wide text-slate-500 uppercase">
             Course
@@ -253,18 +242,11 @@ export function AppUsagePanel({ audience }: { audience: Audience }) {
 
       {!loading && analytics && !error ? (
         <>
-          <div className={`mt-5 grid gap-3 ${audience === "trainee" ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-4"}`}>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <SummaryCard label="Total active time" value={empty ? "—" : formatDuration(analytics.summary.totalSeconds)} />
-            <SummaryCard
-              label={audience === "trainee" ? "Average per day" : "Average per trainee"}
-              value={empty ? "—" : formatDuration(averageSeconds)}
-            />
-            {audience !== "trainee" ? (
-              <>
-                <SummaryCard label="Most active" value={analytics.summary.mostActive?.name ?? "—"} />
-                <SummaryCard label="Active trainees" value={empty ? "—" : String(analytics.summary.activeTrainees)} />
-              </>
-            ) : null}
+            <SummaryCard label="Average per trainee" value={empty ? "—" : formatDuration(averageSeconds)} />
+            <SummaryCard label="Most active" value={analytics.summary.mostActive?.name ?? "—"} />
+            <SummaryCard label="Active trainees" value={empty ? "—" : String(analytics.summary.activeTrainees)} />
           </div>
 
           <div className="mt-6">

@@ -194,6 +194,8 @@ export async function addAssignment(
     allowedFileTypes?: string;
     maxFileSizeMb?: number;
     status?: "DRAFT" | "PUBLISHED" | "CLOSED";
+    linkedItemType?: "LESSON" | "VIDEO" | "RESOURCE" | "REEL" | null;
+    linkedItemId?: string | null;
   },
 ): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/days/${dayId}/assignments`, { method: "POST", body });
@@ -201,7 +203,13 @@ export async function addAssignment(
 
 export async function updateAssignment(
   assignmentId: string,
-  body: Partial<{ title: string; description: string; maxScore: number }>,
+  body: Partial<{
+    title: string;
+    description: string;
+    maxScore: number;
+    linkedItemType: "LESSON" | "VIDEO" | "RESOURCE" | "REEL" | null;
+    linkedItemId: string | null;
+  }>,
 ): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/assignments/${assignmentId}`, { method: "PATCH", body });
 }

@@ -7,6 +7,7 @@ import { ProgramReview } from "@/features/approvals/program-review";
 import { approveProgram, getAdminProgram, listAdminPrograms, rejectProgram } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { programStatusLabel } from "@/lib/programs/enrollment";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { ProgramStatus } from "@/types/domain";
 import type { ProgramSummary, ProgramTree } from "@/types/program";
 
@@ -222,7 +223,10 @@ export function ApprovalsBoard() {
                   </button>
                 </div>
                 <label className="mt-4 block text-sm">
-                  <span className="font-medium text-slate-800">Rejection reason</span>
+                  <span className="font-medium text-slate-800">
+                    Rejection reason
+                    <RequiredMark />
+                  </span>
                   <textarea
                     className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none"
                     rows={3}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, primaryButtonClass } from "@/features/programs/builder/ui";
 import type { QuizInput } from "@/types/program";
 
@@ -72,34 +73,52 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
   return (
     <form className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={handleSubmit}>
       <div className="grid gap-3 md:grid-cols-2">
-        <input name="title" placeholder="Quiz title" className={fieldClass} disabled={disabled || busy} />
-        <input name="description" placeholder="Description" className={fieldClass} disabled={disabled || busy} />
-        <input
-          name="passingScore"
-          type="number"
-          min={0}
-          max={100}
-          defaultValue={70}
-          placeholder="Passing score"
-          className={fieldClass}
-          disabled={disabled || busy}
-        />
-        <input
-          name="timeLimitMin"
-          type="number"
-          min={1}
-          placeholder="Time limit (minutes)"
-          className={fieldClass}
-          disabled={disabled || busy}
-        />
-        <input
-          name="maxAttempts"
-          type="number"
-          min={1}
-          placeholder="Max attempts"
-          className={fieldClass}
-          disabled={disabled || busy}
-        />
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">
+            Quiz title
+            <RequiredMark />
+          </span>
+          <input name="title" placeholder="Quiz title" className={fieldClass} disabled={disabled || busy} />
+        </label>
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">Description</span>
+          <input name="description" placeholder="Description" className={fieldClass} disabled={disabled || busy} />
+        </label>
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">Passing score</span>
+          <input
+            name="passingScore"
+            type="number"
+            min={0}
+            max={100}
+            defaultValue={70}
+            placeholder="Passing score"
+            className={fieldClass}
+            disabled={disabled || busy}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">Time limit (minutes)</span>
+          <input
+            name="timeLimitMin"
+            type="number"
+            min={1}
+            placeholder="Time limit (minutes)"
+            className={fieldClass}
+            disabled={disabled || busy}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">Max attempts</span>
+          <input
+            name="maxAttempts"
+            type="number"
+            min={1}
+            placeholder="Max attempts"
+            className={fieldClass}
+            disabled={disabled || busy}
+          />
+        </label>
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" name="randomized" disabled={disabled || busy} />
           Randomize questions and options
@@ -107,17 +126,27 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       </div>
       {questions.map((question, index) => (
         <div key={index} className="grid gap-2 rounded-xl bg-slate-50 p-3">
-          <input
-            className={fieldClass}
-            placeholder={`Question ${index + 1}`}
-            value={question.prompt}
-            disabled={disabled || busy}
-            onChange={(event) => {
-              const next = [...questions];
-              next[index] = { ...question, prompt: event.target.value };
-              setQuestions(next);
-            }}
-          />
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-slate-800">
+              Question {index + 1}
+              <RequiredMark />
+            </span>
+            <input
+              className={fieldClass}
+              placeholder={`Question ${index + 1}`}
+              value={question.prompt}
+              disabled={disabled || busy}
+              onChange={(event) => {
+                const next = [...questions];
+                next[index] = { ...question, prompt: event.target.value };
+                setQuestions(next);
+              }}
+            />
+          </label>
+          <p className="text-xs font-medium text-slate-600">
+            Answers
+            <RequiredMark />
+          </p>
           {question.options.map((option, optionIndex) => (
             <label key={optionIndex} className="flex items-center gap-2 text-sm">
               <input

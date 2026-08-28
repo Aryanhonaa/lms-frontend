@@ -5,6 +5,7 @@ import { BookOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { dayItemCount } from "@/features/programs/builder/completion";
 import { CARD, dangerButtonClass, fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import { InlineTitle } from "@/components/ui/inline-title";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { ProgramTree, Week } from "@/types/program";
 
 export function CurriculumPanel({
@@ -291,9 +292,18 @@ function InlineCreate({
       }}
     >
       <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <input name="title" className={fieldClass} placeholder={placeholder} autoFocus disabled={busy || pending} />
+      <label className="grid gap-1 text-sm">
+        <span className="font-medium text-slate-800">
+          Title
+          <RequiredMark />
+        </span>
+        <input name="title" className={fieldClass} placeholder={placeholder} autoFocus disabled={busy || pending} />
+      </label>
       {descriptionPlaceholder ? (
-        <textarea name="description" rows={2} className={fieldClass} placeholder={descriptionPlaceholder} disabled={busy || pending} />
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">Description</span>
+          <textarea name="description" rows={2} className={fieldClass} placeholder={descriptionPlaceholder} disabled={busy || pending} />
+        </label>
       ) : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <div className="flex justify-end gap-2">

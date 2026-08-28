@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
 import { programFormSchema, type ProgramFormValues } from "@/lib/programs/program-form-schema";
 import type { CreateProgramInput } from "@/types/program";
@@ -62,7 +63,10 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
   return (
     <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(submit)} noValidate>
       <label className="flex flex-col gap-1 text-sm md:col-span-2">
-        <span className="font-medium">Title</span>
+        <span className="font-medium">
+          Title
+          <RequiredMark />
+        </span>
         <input className={fieldClass} disabled={disabled} {...register("title")} />
         {errors.title ? <span className="text-red-700">{errors.title.message}</span> : null}
       </label>
@@ -80,7 +84,10 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
         {errors.category ? <span className="text-red-700">{errors.category.message}</span> : null}
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Duration (weeks)</span>
+        <span className="font-medium">
+          Duration (weeks)
+          <RequiredMark />
+        </span>
         <input type="number" min={1} className={fieldClass} disabled={disabled} {...register("durationWeeks", { valueAsNumber: true })} />
         {errors.durationWeeks ? <span className="text-red-700">{errors.durationWeeks.message}</span> : null}
       </label>

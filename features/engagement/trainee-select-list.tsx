@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { listBatchTrainees, listProgramBatches, type ProgramBatch } from "@/lib/api/batches";
 import type { ProgramTraineeRow } from "@/lib/api/enrollments";
 import { ApiClientError } from "@/lib/api/client";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 export function TraineeSelectList({
   role,
@@ -73,7 +74,10 @@ export function TraineeSelectList({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">Trainees</p>
+        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+          Trainees
+          <RequiredMark />
+        </p>
         <button
           type="button"
           className="text-xs font-semibold text-violet-700 hover:text-violet-800 disabled:opacity-40"
@@ -169,6 +173,7 @@ export function BatchSelect({
     <div>
       <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="announcement-batch">
         Batch
+        <RequiredMark />
       </label>
       <select
         id="announcement-batch"

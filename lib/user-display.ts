@@ -28,6 +28,11 @@ export function resolvePublicAssetUrl(url: string | null | undefined): string | 
   if (!url) {
     return null;
   }
+  const marker = "/uploads/";
+  const uploadIndex = url.indexOf(marker);
+  if (uploadIndex !== -1) {
+    return url.slice(uploadIndex);
+  }
   if (typeof window === "undefined") {
     return url;
   }

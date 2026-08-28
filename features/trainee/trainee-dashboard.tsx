@@ -24,7 +24,6 @@ import { getTraineeDashboard } from "@/lib/api/trainee";
 import { getTraineeLearnView } from "@/lib/api/learning";
 import { getTraineeProgress } from "@/lib/api/progress";
 import { ApiClientError } from "@/lib/api/client";
-import { AppUsagePanel } from "@/features/app-usage/app-usage-panel";
 import { traineeContinueHref, traineePathHref } from "@/lib/learning/path";
 import { currentDayItems, flattenLearnPath, isDoneStatus, locationLabel, progressHeadline } from "@/lib/learning/ux";
 import { traineePrimaryCtaClass } from "@/lib/ui/trainee";
@@ -223,8 +222,6 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TraineeDashboard; on
         <AssignmentsCard rows={dashboard.pendingAssignments} error={dashboard.errors.assignments} onRetry={onRetry} />
         <AnnouncementsCard rows={dashboard.announcements} error={dashboard.errors.announcements} onRetry={onRetry} />
       </div>
-
-      <AppUsagePanel audience="trainee" />
     </>
   );
 }

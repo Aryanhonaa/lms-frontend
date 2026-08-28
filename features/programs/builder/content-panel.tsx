@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import {
   ClipboardCheck,
   FileText,
@@ -10,7 +11,7 @@ import {
   Plus,
   ChevronLeft,
 } from "lucide-react";
-import { dayItemCount, findDay } from "@/features/programs/builder/completion";
+import { assignmentsForItem, dayItemCount, findDay, unlinkedAssignments } from "@/features/programs/builder/completion";
 import type { EditorState, PickerKind } from "@/features/programs/builder/content-editor";
 import { CARD, dangerButtonClass, ghostButtonClass } from "@/features/programs/builder/ui";
 import { InlineTitle } from "@/components/ui/inline-title";
@@ -199,115 +200,157 @@ export function ContentPanel({
         ) : (
           <ul className="divide-y divide-slate-100">
             {day.videos.map((item) => (
-              <ItemRow
-                key={item.id}
-                icon={Play}
-                title={item.title}
-                meta={`Video · ${item.source.toLowerCase()}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}${item.durationMin ? ` · ${item.durationMin} min` : ""}`}
-                href={externalHref(item.url)}
-                editable={editable}
-                busy={busy}
-                onPreviewFile={
-                  item.fileKey
-                    ? () =>
-                        onPreviewFile({
-                          type: "VIDEO",
-                          id: item.id,
-                          title: item.title,
-                          fileName: item.fileName ?? item.title,
-                          mimeType: item.mimeType ?? "video/mp4",
-                          fileSize: item.fileSize ?? 0,
-                        })
-                    : undefined
-                }
-                onDuplicate={item.fileKey ? undefined : () => onDuplicateVideo(day, item)}
-                onDelete={() => onDeleteVideo(item.id)}
-              />
+              <Fragment key={item.id}>
+                <ItemRow
+                  icon={Play}
+                  title={item.title}
+                  meta={`Video · ${item.source.toLowerCase()}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}${item.durationMin ? ` · ${item.durationMin} min` : ""}`}
+                  href={externalHref(item.url)}
+                  editable={editable}
+                  busy={busy}
+                  onPreviewFile={
+                    item.fileKey
+                      ? () =>
+                          onPreviewFile({
+                            type: "VIDEO",
+                            id: item.id,
+                            title: item.title,
+                            fileName: item.fileName ?? item.title,
+                            mimeType: item.mimeType ?? "video/mp4",
+                            fileSize: item.fileSize ?? 0,
+                          })
+                      : undefined
+                  }
+                  onDuplicate={item.fileKey ? undefined : () => onDuplicateVideo(day, item)}
+                  onDelete={() => onDeleteVideo(item.id)}
+                />
+                {assignmentsForItem(day, "VIDEO", item.id).map((assignment) => (
+                  <AssignmentItemRow
+                    key={assignment.id}
+                    item={assignment}
+                    nested
+                    editable={editable}
+                    busy={busy}
+                    onManageFiles={onManageFiles}
+                    onDeleteAssignment={onDeleteAssignment}
+                  />
+                ))}
+              </Fragment>
             ))}
             {day.lessons.map((item) => (
-              <ItemRow
-                key={item.id}
-                icon={FileText}
-                title={item.title}
-                meta={`Lesson${item.durationMin ? ` · ${item.durationMin} min` : ""}${
-                  item.attachments?.length ? ` · ${item.attachments.length} file${item.attachments.length > 1 ? "s" : ""}` : ""
-                }`}
-                editable={editable}
-                busy={busy}
-                onRename={() => onRenameLesson(item.id, item.title)}
-                onManageFiles={() =>
-                  onManageFiles({ kind: "lesson", id: item.id, title: item.title, attachments: item.attachments })
-                }
-                onDuplicate={() => onDuplicateLesson(day, item)}
-                onDelete={() => onDeleteLesson(item.id)}
-              />
+              <Fragment key={item.id}>
+                <ItemRow
+                  icon={FileText}
+                  title={item.title}
+                  meta={`Lesson${item.durationMin ? ` · ${item.durationMin} min` : ""}${
+                    item.attachments?.length ? ` · ${item.attachments.length} file${item.attachments.length > 1 ? "s" : ""}` : ""
+                  }`}
+                  editable={editable}
+                  busy={busy}
+                  onRename={() => onRenameLesson(item.id, item.title)}
+                  onManageFiles={() =>
+                    onManageFiles({ kind: "lesson", id: item.id, title: item.title, attachments: item.attachments })
+                  }
+                  onDuplicate={() => onDuplicateLesson(day, item)}
+                  onDelete={() => onDeleteLesson(item.id)}
+                />
+                {assignmentsForItem(day, "LESSON", item.id).map((assignment) => (
+                  <AssignmentItemRow
+                    key={assignment.id}
+                    item={assignment}
+                    nested
+                    editable={editable}
+                    busy={busy}
+                    onManageFiles={onManageFiles}
+                    onDeleteAssignment={onDeleteAssignment}
+                  />
+                ))}
+              </Fragment>
             ))}
             {day.resources.map((item) => (
-              <ItemRow
-                key={item.id}
-                icon={LinkIcon}
-                title={item.title}
-                meta={`${item.kind.toLowerCase()}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}`}
-                href={externalHref(item.url)}
-                editable={editable}
-                busy={busy}
-                onPreviewFile={
-                  item.fileKey
-                    ? () =>
-                        onPreviewFile({
-                          type: "RESOURCE",
-                          id: item.id,
-                          title: item.title,
-                          fileName: item.fileName ?? item.title,
-                          mimeType: item.mimeType ?? "application/octet-stream",
-                          fileSize: item.fileSize ?? 0,
-                        })
-                    : undefined
-                }
-                onDuplicate={item.fileKey ? undefined : () => onDuplicateResource(day, item)}
-                onDelete={() => onDeleteResource(item.id)}
-              />
+              <Fragment key={item.id}>
+                <ItemRow
+                  icon={LinkIcon}
+                  title={item.title}
+                  meta={`${item.kind.toLowerCase()}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}`}
+                  href={externalHref(item.url)}
+                  editable={editable}
+                  busy={busy}
+                  onPreviewFile={
+                    item.fileKey
+                      ? () =>
+                          onPreviewFile({
+                            type: "RESOURCE",
+                            id: item.id,
+                            title: item.title,
+                            fileName: item.fileName ?? item.title,
+                            mimeType: item.mimeType ?? "application/octet-stream",
+                            fileSize: item.fileSize ?? 0,
+                          })
+                      : undefined
+                  }
+                  onDuplicate={item.fileKey ? undefined : () => onDuplicateResource(day, item)}
+                  onDelete={() => onDeleteResource(item.id)}
+                />
+                {assignmentsForItem(day, "RESOURCE", item.id).map((assignment) => (
+                  <AssignmentItemRow
+                    key={assignment.id}
+                    item={assignment}
+                    nested
+                    editable={editable}
+                    busy={busy}
+                    onManageFiles={onManageFiles}
+                    onDeleteAssignment={onDeleteAssignment}
+                  />
+                ))}
+              </Fragment>
             ))}
             {day.reels.map((item) => (
-              <ItemRow
-                key={item.id}
-                icon={Film}
-                title={item.title}
-                meta={`Reel${item.durationSec ? ` · ${item.durationSec}s` : ""}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}`}
-                href={externalHref(item.url)}
-                editable={editable}
-                busy={busy}
-                onPreviewFile={
-                  item.fileKey
-                    ? () =>
-                        onPreviewFile({
-                          type: "REEL",
-                          id: item.id,
-                          title: item.title,
-                          fileName: item.fileName ?? item.title,
-                          mimeType: item.mimeType ?? "video/mp4",
-                          fileSize: item.fileSize ?? 0,
-                        })
-                    : undefined
-                }
-                onDuplicate={item.fileKey ? undefined : () => onDuplicateReel(day, item)}
-                onDelete={() => onDeleteReel(item.id)}
-              />
+              <Fragment key={item.id}>
+                <ItemRow
+                  icon={Film}
+                  title={item.title}
+                  meta={`Reel${item.durationSec ? ` · ${item.durationSec}s` : ""}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}`}
+                  href={externalHref(item.url)}
+                  editable={editable}
+                  busy={busy}
+                  onPreviewFile={
+                    item.fileKey
+                      ? () =>
+                          onPreviewFile({
+                            type: "REEL",
+                            id: item.id,
+                            title: item.title,
+                            fileName: item.fileName ?? item.title,
+                            mimeType: item.mimeType ?? "video/mp4",
+                            fileSize: item.fileSize ?? 0,
+                          })
+                      : undefined
+                  }
+                  onDuplicate={item.fileKey ? undefined : () => onDuplicateReel(day, item)}
+                  onDelete={() => onDeleteReel(item.id)}
+                />
+                {assignmentsForItem(day, "REEL", item.id).map((assignment) => (
+                  <AssignmentItemRow
+                    key={assignment.id}
+                    item={assignment}
+                    nested
+                    editable={editable}
+                    busy={busy}
+                    onManageFiles={onManageFiles}
+                    onDeleteAssignment={onDeleteAssignment}
+                  />
+                ))}
+              </Fragment>
             ))}
-            {day.assignments.map((item) => (
-              <ItemRow
+            {unlinkedAssignments(day).map((item) => (
+              <AssignmentItemRow
                 key={item.id}
-                icon={ListChecks}
-                title={item.title}
-                meta={`Assignment · ${(item.status ?? "PUBLISHED").toLowerCase()}${
-                  item.attachments?.length ? ` · ${item.attachments.length} file${item.attachments.length > 1 ? "s" : ""}` : ""
-                }`}
+                item={item}
                 editable={editable}
                 busy={busy}
-                onManageFiles={() =>
-                  onManageFiles({ kind: "assignment", id: item.id, title: item.title, attachments: item.attachments })
-                }
-                onDelete={() => onDeleteAssignment(item.id)}
+                onManageFiles={onManageFiles}
+                onDeleteAssignment={onDeleteAssignment}
               />
             ))}
             {day.quizzes.map((item) => (
@@ -358,11 +401,45 @@ function TypeCard({
   );
 }
 
+function AssignmentItemRow({
+  item,
+  nested,
+  editable,
+  busy,
+  onManageFiles,
+  onDeleteAssignment,
+}: {
+  item: Day["assignments"][number];
+  nested?: boolean;
+  editable: boolean;
+  busy: boolean;
+  onManageFiles: (target: { kind: "lesson" | "assignment"; id: string; title: string; attachments?: ContentAttachment[] }) => void;
+  onDeleteAssignment: (id: string) => void;
+}) {
+  return (
+    <ItemRow
+      icon={ListChecks}
+      title={item.title}
+      meta={`${nested ? "Assignment for this file" : "Assignment"} · ${(item.status ?? "PUBLISHED").toLowerCase()}${
+        item.attachments?.length ? ` · ${item.attachments.length} file${item.attachments.length > 1 ? "s" : ""}` : ""
+      }`}
+      nested={nested}
+      editable={editable}
+      busy={busy}
+      onManageFiles={() =>
+        onManageFiles({ kind: "assignment", id: item.id, title: item.title, attachments: item.attachments })
+      }
+      onDelete={() => onDeleteAssignment(item.id)}
+    />
+  );
+}
+
 function ItemRow({
   icon: Icon,
   title,
   meta,
   href,
+  nested,
   editable,
   busy,
   onRename,
@@ -375,6 +452,7 @@ function ItemRow({
   title: string;
   meta: string;
   href?: string;
+  nested?: boolean;
   editable: boolean;
   busy: boolean;
   onRename?: () => void;
@@ -384,7 +462,7 @@ function ItemRow({
   onPreviewFile?: () => void;
 }) {
   return (
-    <li className="flex items-start gap-3 px-5 py-3">
+    <li className={`flex items-start gap-3 py-3 ${nested ? "bg-slate-50/80 pr-5 pl-10" : "px-5"}`}>
       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
         <Icon className="h-4 w-4" />
       </span>

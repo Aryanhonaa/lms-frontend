@@ -11,6 +11,7 @@ import { FileActionsRow } from "@/components/files/file-viewer";
 import { getAttachmentAccess, getSubmissionFileAccess } from "@/lib/api/files";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/providers/auth-provider";
 import type { TrainerRosterRow, TrainerSubmission } from "@/types/assignment";
 
@@ -244,6 +245,7 @@ export default function TrainerAssignmentDetailPage() {
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <label className="text-sm font-medium text-slate-800">
                           Score
+                          <RequiredMark />
                           <input
                             name="score"
                             type="number"

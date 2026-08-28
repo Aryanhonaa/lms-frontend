@@ -160,6 +160,16 @@ function ProgramOverview() {
                               </span>
                             </li>
                           ))}
+                          {(day.assignments ?? [])
+                            .filter((item) => item.linkedItemId && day.items.some((file) => file.id === item.linkedItemId))
+                            .map((item) => (
+                            <li key={`assignment-${item.id}`} className="flex items-center justify-between gap-3 pl-4 text-sm">
+                              <span className="truncate text-slate-800">{item.title}</span>
+                              <span className="shrink-0 text-[11px] font-medium text-slate-400">
+                                Assignment · {item.status === "LOCKED" ? "Locked" : item.status === "COMPLETED" ? "Done" : "Up next"}
+                              </span>
+                            </li>
+                          ))}
                           {(day.quizzes ?? []).map((item) => (
                             <li key={`quiz-${item.id}`} className="flex items-center justify-between gap-3 text-sm">
                               <span className="truncate text-slate-800">{item.title}</span>
@@ -168,7 +178,9 @@ function ProgramOverview() {
                               </span>
                             </li>
                           ))}
-                          {(day.assignments ?? []).map((item) => (
+                          {(day.assignments ?? [])
+                            .filter((item) => !item.linkedItemId || !day.items.some((file) => file.id === item.linkedItemId))
+                            .map((item) => (
                             <li key={`assignment-${item.id}`} className="flex items-center justify-between gap-3 text-sm">
                               <span className="truncate text-slate-800">{item.title}</span>
                               <span className="shrink-0 text-[11px] font-medium text-slate-400">

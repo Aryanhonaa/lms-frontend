@@ -111,6 +111,12 @@ export function friendlyLockReason(reason: string | null): string {
   if (/required lessons before the assignment/i.test(reason)) {
     return "Finish today's lessons to unlock this assignment.";
   }
+  if (/Finish this file before the assignment/i.test(reason)) {
+    return "Finish this file to unlock its assignment.";
+  }
+  if (/Finish the previous file and its assignment first/i.test(reason)) {
+    return "Finish the previous file and its assignment first.";
+  }
   if (/Pass this day's quiz before the assignment/i.test(reason)) {
     return "Pass today's quiz to unlock this assignment.";
   }
@@ -146,6 +152,25 @@ export function flattenLearnPath(view: LearnView): PathItem[] {
           required: item.required,
           description: item.description,
         });
+        for (const assignment of day.assignments ?? []) {
+          if (assignment.linkedItemId !== item.id || assignment.linkedItemType !== item.type) {
+            continue;
+          }
+          items.push({
+            type: "ASSIGNMENT",
+            id: assignment.id,
+            title: assignment.title,
+            status: assignment.status,
+            reason: assignment.reason,
+            weekTitle: week.title,
+            dayTitle: day.title,
+            dueDate: assignment.dueDate,
+            maxScore: assignment.maxScore,
+            description: assignment.description,
+            linkedItemType: assignment.linkedItemType,
+            linkedItemId: assignment.linkedItemId,
+          });
+        }
       }
       for (const quiz of day.quizzes ?? []) {
         items.push({
@@ -160,6 +185,14 @@ export function flattenLearnPath(view: LearnView): PathItem[] {
         });
       }
       for (const assignment of day.assignments ?? []) {
+        if (assignment.linkedItemId && assignment.linkedItemType) {
+          const parent = day.items.find(
+            (item) => item.id === assignment.linkedItemId && item.type === assignment.linkedItemType,
+          );
+          if (parent) {
+            continue;
+          }
+        }
         items.push({
           type: "ASSIGNMENT",
           id: assignment.id,
@@ -171,6 +204,8 @@ export function flattenLearnPath(view: LearnView): PathItem[] {
           dueDate: assignment.dueDate,
           maxScore: assignment.maxScore,
           description: assignment.description,
+          linkedItemType: assignment.linkedItemType,
+          linkedItemId: assignment.linkedItemId,
         });
       }
     }

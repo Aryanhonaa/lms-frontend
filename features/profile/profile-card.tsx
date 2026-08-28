@@ -10,7 +10,15 @@ import { formatRoleLabel } from "@/lib/user-display";
 import { useAuth } from "@/providers/auth-provider";
 
 const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ACCEPTED_NAME = /\.(jpe?g|png|webp)$/i;
 const MAX_BYTES = 5 * 1024 * 1024;
+
+function isAcceptedImage(file: File): boolean {
+  if (ACCEPTED_TYPES.has(file.type)) {
+    return true;
+  }
+  return !file.type && ACCEPTED_NAME.test(file.name);
+}
 
 function formatJoined(value: string): string {
   const date = new Date(value);
@@ -35,7 +43,7 @@ export function ProfileCard() {
     if (!file) {
       return;
     }
-    if (!ACCEPTED_TYPES.has(file.type)) {
+    if (!isAcceptedImage(file)) {
       setError("Use a JPG, PNG, or WEBP image.");
       setNotice(null);
       return;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { CreateProgramInput, ProgramTree } from "@/types/program";
 import type { Difficulty, TrainingMode } from "@/types/domain";
 import { CARD, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
@@ -141,7 +142,10 @@ export function OverviewPanel({
           <p className="mt-0.5 text-xs text-slate-500">This is what trainees see first.</p>
         </div>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-slate-800">Program title</span>
+          <span className="font-medium text-slate-800">
+            Program title
+            <RequiredMark />
+          </span>
           <input
             className={fieldClass}
             value={values.title}

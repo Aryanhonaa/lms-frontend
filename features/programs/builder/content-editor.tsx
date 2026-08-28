@@ -5,6 +5,7 @@ import { FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck, Che
 import { QuizForm } from "@/features/programs/quiz-form";
 import { VideoFields, type VideoDraft } from "@/features/programs/builder/video-fields";
 import { AttachmentUploadField } from "@/components/files/attachment-upload-field";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import type { QuizInput } from "@/types/program";
 import type { UploadedFile } from "@/types/files";
@@ -89,6 +90,8 @@ type ContentEditorProps = {
       allowedFileTypes?: string;
       maxFileSizeMb?: number;
       status?: "DRAFT" | "PUBLISHED";
+      linkedItemType?: "LESSON" | "VIDEO" | "RESOURCE" | "REEL" | null;
+      linkedItemId?: string | null;
     },
   ) => Promise<void>;
   onAddPracticeQuiz: (dayId: string, input: QuizInput) => Promise<void>;
@@ -96,6 +99,7 @@ type ContentEditorProps = {
   onAddWeeklyExam: (weekId: string, input: QuizInput) => Promise<void>;
   onAddFinalExam: (input: QuizInput) => Promise<void>;
   onAddMilestone: (input: { title: string; afterWeekIndex: number }) => Promise<void>;
+  fileOptions?: Array<{ type: "LESSON" | "VIDEO" | "RESOURCE" | "REEL"; id: string; title: string }>;
 };
 
 function EditorNav({
@@ -122,10 +126,13 @@ function EditorNav({
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <label className="grid gap-1 text-sm">
-      <span className="font-medium text-slate-800">{label}</span>
+      <span className="font-medium text-slate-800">
+        {label}
+        {required ? <RequiredMark /> : null}
+      </span>
       {children}
     </label>
   );
@@ -205,7 +212,7 @@ export function ContentEditor(props: ContentEditorProps) {
           });
         }}
       >
-        <Field label="Title">
+        <Field label="Title" required>
           <input name="title" className={fieldClass} placeholder={state.view === "week" ? "Network Security" : "Introduction to Firewalls"} disabled={disabled || busy} />
         </Field>
         {state.view === "week" ? (
@@ -244,7 +251,7 @@ export function ContentEditor(props: ContentEditorProps) {
           );
         }}
       >
-        <Field label="Title">
+        <Field label="Title" required>
           <input name="title" className={fieldClass} placeholder="Checkpoint" disabled={disabled || busy} />
         </Field>
         <Field label="After week number">
@@ -336,7 +343,7 @@ export function ContentEditor(props: ContentEditorProps) {
           );
         }}
       >
-        <Field label="Title">
+        <Field label="Title" required>
           <input
             className={fieldClass}
             value={draft.title}
@@ -408,7 +415,7 @@ export function ContentEditor(props: ContentEditorProps) {
           );
         }}
       >
-        <Field label="Title">
+        <Field label="Title" required>
           <input name="title" className={fieldClass} disabled={disabled || busy} />
         </Field>
         <div className="grid grid-cols-2 gap-2">
@@ -433,16 +440,22 @@ export function ContentEditor(props: ContentEditorProps) {
           </button>
         </div>
         {resourceMode === "upload" ? (
-          <AttachmentUploadField
-            dayId={state.dayId}
-            purpose="RESOURCE"
-            disabled={disabled || busy}
-            uploaded={resourceFile}
-            onUploaded={setResourceFile}
-            onUploadingChange={setUploading}
-          />
+          <div className="grid gap-1 text-sm">
+            <span className="font-medium text-slate-800">
+              File
+              <RequiredMark />
+            </span>
+            <AttachmentUploadField
+              dayId={state.dayId}
+              purpose="RESOURCE"
+              disabled={disabled || busy}
+              uploaded={resourceFile}
+              onUploaded={setResourceFile}
+              onUploadingChange={setUploading}
+            />
+          </div>
         ) : (
-          <Field label="URL">
+          <Field label="URL" required>
             <input name="url" className={fieldClass} disabled={disabled || busy} />
           </Field>
         )}
@@ -487,6 +500,10 @@ export function ContentEditor(props: ContentEditorProps) {
             });
           }
           if (state.kind === "ASSIGNMENT") {
+            const linkedKey = String(data.get("linkedKey") ?? "").trim();
+            const [linkedItemType, linkedItemId] = linkedKey.includes(":")
+              ? (linkedKey.split(":") as ["LESSON" | "VIDEO" | "RESOURCE" | "REEL", string])
+              : [null, null];
             await props.onAddAssignment(state.dayId, {
               title,
               description: String(data.get("description") ?? "").trim() || undefined,
@@ -501,12 +518,14 @@ export function ContentEditor(props: ContentEditorProps) {
               allowedFileTypes: String(data.get("allowedFileTypes") ?? "").trim() || undefined,
               maxFileSizeMb: data.get("maxFileSizeMb") ? Number(data.get("maxFileSizeMb")) : undefined,
               status: String(data.get("lifecycle") ?? "PUBLISHED") === "DRAFT" ? "DRAFT" : "PUBLISHED",
+              linkedItemType,
+              linkedItemId,
             });
           }
         });
       }}
     >
-      <Field label="Title">
+      <Field label="Title" required>
         <input name="title" className={fieldClass} disabled={disabled || busy} />
       </Field>
       {state.kind === "LESSON" ? (
@@ -522,6 +541,21 @@ export function ContentEditor(props: ContentEditorProps) {
       {state.kind === "ASSIGNMENT" ? (
         <>
           <p className="text-xs font-medium tracking-wide text-stone-500 uppercase">Assignment details</p>
+          <Field label="After which file?">
+            <select name="linkedKey" className={fieldClass} defaultValue="" disabled={disabled || busy}>
+              <option value="">End of day (after all files)</option>
+              {(props.fileOptions ?? []).map((item) => (
+                <option key={`${item.type}-${item.id}`} value={`${item.type}:${item.id}`}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {(props.fileOptions ?? []).length === 0 ? (
+            <p className="text-xs text-slate-500">
+              Add PDFs or other files to this day first if this assignment should follow a specific file.
+            </p>
+          ) : null}
           <Field label="Brief">
             <textarea name="description" rows={3} className={fieldClass} disabled={disabled || busy} />
           </Field>

@@ -28,6 +28,38 @@ export function dayLearningCount(day: Day): number {
   return day.lessons.length + day.videos.length + day.resources.length + day.reels.length;
 }
 
+export function dayFileOptions(day: Day): Array<{ type: "LESSON" | "VIDEO" | "RESOURCE" | "REEL"; id: string; title: string }> {
+  return [
+    ...day.lessons.map((item) => ({ type: "LESSON" as const, id: item.id, title: item.title })),
+    ...day.videos.map((item) => ({ type: "VIDEO" as const, id: item.id, title: item.title })),
+    ...day.resources.map((item) => ({ type: "RESOURCE" as const, id: item.id, title: item.title })),
+    ...day.reels.map((item) => ({ type: "REEL" as const, id: item.id, title: item.title })),
+  ];
+}
+
+export function assignmentsForItem(day: Day, type: string, id: string) {
+  return day.assignments.filter((item) => item.linkedItemType === type && item.linkedItemId === id);
+}
+
+export function unlinkedAssignments(day: Day) {
+  return day.assignments.filter((item) => !item.linkedItemId || !item.linkedItemType);
+}
+
+export function linkedFileTitle(program: ProgramTree, type?: string | null, id?: string | null): string | null {
+  if (!type || !id) {
+    return null;
+  }
+  for (const week of program.weeks) {
+    for (const day of week.days) {
+      const match = dayFileOptions(day).find((item) => item.type === type && item.id === id);
+      if (match) {
+        return match.title;
+      }
+    }
+  }
+  return null;
+}
+
 export function dayItemCount(day: Day): number {
   return dayLearningCount(day) + day.assignments.length + day.quizzes.length;
 }

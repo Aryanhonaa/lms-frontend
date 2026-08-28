@@ -110,6 +110,8 @@ export type PathItem = {
   dueDate?: string | null;
   maxScore?: number;
   description?: string;
+  linkedItemType?: string | null;
+  linkedItemId?: string | null;
 };
 
 export function nextPathItem(items: PathItem[], current: PathItem | null): PathItem | NextActivity | null {

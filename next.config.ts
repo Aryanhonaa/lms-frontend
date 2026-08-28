@@ -12,10 +12,15 @@ function apiProxyOrigin(): string {
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    const apiOrigin = apiProxyOrigin();
     return [
       {
         source: "/api/v1/:path*",
-        destination: `${apiProxyOrigin()}/api/v1/:path*`,
+        destination: `${apiOrigin}/api/v1/:path*`,
+      },
+      {
+        source: "/uploads/:path*",
+        destination: `${apiOrigin}/uploads/:path*`,
       },
     ];
   },
