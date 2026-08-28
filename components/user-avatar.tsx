@@ -21,7 +21,7 @@ export function UserAvatar({ name, avatarUrl, size = "md", className = "" }: Use
     return (
       <span className={`relative inline-flex shrink-0 overflow-hidden rounded-full bg-violet-600 ${dim} ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={`${name} profile picture`} className="h-full w-full object-cover" />
+        <img key={src} src={src} alt={`${name} profile picture`} className="h-full w-full object-cover" />
       </span>
     );
   }
