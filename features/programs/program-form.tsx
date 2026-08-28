@@ -19,6 +19,8 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProgramFormValues>({
     resolver: zodResolver(programFormSchema),
@@ -35,8 +37,12 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
     },
   });
 
+  const trainingMode = watch("trainingMode");
+  const scheduled = trainingMode === "SCHEDULED";
+
   async function submit(values: ProgramFormValues) {
     setFormError(null);
+    const scheduledMode = values.trainingMode === "SCHEDULED";
     try {
       await onSubmit({
         title: values.title,
@@ -45,8 +51,8 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
         difficulty: values.difficulty,
         durationWeeks: values.durationWeeks,
         trainingMode: values.trainingMode,
-        startDate: values.startDate || null,
-        endDate: values.endDate || null,
+        startDate: scheduledMode ? values.startDate || null : null,
+        endDate: scheduledMode ? values.endDate || null : null,
       });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Unable to save program");
@@ -88,19 +94,34 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
       </label>
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Training mode</span>
-        <select className={fieldClass} disabled={disabled} {...register("trainingMode")}>
+        <select
+          className={fieldClass}
+          disabled={disabled}
+          {...register("trainingMode", {
+            onChange: (event) => {
+              if (event.target.value !== "SCHEDULED") {
+                setValue("startDate", "");
+                setValue("endDate", "");
+              }
+            },
+          })}
+        >
           <option value="PROGRESSION">Progression</option>
           <option value="SCHEDULED">Scheduled</option>
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Start date</span>
-        <input type="date" className={fieldClass} disabled={disabled} {...register("startDate")} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">End date</span>
-        <input type="date" className={fieldClass} disabled={disabled} {...register("endDate")} />
-      </label>
+      {scheduled ? (
+        <>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Start date</span>
+            <input type="date" className={fieldClass} disabled={disabled} {...register("startDate")} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">End date</span>
+            <input type="date" className={fieldClass} disabled={disabled} {...register("endDate")} />
+          </label>
+        </>
+      ) : null}
         </div>
       </details>
       {formError ? <p className="text-sm text-red-700 md:col-span-2">{formError}</p> : null}

@@ -116,7 +116,25 @@ export function EnrollTraineesDialog({
   }
 
   return (
-      <Dialog open={open} title={batchName ? `Enroll into ${batchName}` : "Enroll Trainees"} onClose={close} side>
+      <Dialog
+        open={open}
+        title={batchName ? `Enroll into ${batchName}` : "Enroll Trainees"}
+        onClose={close}
+        side
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-stone-600">Selected: {selectedCount}</p>
+            <div className="flex gap-2">
+              <button type="button" className={secondaryButtonClass} onClick={close}>
+                Cancel
+              </button>
+              <button type="button" className={primaryButtonClass} disabled={busy || selectedCount === 0} onClick={() => void enroll()}>
+                {busy ? "Enrolling…" : "Enroll Selected"}
+              </button>
+            </div>
+          </div>
+        }
+      >
       <p className="mb-4 text-sm text-stone-600">
         {programTitle}
         {batchName ? ` · ${batchName}` : ""}
@@ -172,22 +190,6 @@ export function EnrollTraineesDialog({
           );
         })}
       </ul>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4">
-        <p className="text-sm text-stone-600">Selected: {selectedCount}</p>
-        <div className="flex gap-2">
-          <button type="button" className={secondaryButtonClass} onClick={close}>
-            Cancel
-          </button>
-          <button type="button" className={primaryButtonClass} disabled={busy || selectedCount === 0} onClick={() => void enroll()}>
-            {busy
-              ? "Enrolling…"
-              : selectedCount > 0
-                ? `Enroll ${selectedCount} ${selectedCount === 1 ? "Trainee" : "Trainees"}`
-                : "Enroll Selected"}
-          </button>
-        </div>
-      </div>
     </Dialog>
   );
 }

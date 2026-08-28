@@ -8,6 +8,7 @@ import {
   ListChecks,
   Play,
   Plus,
+  ChevronLeft,
 } from "lucide-react";
 import { dayItemCount, findDay } from "@/features/programs/builder/completion";
 import type { EditorState, PickerKind } from "@/features/programs/builder/content-editor";
@@ -40,6 +41,7 @@ export function ContentPanel({
   onSelectDay,
   onRenameDay,
   onOpenEditor,
+  onBackToCurriculum,
   onRenameLesson,
   onDuplicateLesson,
   onDeleteLesson,
@@ -61,6 +63,7 @@ export function ContentPanel({
   onSelectDay: (dayId: string) => void;
   onRenameDay: (title: string) => Promise<void>;
   onOpenEditor: (state: EditorState) => void;
+  onBackToCurriculum: () => void;
   onRenameLesson: (id: string, current: string) => void;
   onDuplicateLesson: (day: Day, item: Day["lessons"][number]) => void;
   onDeleteLesson: (id: string) => void;
@@ -96,6 +99,10 @@ export function ContentPanel({
         <div className={`${CARD} px-6 py-12 text-center`}>
           <h2 className="text-base font-semibold text-slate-900">Add a day first</h2>
           <p className="mt-1 text-sm text-slate-500">Content lives inside a day. Build a week in Curriculum, then come back here.</p>
+          <button type="button" className={`${ghostButtonClass} mt-4`} onClick={onBackToCurriculum}>
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Back to weeks & days
+          </button>
         </div>
       </div>
     );
@@ -116,6 +123,10 @@ export function ContentPanel({
               </li>
             ))}
           </ul>
+          <button type="button" className={`${ghostButtonClass} mt-4`} onClick={onBackToCurriculum}>
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Back to weeks & days
+          </button>
         </div>
       </div>
     );
@@ -126,6 +137,10 @@ export function ContentPanel({
 
   return (
     <div className="lms-fade-up mx-auto max-w-3xl space-y-5">
+      <button type="button" className={ghostButtonClass} onClick={onBackToCurriculum}>
+        <ChevronLeft className="h-4 w-4" aria-hidden />
+        Back to weeks & days
+      </button>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">

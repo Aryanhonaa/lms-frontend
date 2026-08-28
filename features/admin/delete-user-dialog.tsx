@@ -31,12 +31,26 @@ export type DeletableUser = {
   role: Role;
 };
 
+const BLOCKER_HINTS: Record<string, string> = {
+  "This user created programs and cannot be deleted.":
+    "Courses keep their original author. Delete those courses first (only if they have no enrollments), then try again.",
+  "This user posted announcements and cannot be deleted.":
+    "Remove those announcements first, then try again.",
+  "This user issued certificates and cannot be deleted.":
+    "Certificates keep the trainer who issued them. This account cannot be deleted while those certificates exist.",
+  "This user marked attendance records and cannot be deleted.":
+    "Attendance records keep the person who marked them.",
+  "This user assigned individual requirements and cannot be deleted.":
+    "Extra requirements keep the trainer who assigned them.",
+};
+
 function deletionError(error: unknown): string {
   if (error instanceof ApiClientError) {
     if (error.status === 404 || error.code === "NOT_FOUND") {
       return "User not found.";
     }
-    return error.message;
+    const hint = BLOCKER_HINTS[error.message];
+    return hint ? `${error.message} ${hint}` : error.message;
   }
   return "Unable to delete this user. Please try again.";
 }
@@ -102,6 +116,20 @@ export function DeleteUserDialog({
           </div>
         </dl>
       ) : null}
+      <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-100">
+        <p className="font-medium">This account cannot be deleted if they:</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-900">
+          <li>Created any course</li>
+          <li>Posted announcements</li>
+          <li>Are the trainer on issued certificates</li>
+          <li>Marked attendance</li>
+          <li>Assigned extra requirements</li>
+        </ul>
+        <p className="mt-2 text-amber-900">
+          Unused accounts can be deleted. Deleting a trainee removes their enrollments; the course and other
+          trainees stay. There is no transfer of course ownership.
+        </p>
+      </div>
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button type="button" className={secondaryButtonClass} disabled={busy} onClick={close}>

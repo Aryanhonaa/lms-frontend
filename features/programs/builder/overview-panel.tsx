@@ -30,6 +30,7 @@ function fromProgram(program: ProgramTree): OverviewValues {
 }
 
 function toInput(values: OverviewValues): CreateProgramInput {
+  const scheduled = values.trainingMode === "SCHEDULED";
   return {
     title: values.title.trim(),
     description: values.description.trim(),
@@ -37,8 +38,8 @@ function toInput(values: OverviewValues): CreateProgramInput {
     difficulty: values.difficulty,
     durationWeeks: values.durationWeeks > 0 ? values.durationWeeks : 4,
     trainingMode: values.trainingMode,
-    startDate: values.startDate || null,
-    endDate: values.endDate || null,
+    startDate: scheduled ? values.startDate || null : null,
+    endDate: scheduled ? values.endDate || null : null,
   };
 }
 
@@ -193,7 +194,7 @@ export function OverviewPanel({
               label="Progression"
               hint="Trainees unlock the next day as they complete work"
               disabled={disabled}
-              onClick={() => setValues({ ...values, trainingMode: "PROGRESSION" })}
+              onClick={() => setValues({ ...values, trainingMode: "PROGRESSION", startDate: "", endDate: "" })}
             />
             <Choice
               selected={values.trainingMode === "SCHEDULED"}
@@ -220,34 +221,36 @@ export function OverviewPanel({
         </label>
       </section>
 
-      <section className={`${CARD} space-y-5 p-6`}>
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">Schedule</h3>
-          <p className="mt-0.5 text-xs text-slate-500">Optional. Useful for scheduled programs.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-slate-800">Start date</span>
-            <input
-              type="date"
-              className={fieldClass}
-              value={values.startDate}
-              disabled={disabled || busy}
-              onChange={(event) => setValues({ ...values, startDate: event.target.value })}
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium text-slate-800">End date</span>
-            <input
-              type="date"
-              className={fieldClass}
-              value={values.endDate}
-              disabled={disabled || busy}
-              onChange={(event) => setValues({ ...values, endDate: event.target.value })}
-            />
-          </label>
-        </div>
-      </section>
+      {values.trainingMode === "SCHEDULED" ? (
+        <section className={`${CARD} space-y-5 p-6`}>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Schedule</h3>
+            <p className="mt-0.5 text-xs text-slate-500">When this program starts and ends for trainees.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium text-slate-800">Start date</span>
+              <input
+                type="date"
+                className={fieldClass}
+                value={values.startDate}
+                disabled={disabled || busy}
+                onChange={(event) => setValues({ ...values, startDate: event.target.value })}
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium text-slate-800">End date</span>
+              <input
+                type="date"
+                className={fieldClass}
+                value={values.endDate}
+                disabled={disabled || busy}
+                onChange={(event) => setValues({ ...values, endDate: event.target.value })}
+              />
+            </label>
+          </div>
+        </section>
+      ) : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 

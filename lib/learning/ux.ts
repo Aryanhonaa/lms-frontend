@@ -58,10 +58,26 @@ export function contentTypeLabel(type: string, kind?: string | null): string {
   if (type === "RESOURCE") {
     return "Reading";
   }
-  if (type === "QUIZ" || kind?.includes("QUIZ") || kind?.includes("EXAM")) {
+  if (kind?.includes("EXAM")) {
+    return "Exam";
+  }
+  if (type === "QUIZ" || kind?.includes("QUIZ")) {
     return "Quiz";
   }
   return "Lesson";
+}
+
+export function continueActionLabel(item: { type: string; kind?: string | null }): string {
+  if (item.type === "ASSIGNMENT") {
+    return "Continue to assignment";
+  }
+  if (item.kind?.includes("EXAM")) {
+    return "Continue to exam";
+  }
+  if (item.type === "QUIZ" || item.kind?.includes("QUIZ")) {
+    return "Continue to quiz";
+  }
+  return "Continue";
 }
 
 export function learnTypeFromKind(kind: string): LearnPathType {

@@ -25,7 +25,7 @@ import { getTraineeLearnView } from "@/lib/api/learning";
 import { getTraineeProgress } from "@/lib/api/progress";
 import { ApiClientError } from "@/lib/api/client";
 import { AppUsagePanel } from "@/features/app-usage/app-usage-panel";
-import { traineePathHref } from "@/lib/learning/path";
+import { traineeContinueHref, traineePathHref } from "@/lib/learning/path";
 import { currentDayItems, flattenLearnPath, isDoneStatus, locationLabel, progressHeadline } from "@/lib/learning/ux";
 import { traineePrimaryCtaClass } from "@/lib/ui/trainee";
 import type { AuthUser } from "@/types/api";
@@ -288,7 +288,7 @@ function toCurrentLearning(learn: LearnView, progress: ProgressView, batchId?: s
     currentDay: learn.currentDay,
     nextActivity: learn.nextActivity,
     remainingMinutes: remainingMinutesFromLearn(learn),
-    continueHref: traineePathHref(learn.program.id, learn.nextActivity, batchId),
+    continueHref: traineeContinueHref(learn.program.id, learn.nextActivity, batchId),
     materialsHref: traineePathHref(learn.program.id, null, batchId),
     quizzesHref: "/trainee/assessments",
     assignmentsHref: "/trainee/assignments",
@@ -456,7 +456,7 @@ function CourseCard({
                 return (
                   <li key={`${item.type}-${item.id}`}>
                     <Link
-                      href={traineePathHref(learning.program.id, item, filters.batchId || undefined)}
+                      href={traineeContinueHref(learning.program.id, item, filters.batchId || undefined)}
                       className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm transition duration-150 hover:bg-slate-50"
                     >
                       {done ? (
