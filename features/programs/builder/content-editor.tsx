@@ -205,14 +205,20 @@ export function ContentEditor(props: ContentEditorProps) {
           });
         }}
       >
-        <Field label="Title">
-          <input name="title" className={fieldClass} placeholder={state.view === "week" ? "Network Security" : "Introduction to Firewalls"} disabled={disabled || busy} />
-        </Field>
         {state.view === "week" ? (
-          <Field label="Description">
-            <textarea name="description" rows={2} className={fieldClass} placeholder="What trainees will learn this week" disabled={disabled || busy} />
+          <>
+            <Field label="Week title">
+              <input name="title" className={fieldClass} placeholder="Network Security" disabled={disabled || busy} />
+            </Field>
+            <Field label="Description">
+              <textarea name="description" rows={2} className={fieldClass} placeholder="What trainees will learn this week" disabled={disabled || busy} />
+            </Field>
+          </>
+        ) : (
+          <Field label="Day title" hint="One sitting for trainees. You can add lessons and quizzes after this.">
+            <input name="title" className={fieldClass} placeholder="Introduction to Firewalls" disabled={disabled || busy} />
           </Field>
-        ) : null}
+        )}
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
         <div className="flex flex-wrap items-center gap-2">
           <EditorNav onCancel={onClose} />

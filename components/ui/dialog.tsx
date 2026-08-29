@@ -48,7 +48,7 @@ export function Dialog({ open, title, onClose, children, footer, wide, side }: D
         aria-labelledby={titleId}
         className={
           side
-            ? "relative ml-auto flex h-full w-full max-w-lg flex-col border-l border-slate-200 bg-white shadow-xl"
+            ? `relative ml-auto flex h-full w-full ${wide ? "max-w-3xl" : "max-w-lg"} flex-col border-l border-slate-200 bg-white shadow-xl`
             : `relative m-auto flex max-h-[90vh] w-[calc(100%-2rem)] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-xl ${wide ? "max-w-2xl" : "max-w-lg"} ${footer ? "overflow-hidden" : "overflow-y-auto"}`
         }
       >

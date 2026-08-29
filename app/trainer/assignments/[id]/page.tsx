@@ -137,7 +137,7 @@ export default function TrainerAssignmentDetailPage() {
           batches={filters.batches}
           programId={filters.programId}
           batchId={filters.batchId}
-          programDisabled
+          hideProgram
           onProgramChange={filters.setProgramId}
           onBatchChange={onBatchChange}
         />

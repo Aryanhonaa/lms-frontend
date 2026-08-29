@@ -52,7 +52,7 @@ export default function TrainerAssessmentsPage() {
   const loadError = error ?? filters.error;
 
   return (
-    <TrainerShell title="Assessments" user={user}>
+    <TrainerShell title="Quizzes" user={user}>
       <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <h2 className="text-base font-medium text-zinc-950 dark:text-zinc-50">Program assessments</h2>

@@ -215,9 +215,9 @@ export function AdminDashboard() {
           iconClass="bg-sky-100 text-sky-700"
         />
         <MetricCard
-          label="Requiring Attention"
+          label="Need help"
           value={metrics.traineesRequiringAttention}
-          hint="Open intervention flags"
+          hint="Trainees who need help"
           hintClass="text-amber-600"
           icon={AlertCircle}
           iconClass="bg-amber-100 text-amber-700"

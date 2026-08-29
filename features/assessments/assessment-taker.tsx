@@ -176,7 +176,12 @@ export function AssessmentTaker({
               <p className="text-sm text-slate-500">No additional instructions.</p>
             )}
             <dl className="mt-4 grid gap-2 text-sm text-slate-600">
-              <div>Questions: {catalog.assessment.questionCount}</div>
+              <div>
+                Questions:{" "}
+                {catalog.assessment.questionBankCount > catalog.assessment.questionCount
+                  ? `${catalog.assessment.questionCount} of ${catalog.assessment.questionBankCount}`
+                  : catalog.assessment.questionCount}
+              </div>
               <div>Passing score: {catalog.assessment.passingScore}%</div>
               <div>Time limit: {catalog.assessment.timeLimitMin ? `${catalog.assessment.timeLimitMin} min` : "None"}</div>
               <div>

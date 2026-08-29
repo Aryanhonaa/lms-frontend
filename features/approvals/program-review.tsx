@@ -6,7 +6,7 @@ import { ContentTypeChip, ContentTypeIcon } from "@/components/learning/content-
 import { FileActionsRow, FileViewer } from "@/components/files/file-viewer";
 import { StatusBadge } from "@/components/status-badge";
 import { RejectionBanner } from "@/features/programs/rejection-banner";
-import { getAttachmentAccess, getItemFileAccess } from "@/lib/api/files";
+import { getAttachmentAccess, getItemFileAccess, type FileAudience } from "@/lib/api/files";
 import { isYoutubeShortsUrl, youtubeEmbedSrc, youtubeVideoId } from "@/lib/media/youtube";
 import type {
   Assignment,
@@ -225,7 +225,7 @@ function YoutubeEmbed({ title, url, vertical }: { title: string; url: string; ve
   );
 }
 
-function AttachmentBlock({ attachments }: { attachments?: ContentAttachment[] }) {
+function AttachmentBlock({ attachments, viewer }: { attachments?: ContentAttachment[]; viewer: FileAudience }) {
   if (!attachments?.length) {
     return null;
   }
@@ -236,7 +236,7 @@ function AttachmentBlock({ attachments }: { attachments?: ContentAttachment[] })
         {attachments.map((attachment) => (
           <li key={attachment.id} className="rounded-xl bg-slate-50 px-3 py-3">
             <FileActionsRow
-              loader={() => getAttachmentAccess("admin", attachment.id)}
+              loader={() => getAttachmentAccess(viewer, attachment.id)}
               fileName={attachment.title || attachment.fileName}
               fileSize={attachment.fileSize}
             />
@@ -252,16 +252,18 @@ function StoredMedia({
   id,
   title,
   file,
+  viewer,
 }: {
   type: "VIDEO" | "RESOURCE" | "REEL";
   id: string;
   title: string;
   file: StoredFileFields;
+  viewer: FileAudience;
 }) {
   return (
     <FileViewer
       key={`${type}-${id}`}
-      loader={() => getItemFileAccess("admin", type, id)}
+      loader={() => getItemFileAccess(viewer, type, id)}
       fileName={file.fileName ?? title}
       mimeType={file.mimeType ?? "application/octet-stream"}
       fileSize={file.fileSize ?? undefined}
@@ -313,7 +315,7 @@ function QuizReview({ quiz }: { quiz: Quiz }) {
   );
 }
 
-function ItemBody({ item }: { item: ReviewItem }) {
+function ItemBody({ item, viewer }: { item: ReviewItem; viewer: FileAudience }) {
   if (item.kind === "LESSON" && item.lesson) {
     return (
       <div className="space-y-4">
@@ -324,14 +326,14 @@ function ItemBody({ item }: { item: ReviewItem }) {
             <p className="text-slate-500">No reading notes were added to this lesson.</p>
           )}
         </article>
-        <AttachmentBlock attachments={item.lesson.attachments} />
+        <AttachmentBlock attachments={item.lesson.attachments} viewer={viewer} />
       </div>
     );
   }
 
   if (item.kind === "VIDEO" && item.video) {
     if (hasStoredFile(item.video)) {
-      return <StoredMedia type="VIDEO" id={item.video.id} title={item.video.title} file={item.video} />;
+      return <StoredMedia type="VIDEO" id={item.video.id} title={item.video.title} file={item.video} viewer={viewer} />;
     }
     if (isExternalUrl(item.video.url) && youtubeVideoId(item.video.url)) {
       return <YoutubeEmbed title={item.video.title} url={item.video.url} vertical={isYoutubeShortsUrl(item.video.url)} />;
@@ -348,7 +350,7 @@ function ItemBody({ item }: { item: ReviewItem }) {
 
   if (item.kind === "REEL" && item.reel) {
     if (hasStoredFile(item.reel)) {
-      return <StoredMedia type="REEL" id={item.reel.id} title={item.reel.title} file={item.reel} />;
+      return <StoredMedia type="REEL" id={item.reel.id} title={item.reel.title} file={item.reel} viewer={viewer} />;
     }
     if (isExternalUrl(item.reel.url) && youtubeVideoId(item.reel.url)) {
       return <YoutubeEmbed title={item.reel.title} url={item.reel.url} vertical />;
@@ -366,7 +368,7 @@ function ItemBody({ item }: { item: ReviewItem }) {
           <p className={`${CARD} px-5 py-4 text-sm whitespace-pre-wrap text-slate-700`}>{item.resource.description}</p>
         ) : null}
         {hasStoredFile(item.resource) ? (
-          <StoredMedia type="RESOURCE" id={item.resource.id} title={item.resource.title} file={item.resource} />
+          <StoredMedia type="RESOURCE" id={item.resource.id} title={item.resource.title} file={item.resource} viewer={viewer} />
         ) : isExternalUrl(item.resource.url) ? (
           <a
             href={item.resource.url}
@@ -400,7 +402,7 @@ function ItemBody({ item }: { item: ReviewItem }) {
             {item.assignment.dueDate ? ` · due ${new Date(item.assignment.dueDate).toLocaleDateString()}` : ""}
           </p>
         </article>
-        <AttachmentBlock attachments={item.assignment.attachments} />
+        <AttachmentBlock attachments={item.assignment.attachments} viewer={viewer} />
       </div>
     );
   }
@@ -451,7 +453,13 @@ function ItemBody({ item }: { item: ReviewItem }) {
   return <p className="text-sm text-slate-500">Nothing to preview for this item.</p>;
 }
 
-export function ProgramReview({ program }: { program: ProgramTree }) {
+export function ProgramReview({
+  program,
+  viewer = "admin",
+}: {
+  program: ProgramTree;
+  viewer?: FileAudience;
+}) {
   const items = useMemo(() => flattenProgram(program), [program]);
   const firstKey = items[0]?.key ?? null;
   const [selectedKey, setSelectedKey] = useState<string | null>(firstKey);
@@ -554,7 +562,7 @@ export function ProgramReview({ program }: { program: ProgramTree }) {
                   </div>
                 </div>
               </div>
-              <ItemBody item={selected} />
+              <ItemBody item={selected} viewer={viewer} />
             </section>
           ) : null}
         </div>

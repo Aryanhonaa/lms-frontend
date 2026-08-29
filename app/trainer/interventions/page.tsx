@@ -26,7 +26,30 @@ const REQUIREMENT_TYPES: IndividualRequirementType[] = [
 ];
 
 function triggerLabel(trigger: InterventionFlag["trigger"]): string {
-  return trigger === "PROGRESS_BELOW_THRESHOLD" ? "Progress below threshold" : "Exam score below threshold";
+  return trigger === "PROGRESS_BELOW_THRESHOLD" ? "Course progress is low" : "Exam score is low";
+}
+
+function statusLabel(status: InterventionFlag["status"]): string {
+  if (status === "ACKNOWLEDGED") {
+    return "Seen";
+  }
+  if (status === "RESOLVED") {
+    return "Dismissed";
+  }
+  return "Open";
+}
+
+function requirementTypeLabel(type: IndividualRequirementType): string {
+  const labels: Record<IndividualRequirementType, string> = {
+    VIDEO: "Video",
+    READING: "Reading",
+    QUIZ: "Quiz",
+    ASSIGNMENT: "Assignment",
+    SESSION: "Live session",
+    EXAM_RETRY: "Retry exam",
+    CUSTOM: "Other",
+  };
+  return labels[type];
 }
 
 function formatDate(value: string | null): string {
@@ -66,7 +89,7 @@ export default function TrainerInterventionsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof ApiClientError ? err.message : "Unable to load interventions");
+            setError(err instanceof ApiClientError ? err.message : "Unable to load alerts");
         }
       });
     return () => {
@@ -81,26 +104,28 @@ export default function TrainerInterventionsPage() {
   }
 
   return (
-    <TrainerShell title="Interventions" user={user}>
+    <TrainerShell title="Trainees who need help" user={user}>
       {error ? <ErrorState message={error} /> : null}
       {flags === null && !error ? <LoadingState /> : null}
       {flags && flags.length === 0 ? (
         <EmptyState
-          title="No intervention flags"
-          description="When a trainee drops below the progress or exam threshold, they will appear here."
+          title="No one needs help right now"
+          description="When a trainee who has started the course falls below your progress or exam alert line, they will appear here."
         />
       ) : null}
 
       {openFlags.length > 0 ? (
         <section className="mb-6 border border-red-200 bg-red-50 px-5 py-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-red-800">Needs attention</p>
-          <p className="mt-1 text-sm text-red-900">{openFlags.length} open flag{openFlags.length === 1 ? "" : "s"}.</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-red-800">Open alerts</p>
+          <p className="mt-1 text-sm text-red-900">
+            {openFlags.length} trainee{openFlags.length === 1 ? "" : "s"} below the alert line.
+          </p>
         </section>
       ) : null}
 
       {flags && flags.length > 0 ? (
         <section className="bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Flags</div>
+          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Alerts</div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
@@ -109,7 +134,7 @@ export default function TrainerInterventionsPage() {
                   <th className="px-3 py-2 font-medium">Program</th>
                   <th className="px-3 py-2 font-medium">Progress</th>
                   <th className="px-3 py-2 font-medium">Exam</th>
-                  <th className="px-3 py-2 font-medium">Trigger</th>
+                  <th className="px-3 py-2 font-medium">Why</th>
                   <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-3 py-2 font-medium">Created</th>
                   <th className="px-5 py-2 font-medium" />
@@ -129,7 +154,7 @@ export default function TrainerInterventionsPage() {
                       {flag.examTitle ? <span className="mt-1 block text-xs text-stone-500">{flag.examTitle}</span> : null}
                     </td>
                     <td className="px-3 py-3">{triggerLabel(flag.trigger)}</td>
-                    <td className="px-3 py-3">{flag.status}</td>
+                    <td className="px-3 py-3">{statusLabel(flag.status)}</td>
                     <td className="px-3 py-3">{formatDate(flag.createdAt)}</td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
@@ -143,12 +168,12 @@ export default function TrainerInterventionsPage() {
                               void updateTrainerIntervention(flag.id, "ACKNOWLEDGED")
                                 .then(() => reload())
                                 .catch((err: unknown) => {
-                                  setError(err instanceof ApiClientError ? err.message : "Unable to update flag");
+                                  setError(err instanceof ApiClientError ? err.message : "Unable to update alert");
                                 })
                                 .finally(() => setBusy(false));
                             }}
                           >
-                            Acknowledge
+                            Mark as seen
                           </button>
                         ) : null}
                         {flag.status !== "RESOLVED" ? (
@@ -161,12 +186,12 @@ export default function TrainerInterventionsPage() {
                               void updateTrainerIntervention(flag.id, "RESOLVED")
                                 .then(() => reload())
                                 .catch((err: unknown) => {
-                                  setError(err instanceof ApiClientError ? err.message : "Unable to update flag");
+                                  setError(err instanceof ApiClientError ? err.message : "Unable to update alert");
                                 })
                                 .finally(() => setBusy(false));
                             }}
                           >
-                            Resolve
+                            Dismiss
                           </button>
                         ) : null}
                         <button
@@ -174,7 +199,7 @@ export default function TrainerInterventionsPage() {
                           className={primaryButtonClass}
                           onClick={() => setAssignFor(assignFor === flag.id ? null : flag.id)}
                         >
-                          Assign
+                          Give extra work
                         </button>
                       </div>
                       {assignFor === flag.id ? (
@@ -198,7 +223,7 @@ export default function TrainerInterventionsPage() {
                                 return reload();
                               })
                               .catch((err: unknown) => {
-                                setError(err instanceof ApiClientError ? err.message : "Unable to assign requirement");
+                                setError(err instanceof ApiClientError ? err.message : "Unable to save extra work");
                               })
                               .finally(() => setBusy(false));
                           }}
@@ -207,14 +232,14 @@ export default function TrainerInterventionsPage() {
                           <select name="type" className={fieldClass} defaultValue="CUSTOM">
                             {REQUIREMENT_TYPES.map((type) => (
                               <option key={type} value={type}>
-                                {type.replaceAll("_", " ").toLowerCase()}
+                                {requirementTypeLabel(type)}
                               </option>
                             ))}
                           </select>
                           <textarea name="trainerMessage" className={fieldClass} placeholder="Message to trainee" rows={3} />
                           <input name="deadline" type="date" className={fieldClass} />
                           <button type="submit" className={primaryButtonClass} disabled={busy}>
-                            Save requirement
+                            Save extra work
                           </button>
                         </form>
                       ) : null}
@@ -229,7 +254,7 @@ export default function TrainerInterventionsPage() {
 
       {requirements.length > 0 ? (
         <section className="mt-6 bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Assigned requirements</div>
+          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Extra work assigned</div>
           <ul className="divide-y divide-stone-100">
             {requirements.map((item) => (
               <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-3 px-5 py-3 text-sm">
@@ -247,11 +272,11 @@ export default function TrainerInterventionsPage() {
       ) : null}
 
       <p className="mt-4 text-sm text-stone-500">
-        Thresholds can be changed on each{" "}
+        Alert lines are set on each{" "}
         <Link href="/trainer/programs" className="underline">
           program
         </Link>
-        .
+        . A trainee is not listed for low progress until they have started the course.
       </p>
     </TrainerShell>
   );

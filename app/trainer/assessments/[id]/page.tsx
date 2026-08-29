@@ -87,14 +87,14 @@ export default function TrainerAssessmentDetailPage() {
   const loadError = error ?? filters.error;
 
   return (
-    <TrainerShell title={payload?.assessment.title ?? "Assessment"} user={user} crumbLabel={payload?.assessment.title}>
+    <TrainerShell title={payload?.assessment.title ?? "Quiz"} user={user} crumbLabel={payload?.assessment.title}>
       <div className="mb-4">
         <TrainerCourseBatchFilters
           programs={filters.programs}
           batches={filters.batches}
           programId={filters.programId}
           batchId={filters.batchId}
-          programDisabled
+          hideProgram
           onProgramChange={filters.setProgramId}
           onBatchChange={onBatchChange}
         />
@@ -107,7 +107,10 @@ export default function TrainerAssessmentDetailPage() {
         <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="border-b border-zinc-200 px-5 py-4 text-sm text-zinc-600 dark:border-zinc-800">
             {payload.assessment.programTitle} · {selectedBatch?.name} · {payload.assessment.location} ·{" "}
-            {payload.assessment.questionCount} questions · pass {payload.assessment.passingScore}%
+            {payload.assessment.questionBankCount > payload.assessment.questionCount
+              ? `${payload.assessment.questionCount} of ${payload.assessment.questionBankCount} questions`
+              : `${payload.assessment.questionCount} questions`}{" "}
+            · pass {payload.assessment.passingScore}%
           </div>
           <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {payload.attempts.length === 0 ? (

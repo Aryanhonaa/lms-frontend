@@ -90,7 +90,12 @@ export function CurriculumPanel({
             onOpenDay={onOpenDay}
             onRenameDay={onRenameDay}
             onDeleteDay={onDeleteDay}
-            onStartAddDay={() => setAddingDayFor(week.id)}
+            onStartAddDay={() => {
+              if (collapsed[week.id]) {
+                onToggle(week.id);
+              }
+              setAddingDayFor(week.id);
+            }}
             onCancelAddDay={() => setAddingDayFor(null)}
             onAddDay={async (title) => {
               await onAddDay(week.id, title);
@@ -181,7 +186,16 @@ function WeekCard({
       {collapsed ? null : (
         <div className="border-t border-slate-100 px-4 py-3">
           {week.days.length === 0 && !addingDay ? (
-            <p className="mb-3 text-sm text-slate-500">No days yet. Add a day, then open it to drop in lessons.</p>
+            <div className="mb-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-center">
+              <p className="text-sm font-medium text-slate-800">No days in this week yet</p>
+              <p className="mt-1 text-sm text-slate-500">A day is one sitting for trainees — lessons, videos, and quizzes go inside it.</p>
+              {editable ? (
+                <button type="button" className={`${primaryButtonClass} mt-3`} disabled={busy} onClick={onStartAddDay}>
+                  <Plus className="h-4 w-4" />
+                  Add first day
+                </button>
+              ) : null}
+            </div>
           ) : null}
           <ul className="space-y-1">
             {week.days.map((day, dayIndex) => {
@@ -192,11 +206,11 @@ function WeekCard({
                   <div className="min-w-0 flex-1">
                     <InlineTitle as="p" value={day.title} disabled={!editable || busy} onSave={(title) => onRenameDay(day.id, title)} />
                   </div>
-                  <span className="hidden text-xs text-slate-400 sm:inline">
-                    {count === 0 ? "Empty" : `${count} item${count === 1 ? "" : "s"}`}
+                  <span className="hidden shrink-0 text-xs text-slate-400 sm:inline">
+                    {count === 0 ? "No content yet" : `${count} item${count === 1 ? "" : "s"}`}
                   </span>
                   <button type="button" className={secondaryButtonClass} onClick={() => onOpenDay(day.id)}>
-                    Open
+                    {count === 0 ? "Add content" : "Open"}
                   </button>
                   {editable ? (
                     <button type="button" className={dangerButtonClass} disabled={busy} onClick={() => onDeleteDay(day.id)}>
@@ -208,20 +222,19 @@ function WeekCard({
             })}
           </ul>
           {addingDay && editable ? (
-            <div className="mt-3">
-              <InlineCreate
-                title="New day"
-                placeholder="Introduction to Firewalls"
-                submitLabel="Add day"
-                busy={busy}
-                onCancel={onCancelAddDay}
-                onSubmit={async (title) => {
-                  await onAddDay(title);
-                }}
-              />
-            </div>
-          ) : editable ? (
-            <button type="button" className={`${ghostButtonClass} mt-2`} disabled={busy} onClick={onStartAddDay}>
+            <DayCreateRow
+              nextNumber={week.days.length + 1}
+              busy={busy}
+              onCancel={onCancelAddDay}
+              onSubmit={onAddDay}
+            />
+          ) : editable && week.days.length > 0 ? (
+            <button
+              type="button"
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-violet-200 hover:bg-violet-50/60 hover:text-violet-800 disabled:opacity-50"
+              disabled={busy}
+              onClick={onStartAddDay}
+            >
               <Plus className="h-4 w-4" />
               Add day
             </button>
@@ -246,6 +259,71 @@ function WeekCard({
         </div>
       )}
     </article>
+  );
+}
+
+function DayCreateRow({
+  nextNumber,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  nextNumber: number;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (title: string) => Promise<void>;
+}) {
+  const suggested = `Day ${nextNumber}`;
+  const [title, setTitle] = useState(suggested);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function save() {
+    const nextTitle = title.trim() || suggested;
+    setPending(true);
+    setError(null);
+    try {
+      await onSubmit(nextTitle);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Unable to add day");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const locked = busy || pending;
+
+  return (
+    <form
+      className="mt-2 rounded-xl border border-violet-100 bg-violet-50/50 px-3 py-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save();
+      }}
+    >
+      <p className="text-sm font-medium text-slate-800">New day</p>
+      <p className="mt-0.5 text-xs text-slate-500">Name it, or keep the default and add content next.</p>
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <span className="w-14 shrink-0 text-xs font-medium tracking-wide text-slate-400 uppercase">Day {nextNumber}</span>
+        <input
+          className={fieldClass}
+          value={title}
+          autoFocus
+          disabled={locked}
+          onChange={(event) => setTitle(event.target.value)}
+          onFocus={(event) => event.currentTarget.select()}
+        />
+        <div className="flex shrink-0 justify-end gap-2">
+          <button type="button" className={secondaryButtonClass} disabled={pending} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className={primaryButtonClass} disabled={locked}>
+            {pending ? "Adding…" : "Add day"}
+          </button>
+        </div>
+      </div>
+      {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+    </form>
   );
 }
 

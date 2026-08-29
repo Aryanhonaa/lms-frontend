@@ -46,10 +46,10 @@ const TRAINER_NAV: NavItem[] = [
   { href: "/trainer", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/trainer/programs", label: "Programs", icon: BookOpen },
   { href: "/trainer/usage", label: "App Usage", icon: Clock3 },
-  { href: "/trainer/assessments", label: "Assessments", icon: ClipboardCheck },
+  { href: "/trainer/assessments", label: "Quizzes", icon: ClipboardCheck },
   { href: "/trainer/assignments", label: "Assignments", icon: ListChecks },
   { href: "/trainer/calendar", label: "Calendar", icon: CalendarDays },
-  // { href: "/trainer/interventions", label: "Interventions", icon: AlertTriangle },
+  { href: "/trainer/interventions", label: "Needs help", icon: AlertTriangle },
   { href: "/trainer/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/trainer/announcements", label: "Announcements", icon: Megaphone },
   { href: "/trainer/certificates", label: "Certificates", icon: Award },
@@ -307,7 +307,7 @@ function flattenResults(results: TrainerSearchResults): FlatHit[] {
     ...results.programs.map((item) => ({ ...item, group: "Programs" })),
     ...results.trainees.map((item) => ({ ...item, title: item.name ?? item.title, group: "Trainees" })),
     ...results.assignments.map((item) => ({ ...item, group: "Assignments" })),
-    ...results.assessments.map((item) => ({ ...item, group: "Assessments" })),
+    ...results.assessments.map((item) => ({ ...item, group: "Quizzes" })),
   ];
 }
 
@@ -384,7 +384,7 @@ function TrainerSearch() {
     { label: "Programs", items: results.programs },
     { label: "Trainees", items: results.trainees },
     { label: "Assignments", items: results.assignments },
-    { label: "Assessments", items: results.assessments },
+    { label: "Quizzes", items: results.assessments },
   ].filter((group) => group.items.length > 0);
 
   return (
