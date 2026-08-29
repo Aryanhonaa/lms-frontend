@@ -61,6 +61,8 @@ import type { ContentAttachment } from "@/types/program";
 import {
   analyzeBuilder,
   BUILDER_SECTIONS,
+  dayFileOptions,
+  findDay,
   firstDayId,
   NEXT_SECTION,
   type BuilderSection,
@@ -492,6 +494,13 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
             onAddWeeklyExam={(weekId, input) => mutate(() => addWeeklyExam(weekId, input)).then(() => undefined)}
             onAddFinalExam={(input) => mutate(() => addFinalExam(program.id, input)).then(() => undefined)}
             onAddMilestone={(input) => mutate(() => addMilestone(program.id, input)).then(() => undefined)}
+            fileOptions={(() => {
+              if (editor.view !== "content" && editor.view !== "picker") {
+                return [];
+              }
+              const match = findDay(program, editor.dayId);
+              return match ? dayFileOptions(match.day) : [];
+            })()}
           />
         ) : null}
       </Dialog>

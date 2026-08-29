@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/interventions";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/providers/auth-provider";
 import type { IndividualRequirement, IndividualRequirementType, InterventionFlag } from "@/types/intervention";
 
@@ -228,14 +229,26 @@ export default function TrainerInterventionsPage() {
                               .finally(() => setBusy(false));
                           }}
                         >
-                          <input name="title" required className={fieldClass} placeholder="Title" />
-                          <select name="type" className={fieldClass} defaultValue="CUSTOM">
+                          <label className="grid gap-1 text-sm">
+                            <span className="font-medium text-stone-800">
+                              Title
+                              <RequiredMark />
+                            </span>
+                            <input name="title" required className={fieldClass} placeholder="Title" />
+                          </label>
+                          <label className="grid gap-1 text-sm">
+                            <span className="font-medium text-stone-800">
+                              Type
+                              <RequiredMark />
+                            </span>
+                            <select name="type" className={fieldClass} defaultValue="CUSTOM">
                             {REQUIREMENT_TYPES.map((type) => (
                               <option key={type} value={type}>
                                 {requirementTypeLabel(type)}
                               </option>
                             ))}
-                          </select>
+                            </select>
+                          </label>
                           <textarea name="trainerMessage" className={fieldClass} placeholder="Message to trainee" rows={3} />
                           <input name="deadline" type="date" className={fieldClass} />
                           <button type="submit" className={primaryButtonClass} disabled={busy}>

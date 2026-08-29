@@ -55,19 +55,57 @@ export function ProgramPreview({ program }: { program: ProgramTree }) {
                   Day {dayIndex + 1}: {day.title}
                 </h4>
                 <ul className="mt-2 space-y-1 text-sm text-stone-700">
+                  {day.resources.map((item) => (
+                    <li key={item.id}>
+                      Resource · {item.title}
+                      {day.assignments
+                        .filter((assignment) => assignment.linkedItemType === "RESOURCE" && assignment.linkedItemId === item.id)
+                        .map((assignment) => (
+                          <span key={assignment.id} className="block pl-4 text-stone-500">
+                            Assignment · {assignment.title}
+                          </span>
+                        ))}
+                    </li>
+                  ))}
                   {day.videos.map((item) => (
-                    <li key={item.id}>Video · {item.title}</li>
+                    <li key={item.id}>
+                      Video · {item.title}
+                      {day.assignments
+                        .filter((assignment) => assignment.linkedItemType === "VIDEO" && assignment.linkedItemId === item.id)
+                        .map((assignment) => (
+                          <span key={assignment.id} className="block pl-4 text-stone-500">
+                            Assignment · {assignment.title}
+                          </span>
+                        ))}
+                    </li>
                   ))}
                   {day.lessons.map((item) => (
-                    <li key={item.id}>Lesson · {item.title}</li>
-                  ))}
-                  {day.resources.map((item) => (
-                    <li key={item.id}>Resource · {item.title}</li>
+                    <li key={item.id}>
+                      Lesson · {item.title}
+                      {day.assignments
+                        .filter((assignment) => assignment.linkedItemType === "LESSON" && assignment.linkedItemId === item.id)
+                        .map((assignment) => (
+                          <span key={assignment.id} className="block pl-4 text-stone-500">
+                            Assignment · {assignment.title}
+                          </span>
+                        ))}
+                    </li>
                   ))}
                   {day.reels.map((item) => (
-                    <li key={item.id}>Reel · {item.title}</li>
+                    <li key={item.id}>
+                      Reel · {item.title}
+                      {day.assignments
+                        .filter((assignment) => assignment.linkedItemType === "REEL" && assignment.linkedItemId === item.id)
+                        .map((assignment) => (
+                          <span key={assignment.id} className="block pl-4 text-stone-500">
+                            Assignment · {assignment.title}
+                          </span>
+                        ))}
+                    </li>
                   ))}
-                  {day.assignments.map((item) => (
+                  {day.assignments
+                    .filter((item) => !item.linkedItemId)
+                    .map((item) => (
                     <li key={item.id}>Assignment · {item.title}</li>
                   ))}
                 </ul>

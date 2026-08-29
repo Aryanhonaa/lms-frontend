@@ -20,7 +20,6 @@ import {
   Search,
   Trophy,
   ClipboardList,
-  Clock,
   User,
   X,
 } from "lucide-react";
@@ -46,7 +45,6 @@ type NavItem = {
 const TRAINEE_NAV: NavItem[] = [
   { href: "/trainee", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/trainee/learn", label: "Learn", icon: PlayCircle },
-  { href: "/trainee/usage", label: "App Usage", icon: Clock },
   { href: "/trainee/assessments", label: "Quizzes", icon: ClipboardCheck },
   { href: "/trainee/assignments", label: "Assignments", icon: ListChecks },
   { href: "/trainee/calendar", label: "Calendar", icon: CalendarDays },

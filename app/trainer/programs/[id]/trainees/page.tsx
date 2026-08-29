@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { TrainerShell } from "@/components/trainer-shell";
 import { Dialog } from "@/components/ui/dialog";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
 import { getTrainerProgram } from "@/lib/api/programs";
@@ -235,7 +236,10 @@ export default function ProgramTraineesPage() {
         <form className="grid gap-3" onSubmit={(event) => void onCreateBatch(event)}>
           <p className="text-sm text-stone-600">{program?.title ?? "Course"}</p>
           <label className="grid gap-1 text-sm">
-            <span className="font-medium text-stone-800">Batch name</span>
+            <span className="font-medium text-stone-800">
+              Batch name
+              <RequiredMark />
+            </span>
             <input name="name" required className={fieldClass} placeholder="September 2026" disabled={busyId === "create"} />
           </label>
           <label className="grid gap-1 text-sm">

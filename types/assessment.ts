@@ -43,6 +43,9 @@ export type AssessmentCatalog = {
     maxAttempts: number | null;
     randomized: boolean;
     questionDrawCount: number | null;
+    revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
+    revealAt?: string | null;
+    answersVisible?: boolean;
     questionCount: number;
     questionBankCount: number;
     programId: string;
@@ -70,6 +73,7 @@ export type AssessmentAttemptView = {
   score: number | null;
   passed: boolean | null;
   passingScore: number;
+  answersVisible?: boolean;
   questions: SafeQuestion[];
 };
 
@@ -89,4 +93,77 @@ export type TrainerAssessmentSummary = {
   programId: string;
   programTitle?: string;
   location: string;
+};
+
+export type TrainerAssessmentQuestion = {
+  id: string;
+  prompt: string;
+  points: number;
+  options: Array<{ id: string; label: string; isCorrect: boolean }>;
+};
+
+export type TrainerAssessmentAnswer = {
+  questionId: string;
+  selectedOptionIds: string[];
+  isCorrect: boolean;
+  pointsAwarded: number;
+};
+
+export type TrainerAssessmentAttempt = {
+  id: string;
+  attemptNumber: number;
+  status: string;
+  score: number | null;
+  passed: boolean | null;
+  startedAt: string;
+  submittedAt: string | null;
+  enrollmentId?: string;
+  trainee: { id: string; name: string; email: string };
+  batch?: { id: string; name: string };
+  answers?: TrainerAssessmentAnswer[];
+};
+
+export type TrainerAssessmentRosterRow = {
+  enrollmentId: string;
+  trainee: { id: string; name: string; email: string };
+  traineeId: string;
+  batch: { id: string; name: string } | null;
+  status: string;
+  latest: {
+    id: string;
+    attemptNumber: number;
+    status: string;
+    score: number | null;
+    passed: boolean | null;
+    startedAt: string;
+    submittedAt: string | null;
+    answers: TrainerAssessmentAnswer[];
+  } | null;
+  attempts: Array<{
+    id: string;
+    attemptNumber: number;
+    status: string;
+    score: number | null;
+    passed: boolean | null;
+    startedAt: string;
+    submittedAt: string | null;
+  }>;
+};
+
+export type TrainerAssessmentDetail = {
+  assessment: TrainerAssessmentSummary & {
+    revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
+    revealAt?: string | null;
+    questions: TrainerAssessmentQuestion[];
+  };
+  summary: {
+    rosterCount: number;
+    submittedCount: number;
+    inProgressCount: number;
+    notStartedCount: number;
+    averageScore: number | null;
+    passRate: number | null;
+  };
+  attempts: TrainerAssessmentAttempt[];
+  roster: TrainerAssessmentRosterRow[];
 };

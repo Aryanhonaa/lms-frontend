@@ -13,6 +13,8 @@ export type LearnAssignment = {
   dueDate: string | null;
   maxScore: number;
   description?: string;
+  linkedItemType?: string | null;
+  linkedItemId?: string | null;
   attachments?: AttachmentView[];
 };
 

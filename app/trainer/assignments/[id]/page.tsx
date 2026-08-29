@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TrainerCourseBatchFilters } from "@/components/trainer-course-batch-filters";
 import { TrainerShell } from "@/components/trainer-shell";
@@ -11,17 +11,24 @@ import { FileActionsRow } from "@/components/files/file-viewer";
 import { getAttachmentAccess, getSubmissionFileAccess } from "@/lib/api/files";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/providers/auth-provider";
-import type { TrainerRosterRow, TrainerSubmission } from "@/types/assignment";
+import type { AssignmentSubmissionStatus, TrainerRosterRow, TrainerSubmission } from "@/types/assignment";
+
+type StatusFilter = AssignmentSubmissionStatus | "ALL";
+
+const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
+  { id: "ALL", label: "All" },
+  { id: "SUBMITTED", label: "To review" },
+  { id: "CHANGES_REQUESTED", label: "Changes requested" },
+  { id: "GRADED", label: "Graded" },
+  { id: "COMPLETED", label: "Completed" },
+  { id: "IN_PROGRESS", label: "Draft" },
+  { id: "NOT_STARTED", label: "Not submitted" },
+];
 
 function statusLabel(status: string): string {
-  if (status === "NOT_STARTED") {
-    return "Not submitted";
-  }
-  if (status === "SUBMITTED") {
-    return "To review";
-  }
-  return status.replaceAll("_", " ").toLowerCase();
+  return STATUS_FILTERS.find((item) => item.id === status)?.label ?? status.replaceAll("_", " ").toLowerCase();
 }
 
 export default function TrainerAssignmentDetailPage() {
@@ -41,6 +48,7 @@ export default function TrainerAssignmentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   const scope = filters.programId && filters.batchId ? { programId: filters.programId, batchId: filters.batchId } : undefined;
 
@@ -88,6 +96,13 @@ export default function TrainerAssignmentDetailPage() {
     };
   }, [params.id, filters.ready, filters.programId, filters.batchId]);
 
+  function onProgramChange(programId: string) {
+    if (programId === filters.programId) {
+      return;
+    }
+    router.push(`/trainer/assignments?programId=${encodeURIComponent(programId)}`);
+  }
+
   function onBatchChange(batchId: string) {
     filters.setBatchId(batchId);
     const next = new URLSearchParams();
@@ -121,13 +136,27 @@ export default function TrainerAssignmentDetailPage() {
     }
   }
 
+  const roster: TrainerRosterRow[] = payload?.roster ?? [];
+  const visibleRoster = useMemo(() => {
+    if (statusFilter === "ALL") {
+      return roster;
+    }
+    return roster.filter((row) => row.status === statusFilter);
+  }, [roster, statusFilter]);
+  const filterCounts = useMemo(() => {
+    const counts = new Map<StatusFilter, number>();
+    counts.set("ALL", roster.length);
+    for (const row of roster) {
+      counts.set(row.status, (counts.get(row.status) ?? 0) + 1);
+    }
+    return counts;
+  }, [roster]);
+  const selectedBatch = filters.batches.find((row) => row.id === filters.batchId);
+  const loadError = error ?? filters.error;
+
   if (!user) {
     return null;
   }
-
-  const roster: TrainerRosterRow[] = payload?.roster ?? [];
-  const selectedBatch = filters.batches.find((row) => row.id === filters.batchId);
-  const loadError = error ?? filters.error;
 
   return (
     <TrainerShell title={payload?.assignment.title ?? "Assignment"} user={user} crumbLabel={payload?.assignment.title}>
@@ -138,7 +167,7 @@ export default function TrainerAssignmentDetailPage() {
           programId={filters.programId}
           batchId={filters.batchId}
           hideProgram
-          onProgramChange={filters.setProgramId}
+          onProgramChange={onProgramChange}
           onBatchChange={onBatchChange}
         />
       </div>
@@ -157,6 +186,33 @@ export default function TrainerAssignmentDetailPage() {
               {payload.roster.filter((row) => row.status !== "NOT_STARTED").length} submissions · max{" "}
               {payload.assignment.maxScore} points
             </p>
+            {roster.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {STATUS_FILTERS.map((item) => {
+                  const count = filterCounts.get(item.id) ?? 0;
+                  if (item.id !== "ALL" && count === 0) {
+                    return null;
+                  }
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                        statusFilter === item.id
+                          ? "bg-violet-600 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                      onClick={() => setStatusFilter(item.id)}
+                    >
+                      {item.label}
+                      <span className={statusFilter === item.id ? "ml-1.5 text-white/80" : "ml-1.5 text-slate-400"}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             {payload.assignment.attachments?.length ? (
               <div className="mt-4 border-t border-slate-100 pt-3">
                 <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">Attachments</p>
@@ -179,8 +235,13 @@ export default function TrainerAssignmentDetailPage() {
               title="No trainees enrolled in this batch."
               description="Enroll trainees in this batch to collect submissions."
             />
+          ) : visibleRoster.length === 0 ? (
+            <EmptyState
+              title="No trainees in this filter."
+              description="Try another status, or choose All to see every trainee."
+            />
           ) : (
-            roster.map((row) => {
+            visibleRoster.map((row) => {
               const latest = row.latest;
               const submission = payload.submissions.find((item) => item.id === latest?.id);
               return (
@@ -244,6 +305,7 @@ export default function TrainerAssignmentDetailPage() {
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <label className="text-sm font-medium text-slate-800">
                           Score
+                          <RequiredMark />
                           <input
                             name="score"
                             type="number"

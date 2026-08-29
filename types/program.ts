@@ -110,6 +110,8 @@ export type Assignment = {
   allowResubmission?: boolean;
   maxAttempts?: number;
   attachments?: ContentAttachment[];
+  linkedItemType?: string | null;
+  linkedItemId?: string | null;
 };
 
 export type TrainingSession = {
@@ -218,6 +220,8 @@ export type QuizInput = {
   maxAttempts?: number | null;
   randomized?: boolean;
   questionDrawCount?: number | null;
+  revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
+  revealAt?: string | null;
   questions?: Array<{
     prompt: string;
     points?: number;

@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-stat
 import { getFeedbackOptions, listTraineeFeedback, submitFeedback } from "@/lib/api/engagement";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/providers/auth-provider";
 import type { FeedbackItem, FeedbackOptions, FeedbackTargetKind } from "@/types/engagement";
 
@@ -105,6 +106,7 @@ export default function TraineeFeedbackPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="kind">
                 Target
+                <RequiredMark />
               </label>
               <select
                 id="kind"
@@ -122,6 +124,7 @@ export default function TraineeFeedbackPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="target">
                 {TARGETS.find((item) => item.value === targetKind)?.label}
+                <RequiredMark />
               </label>
               <select
                 id="target"
@@ -140,6 +143,7 @@ export default function TraineeFeedbackPage() {
             <div>
               <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="rating">
                 Rating
+                <RequiredMark />
               </label>
               <select
                 id="rating"

@@ -191,6 +191,19 @@ export function AssessmentTaker({
               {catalog.bestScore !== null ? <div>Best score: {catalog.bestScore}%</div> : null}
               <div>Result: {catalog.passed ? "Passed" : "Not passed"}</div>
             </dl>
+            {catalog.assessment.revealMode === "HIDDEN" ? (
+              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
+                Correct answers stay hidden after you submit. You will still see your score.
+              </p>
+            ) : null}
+            {catalog.assessment.revealMode === "SCHEDULED" && !catalog.assessment.answersVisible ? (
+              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
+                Correct answers become visible
+                {catalog.assessment.revealAt
+                  ? ` on ${new Date(catalog.assessment.revealAt).toLocaleString()}.`
+                  : " at a time your trainer sets."}
+              </p>
+            ) : null}
             {catalog.assessment.status === "LOCKED" ? (
               <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
                 This quiz is locked for now. {friendlyLockReason(catalog.assessment.reason)}
@@ -313,14 +326,44 @@ export function AssessmentTaker({
               {attempt.passed ? "Passed" : "Failed"} · {attempt.score ?? 0}% (pass {attempt.passingScore}%)
             </p>
             <ol className="mt-4 grid gap-3">
-              {attempt.questions.map((question, questionIndex) => (
-                <li key={question.id} className="rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                  <p className="font-medium text-slate-900">
-                    {questionIndex + 1}. {question.prompt}
-                  </p>
-                  <p className="mt-1 text-slate-500">{question.isCorrect ? "Correct" : "Incorrect"}</p>
-                </li>
-              ))}
+              {attempt.questions.map((question, questionIndex) => {
+                const selected = question.options.filter((option) => question.selectedOptionIds.includes(option.id));
+                const keysVisible = Boolean(attempt.answersVisible && question.correctOptionIds);
+                return (
+                  <li key={question.id} className="rounded-xl bg-slate-50 px-4 py-3 text-sm">
+                    <p className="font-medium text-slate-900">
+                      {questionIndex + 1}. {question.prompt}
+                    </p>
+                    {keysVisible ? (
+                      <p className={`mt-1 ${question.isCorrect ? "text-emerald-700" : "text-red-600"}`}>
+                        {question.isCorrect ? "Correct" : "Incorrect"}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-slate-500">
+                        Your answer is recorded. Correct answers are hidden
+                        {catalog.assessment.revealMode === "SCHEDULED" && catalog.assessment.revealAt && !catalog.assessment.answersVisible
+                          ? ` until ${new Date(catalog.assessment.revealAt).toLocaleString()}`
+                          : ""}
+                        .
+                      </p>
+                    )}
+                    {selected.length ? (
+                      <p className="mt-1 text-slate-600">You chose: {selected.map((option) => option.label).join(", ")}</p>
+                    ) : (
+                      <p className="mt-1 text-slate-500">You did not answer this question.</p>
+                    )}
+                    {keysVisible ? (
+                      <p className="mt-1 text-slate-600">
+                        Correct:{" "}
+                        {question.options
+                          .filter((option) => option.isCorrect)
+                          .map((option) => option.label)
+                          .join(", ") || "—"}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ol>
             <button type="button" className={`${traineeSecondaryCtaClass} mt-4`} onClick={leaveAttempt}>
               Back to overview

@@ -7,6 +7,7 @@ import { ProgramReview } from "@/features/approvals/program-review";
 import { approveProgram, getAdminProgram, listAdminPrograms, rejectProgram } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { programStatusLabel } from "@/lib/programs/enrollment";
+import { RequiredMark } from "@/components/ui/required-mark";
 import type { ProgramStatus } from "@/types/domain";
 import type { ProgramSummary, ProgramTree } from "@/types/program";
 
@@ -114,33 +115,42 @@ export function ApprovalsBoard() {
     }
   }
 
+  const filterLabel = FILTERS.find((item) => item.id === filter)?.label ?? "Queue";
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
-      <aside className={`${CARD} flex flex-col overflow-hidden`}>
-        <div className="border-b border-slate-100 px-4 py-4">
-          <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Queue</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {FILTERS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  filter === item.id
-                    ? "bg-violet-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-                onClick={() => {
-                  setFilter(item.id);
-                  setSelectedId(null);
-                  setSelected(null);
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
+    <div className="flex flex-col gap-6">
+      <section className={`${CARD} overflow-hidden`}>
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+              Queue
+              <span className="ml-2 font-medium text-slate-500 normal-case tracking-normal">
+                {loadingList ? "…" : `${visible.length} ${filter === "ALL" ? "programs" : filterLabel.toLowerCase()}`}
+              </span>
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {FILTERS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    filter === item.id
+                      ? "bg-violet-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  onClick={() => {
+                    setFilter(item.id);
+                    setSelectedId(null);
+                    setSelected(null);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <label className="mt-3 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200 focus-within:ring-violet-300">
-            <Search className="h-4 w-4 text-slate-400" />
+          <label className="flex w-full max-w-xs items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200 focus-within:ring-violet-300 sm:w-72">
+            <Search className="h-4 w-4 shrink-0 text-slate-400" />
             <input
               className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
               placeholder="Search title or trainer"
@@ -150,32 +160,38 @@ export function ApprovalsBoard() {
           </label>
         </div>
         {error ? <p className="px-4 pt-3 text-sm text-red-600">{error}</p> : null}
-        <div className="max-h-[70vh] flex-1 overflow-y-auto">
-          {loadingList ? (
-            <p className="px-4 py-8 text-sm text-slate-500">Loading queue…</p>
-          ) : visible.length === 0 ? (
-            <p className="px-4 py-8 text-sm text-slate-500">No programs in this queue.</p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
+        {loadingList ? (
+          <p className="px-4 py-8 text-sm text-slate-500">Loading queue…</p>
+        ) : visible.length === 0 ? (
+          <p className="px-4 py-8 text-sm text-slate-500">No programs in this queue.</p>
+        ) : (
+          <div className="relative">
+            <ul className="flex gap-3 overflow-x-auto scroll-smooth px-4 py-3 snap-x snap-mandatory [scrollbar-width:thin]">
               {visible.map((program) => {
                 const active = selectedId === program.id;
+                const weeks = program._count?.weeks ?? 0;
                 return (
-                  <li key={program.id}>
+                  <li key={program.id} className="w-64 shrink-0 snap-start">
                     <button
                       type="button"
-                      className={`flex w-full flex-col items-start gap-1.5 px-4 py-3.5 text-left transition ${
-                        active ? "bg-violet-50" : "hover:bg-slate-50"
+                      aria-pressed={active}
+                      className={`flex h-full w-full flex-col gap-2 rounded-xl border px-3.5 py-3 text-left transition ${
+                        active
+                          ? "border-violet-300 bg-violet-50 shadow-sm ring-1 ring-violet-200"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                       }`}
                       onClick={() => setSelectedId(program.id)}
                     >
-                      <span className="flex w-full items-center gap-2">
-                        <span className={`truncate text-sm font-semibold ${active ? "text-violet-950" : "text-slate-900"}`}>
+                      <span className="flex items-start justify-between gap-2">
+                        <span className={`line-clamp-2 min-w-0 text-sm font-semibold leading-5 ${active ? "text-violet-950" : "text-slate-900"}`}>
                           {program.title}
                         </span>
-                        <StatusBadge status={program.status} />
+                        <span className="shrink-0">
+                          <StatusBadge status={program.status} />
+                        </span>
                       </span>
-                      <span className="text-xs text-slate-500">
-                        {program.createdBy.name} · {program._count?.weeks ?? 0} weeks
+                      <span className="mt-auto truncate text-xs text-slate-500">
+                        {program.createdBy.name} · {weeks} {weeks === 1 ? "week" : "weeks"}
                       </span>
                       <span className="text-[11px] text-slate-400">
                         Updated {new Date(program.updatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
@@ -185,9 +201,9 @@ export function ApprovalsBoard() {
                 );
               })}
             </ul>
-          )}
-        </div>
-      </aside>
+          </div>
+        )}
+      </section>
 
       <section className="min-w-0">
         {!selectedId ? (
@@ -209,7 +225,7 @@ export function ApprovalsBoard() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">Decision</p>
-                    <p className="text-xs text-slate-500">Review the materials on the right, then approve or reject.</p>
+                    <p className="text-xs text-slate-500">Review the materials below, then approve or reject.</p>
                   </div>
                   <button
                     type="button"
@@ -222,7 +238,10 @@ export function ApprovalsBoard() {
                   </button>
                 </div>
                 <label className="mt-4 block text-sm">
-                  <span className="font-medium text-slate-800">Rejection reason</span>
+                  <span className="font-medium text-slate-800">
+                    Rejection reason
+                    <RequiredMark />
+                  </span>
                   <textarea
                     className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none"
                     rows={3}

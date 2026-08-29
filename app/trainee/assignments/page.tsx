@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { TraineeShell } from "@/components/trainee-shell";
 import { ContentTypeChip } from "@/components/learning/content-type-chip";
@@ -10,22 +10,29 @@ import { ApiClientError } from "@/lib/api/client";
 import { friendlyLockReason } from "@/lib/learning/ux";
 import { traineePrimaryCtaClass, traineeSecondaryCtaClass } from "@/lib/ui/trainee";
 import { useAuth } from "@/providers/auth-provider";
-import type { AssignmentCatalog } from "@/types/assignment";
+import type { AssignmentCatalog, AssignmentSubmissionStatus } from "@/types/assignment";
 
-function statusLabel(status: string): string {
-  if (status === "NOT_STARTED") {
-    return "Not started";
-  }
-  if (status === "IN_PROGRESS") {
-    return "Draft";
-  }
-  return status.replaceAll("_", " ");
+type StatusFilter = AssignmentSubmissionStatus | "ALL";
+
+const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
+  { id: "ALL", label: "All" },
+  { id: "NOT_STARTED", label: "Not started" },
+  { id: "IN_PROGRESS", label: "Draft" },
+  { id: "SUBMITTED", label: "Submitted" },
+  { id: "CHANGES_REQUESTED", label: "Changes requested" },
+  { id: "GRADED", label: "Graded" },
+  { id: "COMPLETED", label: "Completed" },
+];
+
+function statusLabel(status: AssignmentSubmissionStatus): string {
+  return STATUS_FILTERS.find((item) => item.id === status)?.label ?? status.replaceAll("_", " ");
 }
 
 export default function TraineeAssignmentsPage() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<AssignmentCatalog[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   useEffect(() => {
     listTraineeAssignments()
@@ -38,6 +45,26 @@ export default function TraineeAssignmentsPage() {
       });
   }, []);
 
+  const visible = useMemo(() => {
+    if (!assignments) {
+      return [];
+    }
+    if (statusFilter === "ALL") {
+      return assignments;
+    }
+    return assignments.filter((item) => item.submission.status === statusFilter);
+  }, [assignments, statusFilter]);
+
+  const filterCounts = useMemo(() => {
+    const counts = new Map<StatusFilter, number>();
+    counts.set("ALL", assignments?.length ?? 0);
+    for (const item of assignments ?? []) {
+      const key = item.submission.status;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [assignments]);
+
   if (!user) {
     return null;
   }
@@ -47,6 +74,33 @@ export default function TraineeAssignmentsPage() {
       <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-950/5">
         <div className="border-b border-slate-100 px-5 py-4">
           <h2 className="text-base font-medium text-slate-900">Your assignments</h2>
+          {assignments && assignments.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {STATUS_FILTERS.map((item) => {
+                const count = filterCounts.get(item.id) ?? 0;
+                if (item.id !== "ALL" && count === 0) {
+                  return null;
+                }
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      statusFilter === item.id
+                        ? "bg-violet-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                    onClick={() => setStatusFilter(item.id)}
+                  >
+                    {item.label}
+                    <span className={statusFilter === item.id ? "ml-1.5 text-white/80" : "ml-1.5 text-slate-400"}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
         {error ? (
           <div className="px-5 py-4">
@@ -63,9 +117,17 @@ export default function TraineeAssignmentsPage() {
             <EmptyState title="No assignments yet" description="Assignments show up here as you move through your journey." />
           </div>
         ) : null}
-        {assignments && assignments.length > 0 ? (
+        {assignments && assignments.length > 0 && visible.length === 0 ? (
+          <div className="px-5 py-6">
+            <EmptyState
+              title="No assignments in this filter"
+              description="Try another status, or choose All to see every assignment."
+            />
+          </div>
+        ) : null}
+        {visible.length > 0 ? (
           <ul className="divide-y divide-slate-100">
-            {assignments.map((item) => {
+            {visible.map((item) => {
               const locked = item.assignment.status === "LOCKED";
               return (
               <li key={item.assignment.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

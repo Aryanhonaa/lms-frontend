@@ -37,10 +37,6 @@ export async function getTrainerAppUsage(query: AppUsageQuery): Promise<AppUsage
   return apiClient(`/trainer/analytics/app-usage?${buildQuery(query)}`);
 }
 
-export async function getTraineeAppUsage(query: AppUsageQuery): Promise<AppUsageAnalyticsResponse> {
-  return apiClient(`/trainee/analytics/app-usage?${buildQuery(query)}`);
-}
-
 export async function getUsageConfig(): Promise<{ config: AppUsageConfig }> {
   return apiClient("/trainee/usage/config");
 }

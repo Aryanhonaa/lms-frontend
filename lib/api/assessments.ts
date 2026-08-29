@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import { trainerScopeQuery, type TrainerWorkScope } from "@/lib/api/scope";
-import type { AssessmentAttemptView, AssessmentCatalog, TrainerAssessmentSummary } from "@/types/assessment";
+import type { AssessmentAttemptView, AssessmentCatalog, TrainerAssessmentDetail, TrainerAssessmentSummary } from "@/types/assessment";
 
 export async function listTraineeAssessments(): Promise<{ assessments: AssessmentCatalog[] }> {
   return apiClient<{ assessments: AssessmentCatalog[] }>("/trainee/assessments");
@@ -34,30 +34,6 @@ export async function listTrainerAssessments(scope?: TrainerWorkScope): Promise<
   return apiClient<{ assessments: TrainerAssessmentSummary[] }>(`/trainer/assessments${trainerScopeQuery(scope)}`);
 }
 
-export async function getTrainerAssessment(
-  id: string,
-  scope?: TrainerWorkScope,
-): Promise<{
-  assessment: TrainerAssessmentSummary & {
-    questions: Array<{
-      id: string;
-      prompt: string;
-      points: number;
-      options: Array<{ id: string; label: string; isCorrect: boolean }>;
-    }>;
-  };
-  attempts: Array<{
-    id: string;
-    attemptNumber: number;
-    status: string;
-    score: number | null;
-    passed: boolean | null;
-    startedAt: string;
-    submittedAt: string | null;
-    enrollmentId?: string;
-    trainee: { id: string; name: string; email: string };
-    batch?: { id: string; name: string };
-  }>;
-}> {
+export async function getTrainerAssessment(id: string, scope?: TrainerWorkScope): Promise<TrainerAssessmentDetail> {
   return apiClient(`/trainer/assessments/${id}${trainerScopeQuery(scope)}`);
 }

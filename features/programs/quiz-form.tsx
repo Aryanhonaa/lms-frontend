@@ -2,6 +2,7 @@
 
 import { Plus, X } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import type { QuizInput } from "@/types/program";
 
@@ -20,7 +21,7 @@ function Field({
     <label className="grid gap-1 text-sm">
       <span className="font-medium text-slate-800">
         {label}
-        {required ? <span className="ml-0.5 text-red-600">*</span> : null}
+        {required ? <RequiredMark /> : null}
       </span>
       {hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
       {children}
@@ -52,6 +53,7 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
+  const [revealMode, setRevealMode] = useState<"HIDDEN" | "IMMEDIATE" | "SCHEDULED">("IMMEDIATE");
 
   function updateQuestion(index: number, nextQuestion: QuestionDraft) {
     setQuestions((current) => current.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
@@ -101,6 +103,12 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       return;
     }
 
+    const revealAtRaw = String(data.get("revealAt") ?? "").trim();
+    if (revealMode === "SCHEDULED" && !revealAtRaw) {
+      setError("Choose when answers become visible");
+      return;
+    }
+
     const payload: QuizInput = {
       title,
       description: String(data.get("description") ?? "").trim(),
@@ -109,6 +117,8 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       maxAttempts: data.get("maxAttempts") ? Number(data.get("maxAttempts")) : null,
       randomized: data.get("randomized") === "on",
       questionDrawCount,
+      revealMode,
+      revealAt: revealMode === "SCHEDULED" ? new Date(revealAtRaw).toISOString() : null,
       questions: questions.map((question) => ({
         prompt: question.prompt.trim(),
         options: question.options.map((option) => ({
@@ -155,6 +165,7 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       await onSubmit(payload);
       form.reset();
       setQuestions([emptyQuestion()]);
+      setRevealMode("IMMEDIATE");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save quiz");
     } finally {
@@ -205,6 +216,23 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
           <input type="checkbox" name="randomized" defaultChecked disabled={locked} />
           Shuffle question and option order
         </label>
+        <Field label="Show correct answers">
+          <select
+            className={fieldClass}
+            value={revealMode}
+            disabled={locked}
+            onChange={(event) => setRevealMode(event.target.value as typeof revealMode)}
+          >
+            <option value="IMMEDIATE">Right after the trainee submits</option>
+            <option value="HIDDEN">Keep them hidden</option>
+            <option value="SCHEDULED">At a scheduled time</option>
+          </select>
+        </Field>
+        {revealMode === "SCHEDULED" ? (
+          <Field label="Answers visible from" required>
+            <input name="revealAt" type="datetime-local" className={fieldClass} disabled={locked} required />
+          </Field>
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -243,7 +271,7 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
             </div>
             <p className="pt-1 text-sm font-medium text-slate-800">
               Answer options
-              <span className="ml-0.5 text-red-600">*</span>
+              <RequiredMark />
             </p>
             {question.options.map((option, optionIndex) => (
               <div key={optionIndex} className="flex items-center gap-2 text-sm">
