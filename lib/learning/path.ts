@@ -112,11 +112,16 @@ export type PathItem = {
   description?: string;
   linkedItemType?: string | null;
   linkedItemId?: string | null;
+  canRetry?: boolean;
+  score?: number | null;
+  passingScore?: number | null;
+  attemptsUsed?: number;
+  maxAttempts?: number | null;
 };
 
 export function nextPathItem(items: PathItem[], current: PathItem | null): PathItem | NextActivity | null {
   const actionable = (item: PathItem) =>
-    item.status === "AVAILABLE" || item.status === "IN_PROGRESS" || item.status === "FAILED";
+    item.status === "AVAILABLE" || item.status === "IN_PROGRESS" || (item.status === "FAILED" && Boolean(item.canRetry));
   if (!current) {
     return items.find(actionable) ?? null;
   }

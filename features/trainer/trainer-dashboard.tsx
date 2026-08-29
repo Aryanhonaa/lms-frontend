@@ -479,7 +479,14 @@ function ProgramRow({ program }: { program: TrainerDashboardProgram }) {
           </span>
         </Link>
       </td>
-      <td className="px-3 py-3">{formatNumber(program.traineeCount)}</td>
+      <td className="px-3 py-3">
+        <p>{formatNumber(program.traineeCount)}</p>
+        {program.outcomeCounts ? (
+          <p className="text-xs text-slate-500">
+            {program.outcomeCounts.inProgress} in progress · {program.outcomeCounts.completed} completed · {program.outcomeCounts.failed} failed
+          </p>
+        ) : null}
+      </td>
       <td className="px-3 py-3">
         {program.progress === null ? (
           <span className="text-xs text-slate-400">No trainees</span>

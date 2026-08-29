@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Award,
+  BookOpen,
   CalendarDays,
   ChevronDown,
   ClipboardCheck,
@@ -44,6 +45,7 @@ type NavItem = {
 
 const TRAINEE_NAV: NavItem[] = [
   { href: "/trainee", label: "Home", icon: LayoutDashboard, exact: true },
+  { href: "/trainee/courses", label: "My Courses", icon: BookOpen },
   { href: "/trainee/learn", label: "Learn", icon: PlayCircle },
   { href: "/trainee/assessments", label: "Quizzes", icon: ClipboardCheck },
   { href: "/trainee/assignments", label: "Assignments", icon: ListChecks },

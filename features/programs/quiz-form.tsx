@@ -53,7 +53,6 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
-  const [revealMode, setRevealMode] = useState<"HIDDEN" | "IMMEDIATE" | "SCHEDULED">("IMMEDIATE");
 
   function updateQuestion(index: number, nextQuestion: QuestionDraft) {
     setQuestions((current) => current.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
@@ -103,12 +102,6 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       return;
     }
 
-    const revealAtRaw = String(data.get("revealAt") ?? "").trim();
-    if (revealMode === "SCHEDULED" && !revealAtRaw) {
-      setError("Choose when answers become visible");
-      return;
-    }
-
     const payload: QuizInput = {
       title,
       description: String(data.get("description") ?? "").trim(),
@@ -117,8 +110,8 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       maxAttempts: data.get("maxAttempts") ? Number(data.get("maxAttempts")) : null,
       randomized: data.get("randomized") === "on",
       questionDrawCount,
-      revealMode,
-      revealAt: revealMode === "SCHEDULED" ? new Date(revealAtRaw).toISOString() : null,
+      revealMode: "HIDDEN",
+      revealAt: null,
       questions: questions.map((question) => ({
         prompt: question.prompt.trim(),
         options: question.options.map((option) => ({
@@ -165,7 +158,6 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
       await onSubmit(payload);
       form.reset();
       setQuestions([emptyQuestion()]);
-      setRevealMode("IMMEDIATE");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save quiz");
     } finally {
@@ -216,23 +208,9 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
           <input type="checkbox" name="randomized" defaultChecked disabled={locked} />
           Shuffle question and option order
         </label>
-        <Field label="Show correct answers">
-          <select
-            className={fieldClass}
-            value={revealMode}
-            disabled={locked}
-            onChange={(event) => setRevealMode(event.target.value as typeof revealMode)}
-          >
-            <option value="IMMEDIATE">Right after the trainee submits</option>
-            <option value="HIDDEN">Keep them hidden</option>
-            <option value="SCHEDULED">At a scheduled time</option>
-          </select>
-        </Field>
-        {revealMode === "SCHEDULED" ? (
-          <Field label="Answers visible from" required>
-            <input name="revealAt" type="datetime-local" className={fieldClass} disabled={locked} required />
-          </Field>
-        ) : null}
+        <p className="self-end pb-2 text-sm text-slate-500">
+          Trainees see their score after submit. They cannot review questions or answers. You can still see their paper.
+        </p>
       </div>
 
       <div className="space-y-3">

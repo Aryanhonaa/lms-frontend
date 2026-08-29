@@ -28,6 +28,7 @@ export type InterventionFlag = {
   resolvedAt: string | null;
   trainee: InterventionPerson;
   program: { id: string; title: string };
+  batch: { id: string; name: string };
   enrollmentId: string;
   openRequirements: number;
 };
@@ -46,6 +47,7 @@ export type IndividualRequirement = {
   trainee: InterventionPerson;
   trainer: InterventionPerson;
   program: { id: string; title: string };
+  batch: { id: string; name: string };
   enrollmentId: string;
   interventionFlagId: string | null;
 };

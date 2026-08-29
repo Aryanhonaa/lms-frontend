@@ -1,10 +1,11 @@
 import type { CalendarEvent } from "@/types/calendar";
+import type { CourseOutcome, CourseOutcomeView } from "@/types/learning";
 import type { DashboardRange } from "@/types/trainer-dashboard";
 
 export type { DashboardRange };
 
 export type TraineeDashboardStatistics = {
-  enrolledPrograms: { total: number; active: number };
+  enrolledPrograms: { total: number; active: number; completed: number; failed: number };
   overallProgress: { percent: number };
   pendingAssignments: { total: number };
   upcomingAssessments: { total: number };
@@ -13,6 +14,7 @@ export type TraineeDashboardStatistics = {
 export type TraineeCurrentLearning = {
   program: { id: string; title: string; category: string; durationWeeks: number };
   enrollmentStatus: string;
+  course: CourseOutcomeView;
   percent: number;
   currentWeek: { id: string; title: string; sortOrder: number; status: string } | null;
   currentDay: { id: string; title: string; sortOrder: number; status: string } | null;
@@ -73,7 +75,7 @@ export type TraineeDashboard = {
   upcoming: TraineeUpcomingEvent[];
   pendingAssignments: TraineePendingAssignment[];
   announcements: TraineeDashboardAnnouncement[];
-  otherPrograms: Array<{ id: string; title: string; percent: number; href: string }>;
+  otherPrograms: Array<{ id: string; title: string; percent: number; outcome?: CourseOutcome; href: string }>;
   errors: {
     learning: string | null;
     upcoming: string | null;
