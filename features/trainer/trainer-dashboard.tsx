@@ -242,16 +242,16 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TrainerDashboard; on
             />
             <StatCard
               href="/trainer/interventions"
-              label="Pending Reviews"
+              label="Need help"
               value={statistics.pendingReviews.total}
-              hint="Interventions"
+              hint="Trainees below your alert line"
               hintClass="text-amber-600"
               icon={AlertTriangle}
               iconClass="bg-amber-100 text-amber-700"
             />
             <StatCard
               href="/trainer/calendar"
-              label="Upcoming Assessments"
+              label="Upcoming quizzes"
               value={statistics.upcomingAssessments.total}
               hint="In this range"
               hintClass="text-sky-700"
@@ -363,13 +363,13 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TrainerDashboard; on
         </section>
 
         <section className={`${CARD} xl:col-span-2`}>
-          <SectionHeader title="Needs attention" href="/trainer/interventions" linkLabel="View all" />
+          <SectionHeader title="Trainees who need help" href="/trainer/interventions" linkLabel="View all" />
           {errors.attention ? (
             <div className="px-5 pb-5">
-              <SectionError message="Unable to load interventions." onRetry={onRetry} />
+              <SectionError message="Unable to load alerts." onRetry={onRetry} />
             </div>
           ) : dashboard.attention.length === 0 ? (
-            <EmptyCopy title="All caught up" description="No trainees currently need attention." />
+            <EmptyCopy title="All caught up" description="No trainees currently need help." />
           ) : (
             <ul className="divide-y divide-slate-100 px-2 pb-2">
               {dashboard.attention.map((item) => (
@@ -479,7 +479,14 @@ function ProgramRow({ program }: { program: TrainerDashboardProgram }) {
           </span>
         </Link>
       </td>
-      <td className="px-3 py-3">{formatNumber(program.traineeCount)}</td>
+      <td className="px-3 py-3">
+        <p>{formatNumber(program.traineeCount)}</p>
+        {program.outcomeCounts ? (
+          <p className="text-xs text-slate-500">
+            {program.outcomeCounts.inProgress} in progress · {program.outcomeCounts.completed} completed · {program.outcomeCounts.failed} failed
+          </p>
+        ) : null}
+      </td>
       <td className="px-3 py-3">
         {program.progress === null ? (
           <span className="text-xs text-slate-400">No trainees</span>

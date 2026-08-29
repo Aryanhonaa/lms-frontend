@@ -1,3 +1,4 @@
+import type { CourseOutcomeView } from "@/types/learning";
 import { apiClient } from "@/lib/api/client";
 
 export type EligibleTrainee = {
@@ -18,10 +19,23 @@ export type ProgramTraineeRow = {
   enrollmentId: string;
   status: string;
   progress: number;
+  courseOutcome: "PENDING" | "PASSED" | "FAILED";
+  courseStatus: "IN_PROGRESS" | "FINISHED";
+  failedAssessments: CourseOutcomeView["failedAssessments"];
+  lastActivityAt: string | null;
+  finishedAt: string | null;
   enrolledAt: string;
   enrolledBy: { id: string; name: string; email: string } | null;
   trainee: { id: string; name: string; email: string };
   batch: { id: string; name: string } | null;
+};
+
+export type TraineeRosterCounts = {
+  total: number;
+  inProgress: number;
+  completed: number;
+  failed: number;
+  notStarted?: number;
 };
 
 export type EnrollResult = {
@@ -50,8 +64,22 @@ export async function listEligibleTrainees(
   );
 }
 
-export async function listProgramTrainees(programId: string): Promise<{ trainees: ProgramTraineeRow[] }> {
-  return apiClient<{ trainees: ProgramTraineeRow[] }>(`/trainer/programs/${programId}/trainees`);
+export async function listProgramTrainees(
+  programId: string,
+): Promise<{ trainees: ProgramTraineeRow[]; counts: TraineeRosterCounts }> {
+  return apiClient<{ trainees: ProgramTraineeRow[]; counts: TraineeRosterCounts }>(
+    `/trainer/programs/${programId}/trainees`,
+  );
+}
+
+export async function getEnrollmentProgress(enrollmentId: string) {
+  return apiClient<{
+    enrollmentId: string;
+    enrolledAt: string;
+    trainee: { id: string; name: string; email: string };
+    batch: { id: string; name: string } | null;
+    progress: import("@/types/progress").ProgressView;
+  }>(`/trainer/enrollments/${enrollmentId}/progress`);
 }
 
 export async function enrollTrainees(

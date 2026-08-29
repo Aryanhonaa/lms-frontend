@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { TrainerCourseBatchFilters } from "@/components/trainer-course-batch-filters";
 import { TrainerShell } from "@/components/trainer-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
+import { useTrainerCourseBatch } from "@/hooks/use-trainer-course-batch";
 import {
   assignRequirement,
   listTrainerInterventions,
@@ -27,7 +30,30 @@ const REQUIREMENT_TYPES: IndividualRequirementType[] = [
 ];
 
 function triggerLabel(trigger: InterventionFlag["trigger"]): string {
-  return trigger === "PROGRESS_BELOW_THRESHOLD" ? "Progress below threshold" : "Exam score below threshold";
+  return trigger === "PROGRESS_BELOW_THRESHOLD" ? "Course progress is low" : "Exam score is low";
+}
+
+function statusLabel(status: InterventionFlag["status"]): string {
+  if (status === "ACKNOWLEDGED") {
+    return "Seen";
+  }
+  if (status === "RESOLVED") {
+    return "Dismissed";
+  }
+  return "Open";
+}
+
+function requirementTypeLabel(type: IndividualRequirementType): string {
+  const labels: Record<IndividualRequirementType, string> = {
+    VIDEO: "Video",
+    READING: "Reading",
+    QUIZ: "Quiz",
+    ASSIGNMENT: "Assignment",
+    SESSION: "Live session",
+    EXAM_RETRY: "Retry exam",
+    CUSTOM: "Other",
+  };
+  return labels[type];
 }
 
 function formatDate(value: string | null): string {
@@ -39,6 +65,13 @@ function formatDate(value: string | null): string {
 
 export default function TrainerInterventionsPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filters = useTrainerCourseBatch({
+    programId: searchParams.get("programId") ?? undefined,
+    batchId: searchParams.get("batchId") ?? undefined,
+  });
   const [flags, setFlags] = useState<InterventionFlag[] | null>(null);
   const [requirements, setRequirements] = useState<IndividualRequirement[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +100,7 @@ export default function TrainerInterventionsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof ApiClientError ? err.message : "Unable to load interventions");
+          setError(err instanceof ApiClientError ? err.message : "Unable to load alerts");
         }
       });
     return () => {
@@ -75,62 +108,131 @@ export default function TrainerInterventionsPage() {
     };
   }, []);
 
-  const openFlags = useMemo(() => flags?.filter((row) => row.status === "OPEN") ?? [], [flags]);
+  function replaceScope(programId: string, batchId?: string) {
+    const next = new URLSearchParams();
+    if (programId) {
+      next.set("programId", programId);
+    }
+    if (batchId) {
+      next.set("batchId", batchId);
+    }
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
+
+  function onProgramChange(programId: string) {
+    filters.setProgramId(programId);
+    replaceScope(programId);
+  }
+
+  function onBatchChange(batchId: string) {
+    filters.setBatchId(batchId);
+    replaceScope(filters.programId, batchId);
+  }
+
+  const scopedFlags = useMemo(() => {
+    if (!flags || !filters.programId || !filters.batchId) {
+      return [];
+    }
+    return flags.filter((row) => row.program.id === filters.programId && row.batch.id === filters.batchId);
+  }, [flags, filters.programId, filters.batchId]);
+
+  const scopedRequirements = useMemo(() => {
+    if (!filters.programId || !filters.batchId) {
+      return [];
+    }
+    return requirements.filter((row) => row.program.id === filters.programId && row.batch.id === filters.batchId);
+  }, [requirements, filters.programId, filters.batchId]);
+
+  const openFlags = useMemo(() => scopedFlags.filter((row) => row.status === "OPEN"), [scopedFlags]);
 
   if (!user) {
     return null;
   }
 
+  const loadError = error ?? filters.error;
+  const showList = filters.ready && Boolean(filters.programId && filters.batchId) && flags !== null && !loadError;
+
   return (
-    <TrainerShell title="Interventions" user={user}>
-      {error ? <ErrorState message={error} /> : null}
-      {flags === null && !error ? <LoadingState /> : null}
-      {flags && flags.length === 0 ? (
+    <TrainerShell title="Trainees who need help" user={user}>
+      <section className="mb-6 bg-white">
+        <div className="border-b border-stone-200 px-5 py-4">
+          <p className="max-w-2xl text-sm text-stone-600">
+            Lists trainees in this batch who have started the course and fallen below the alert lines you set (progress or
+            exam score). It does not change pass marks. Mark as seen, dismiss, or give extra work.
+          </p>
+          <div className="mt-4">
+            <TrainerCourseBatchFilters
+              programs={filters.programs}
+              batches={filters.batches}
+              programId={filters.programId}
+              batchId={filters.batchId}
+              onProgramChange={onProgramChange}
+              onBatchChange={onBatchChange}
+            />
+          </div>
+        </div>
+      </section>
+
+      {loadError ? <ErrorState message={loadError} /> : null}
+      {(!filters.ready || flags === null) && !loadError ? <LoadingState /> : null}
+      {filters.ready && filters.programs.length === 0 && !loadError ? (
+        <EmptyState title="No courses yet" description="Create a course before reviewing alerts." />
+      ) : null}
+      {filters.ready && filters.programs.length > 0 && filters.batches.length === 0 && !loadError ? (
         <EmptyState
-          title="No intervention flags"
-          description="When a trainee drops below the progress or exam threshold, they will appear here."
+          title="No batches yet"
+          description="Create a batch for this course to see who needs help."
+        />
+      ) : null}
+      {showList && scopedFlags.length === 0 ? (
+        <EmptyState
+          title="No one needs help in this batch"
+          description="When a trainee who has started the course falls below your progress or exam alert line, they will appear here."
         />
       ) : null}
 
-      {openFlags.length > 0 ? (
+      {showList && openFlags.length > 0 ? (
         <section className="mb-6 border border-red-200 bg-red-50 px-5 py-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-red-800">Needs attention</p>
-          <p className="mt-1 text-sm text-red-900">{openFlags.length} open flag{openFlags.length === 1 ? "" : "s"}.</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-red-800">Open alerts</p>
+          <p className="mt-1 text-sm text-red-900">
+            {openFlags.length} trainee{openFlags.length === 1 ? "" : "s"} below the alert line.
+          </p>
         </section>
       ) : null}
 
-      {flags && flags.length > 0 ? (
+      {showList && scopedFlags.length > 0 ? (
         <section className="bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Flags</div>
+          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Alerts</div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
                 <tr>
                   <th className="px-5 py-2 font-medium">Trainee</th>
-                  <th className="px-3 py-2 font-medium">Program</th>
+                  <th className="px-3 py-2 font-medium">Batch</th>
                   <th className="px-3 py-2 font-medium">Progress</th>
                   <th className="px-3 py-2 font-medium">Exam</th>
-                  <th className="px-3 py-2 font-medium">Trigger</th>
+                  <th className="px-3 py-2 font-medium">Why</th>
                   <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-3 py-2 font-medium">Created</th>
                   <th className="px-5 py-2 font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {flags.map((flag) => (
+                {scopedFlags.map((flag) => (
                   <tr key={flag.id} className="align-top">
                     <td className="px-5 py-3">
                       <p className="font-medium text-stone-950">{flag.trainee.name}</p>
                       <p className="text-xs text-stone-500">{flag.trainee.email}</p>
                     </td>
-                    <td className="px-3 py-3">{flag.program.title}</td>
+                    <td className="px-3 py-3">{flag.batch.name}</td>
                     <td className="px-3 py-3">{flag.progress ?? 0}%</td>
                     <td className="px-3 py-3">
                       {flag.examScore !== null ? `${flag.examScore}%` : "—"}
                       {flag.examTitle ? <span className="mt-1 block text-xs text-stone-500">{flag.examTitle}</span> : null}
                     </td>
                     <td className="px-3 py-3">{triggerLabel(flag.trigger)}</td>
-                    <td className="px-3 py-3">{flag.status}</td>
+                    <td className="px-3 py-3">{statusLabel(flag.status)}</td>
                     <td className="px-3 py-3">{formatDate(flag.createdAt)}</td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
@@ -144,12 +246,12 @@ export default function TrainerInterventionsPage() {
                               void updateTrainerIntervention(flag.id, "ACKNOWLEDGED")
                                 .then(() => reload())
                                 .catch((err: unknown) => {
-                                  setError(err instanceof ApiClientError ? err.message : "Unable to update flag");
+                                  setError(err instanceof ApiClientError ? err.message : "Unable to update alert");
                                 })
                                 .finally(() => setBusy(false));
                             }}
                           >
-                            Acknowledge
+                            Mark as seen
                           </button>
                         ) : null}
                         {flag.status !== "RESOLVED" ? (
@@ -162,12 +264,12 @@ export default function TrainerInterventionsPage() {
                               void updateTrainerIntervention(flag.id, "RESOLVED")
                                 .then(() => reload())
                                 .catch((err: unknown) => {
-                                  setError(err instanceof ApiClientError ? err.message : "Unable to update flag");
+                                  setError(err instanceof ApiClientError ? err.message : "Unable to update alert");
                                 })
                                 .finally(() => setBusy(false));
                             }}
                           >
-                            Resolve
+                            Dismiss
                           </button>
                         ) : null}
                         <button
@@ -175,7 +277,7 @@ export default function TrainerInterventionsPage() {
                           className={primaryButtonClass}
                           onClick={() => setAssignFor(assignFor === flag.id ? null : flag.id)}
                         >
-                          Assign
+                          Give extra work
                         </button>
                       </div>
                       {assignFor === flag.id ? (
@@ -199,7 +301,7 @@ export default function TrainerInterventionsPage() {
                                 return reload();
                               })
                               .catch((err: unknown) => {
-                                setError(err instanceof ApiClientError ? err.message : "Unable to assign requirement");
+                                setError(err instanceof ApiClientError ? err.message : "Unable to save extra work");
                               })
                               .finally(() => setBusy(false));
                           }}
@@ -219,7 +321,7 @@ export default function TrainerInterventionsPage() {
                             <select name="type" className={fieldClass} defaultValue="CUSTOM">
                             {REQUIREMENT_TYPES.map((type) => (
                               <option key={type} value={type}>
-                                {type.replaceAll("_", " ").toLowerCase()}
+                                {requirementTypeLabel(type)}
                               </option>
                             ))}
                             </select>
@@ -227,7 +329,7 @@ export default function TrainerInterventionsPage() {
                           <textarea name="trainerMessage" className={fieldClass} placeholder="Message to trainee" rows={3} />
                           <input name="deadline" type="date" className={fieldClass} />
                           <button type="submit" className={primaryButtonClass} disabled={busy}>
-                            Save requirement
+                            Save extra work
                           </button>
                         </form>
                       ) : null}
@@ -240,16 +342,16 @@ export default function TrainerInterventionsPage() {
         </section>
       ) : null}
 
-      {requirements.length > 0 ? (
+      {showList && scopedRequirements.length > 0 ? (
         <section className="mt-6 bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Assigned requirements</div>
+          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Extra work assigned</div>
           <ul className="divide-y divide-stone-100">
-            {requirements.map((item) => (
+            {scopedRequirements.map((item) => (
               <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-3 px-5 py-3 text-sm">
                 <div>
                   <p className="font-medium text-stone-950">{item.title}</p>
                   <p className="mt-1 text-stone-500">
-                    {item.trainee.name} · {item.program.title} · {item.status.toLowerCase()}
+                    {item.trainee.name} · {item.batch.name} · {item.status.toLowerCase()}
                     {item.deadline ? ` · due ${formatDate(item.deadline)}` : ""}
                   </p>
                 </div>
@@ -260,11 +362,11 @@ export default function TrainerInterventionsPage() {
       ) : null}
 
       <p className="mt-4 text-sm text-stone-500">
-        Thresholds can be changed on each{" "}
+        Alert lines are set on each{" "}
         <Link href="/trainer/programs" className="underline">
-          program
+          course
         </Link>
-        .
+        . A trainee is not listed for low progress until they have started the course.
       </p>
     </TrainerShell>
   );

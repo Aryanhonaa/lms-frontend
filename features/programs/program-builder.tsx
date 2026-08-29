@@ -475,7 +475,7 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
         ) : null}
       </Dialog>
 
-      <Dialog open={Boolean(editor)} title={editor ? editorTitle(editor) : ""} side onClose={() => setEditor(null)}>
+      <Dialog open={Boolean(editor)} title={editor ? editorTitle(editor) : ""} side wide onClose={() => setEditor(null)}>
         {editor ? (
           <ContentEditor
             state={editor}

@@ -1,5 +1,25 @@
 export type AccessStatus = "LOCKED" | "AVAILABLE" | "IN_PROGRESS" | "COMPLETED" | "PASSED" | "FAILED";
 export type ProgressStatus = AccessStatus;
+export type CourseOutcome = "PENDING" | "PASSED" | "FAILED";
+export type CourseRunStatus = "IN_PROGRESS" | "FINISHED";
+
+export type FailedAssessmentSummary = {
+  id: string;
+  title: string;
+  kind: string;
+  score: number | null;
+  passingScore: number;
+  attemptsUsed: number;
+  maxAttempts: number | null;
+};
+
+export type CourseOutcomeView = {
+  outcome: CourseOutcome;
+  courseStatus: CourseRunStatus;
+  failedAssessments: FailedAssessmentSummary[];
+  lastActivityAt?: string | null;
+  finishedAt?: string | null;
+};
 export type LearnableItemType = "LESSON" | "VIDEO" | "RESOURCE" | "REEL";
 export type LearnPathType = LearnableItemType | "QUIZ" | "ASSIGNMENT";
 
@@ -24,6 +44,11 @@ export type LearnQuiz = {
   kind: string;
   status: AccessStatus;
   reason: string | null;
+  canRetry?: boolean;
+  score?: number | null;
+  passingScore?: number | null;
+  attemptsUsed?: number;
+  maxAttempts?: number | null;
 };
 
 export type LearnItem = {
@@ -65,6 +90,13 @@ export type LearnWeek = {
   quizzes?: LearnQuiz[];
 };
 
+export type LearnMilestone = {
+  id: string;
+  title: string;
+  afterWeekIndex: number;
+  exam: LearnQuiz | null;
+};
+
 export type NextActivity = {
   type: LearnPathType;
   kind?: string;
@@ -96,6 +128,7 @@ export type LearnView = {
   currentWeek: { id: string; title: string; sortOrder: number; status: AccessStatus } | null;
   currentDay: { id: string; title: string; sortOrder: number; status: AccessStatus } | null;
   nextActivity: NextActivity;
+  course: CourseOutcomeView;
   progress: {
     completedRequired: number;
     totalRequired: number;
@@ -106,6 +139,7 @@ export type LearnView = {
     remainingItems?: number;
   };
   weeks: LearnWeek[];
+  milestones?: LearnMilestone[];
   finalExam?: LearnQuiz | null;
 };
 
@@ -120,5 +154,6 @@ export type EnrollmentSummary = {
   currentWeek: LearnView["currentWeek"];
   currentDay: LearnView["currentDay"];
   nextActivity: NextActivity;
+  course: CourseOutcomeView;
   progress: LearnView["progress"];
 };

@@ -53,6 +53,10 @@ function labelForSegment(
     return "Batches";
   }
 
+  if (segment === "courses") {
+    return role === "trainee" ? "My Courses" : "Courses";
+  }
+
   const labels: Record<string, string> = {
     programs: "Programs",
     courses: "Courses",
@@ -61,10 +65,10 @@ function labelForSegment(
     trainees: "Trainees",
     trainers: "Trainers",
     users: "Users",
-    assessments: role === "trainee" ? "Quizzes" : "Assessments",
+    assessments: "Quizzes",
     assignments: "Assignments",
     calendar: "Calendar",
-    interventions: "Interventions",
+    interventions: "Needs help",
     leaderboard: "Leaderboard",
     announcements: "Announcements",
     certificates: "Certificates",

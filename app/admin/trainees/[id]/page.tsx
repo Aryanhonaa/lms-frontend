@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { CourseOutcomeBadge } from "@/components/course-outcome";
 import { AdminPageHeader } from "@/features/admin/page-header";
 import {
   DeleteUserDialog,
@@ -46,11 +47,13 @@ function ProgramCard({ row }: { row: AdminTraineeProgram }) {
         <div>
           <h2 className="text-base font-semibold text-slate-900">{row.progress.program.title}</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {row.status}
-            {row.enrolledBy ? ` · Enrolled by ${row.enrolledBy.name}` : ""}
+            {row.enrolledBy ? `Enrolled by ${row.enrolledBy.name}` : "Enrolled"}
           </p>
         </div>
-        <p className="text-sm font-medium text-slate-700">{percent}%</p>
+        <div className="text-right">
+          <p className="text-sm font-medium text-slate-700">{percent}%</p>
+          {row.progress.course ? <div className="mt-1"><CourseOutcomeBadge course={row.progress.course} progress={percent} /></div> : null}
+        </div>
       </div>
       <div className="h-2 bg-slate-100">
         <div className="h-2 bg-violet-600" style={{ width: `${Math.min(100, percent)}%` }} />

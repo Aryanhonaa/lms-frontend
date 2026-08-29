@@ -37,6 +37,7 @@ export type Quiz = {
   timeLimitMin: number | null;
   maxAttempts: number | null;
   randomized: boolean;
+  questionDrawCount: number | null;
   questions: Question[];
 };
 
@@ -218,6 +219,7 @@ export type QuizInput = {
   timeLimitMin?: number | null;
   maxAttempts?: number | null;
   randomized?: boolean;
+  questionDrawCount?: number | null;
   revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
   revealAt?: string | null;
   questions?: Array<{

@@ -15,6 +15,7 @@ import {
   Play,
   Trophy,
 } from "lucide-react";
+import { CourseOutcomePanel } from "@/components/course-outcome";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { DASHBOARD_PREVIEW_COUNT, ViewMoreFooter } from "@/components/view-more-footer";
 import { TraineeCourseFilters } from "@/components/trainee-course-filters";
@@ -206,7 +207,7 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TraineeDashboard; on
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard href="/trainee/learn" label="Your courses" value={`${statistics.enrolledPrograms.total}`} hint={`${statistics.enrolledPrograms.active} in progress`} hintClass="text-violet-700" icon={BookOpen} iconClass="bg-violet-100 text-violet-700" />
+        <StatCard href="/trainee/courses" label="Your courses" value={`${statistics.enrolledPrograms.total}`} hint={`${statistics.enrolledPrograms.active} in progress · ${statistics.enrolledPrograms.failed} failed`} hintClass="text-violet-700" icon={BookOpen} iconClass="bg-violet-100 text-violet-700" />
         <StatCard href="/trainee/progress" label="Overall progress" value={`${Math.round(statistics.overallProgress.percent)}%`} hint={statistics.overallProgress.percent >= 85 ? "Almost there" : "Keep going"} hintClass="text-emerald-600" icon={ClipboardCheck} iconClass="bg-emerald-100 text-emerald-700" />
         <StatCard href="/trainee/assignments" label="Pending assignments" value={`${statistics.pendingAssignments.total}`} hint="Due soon" hintClass="text-amber-600" icon={ListChecks} iconClass="bg-amber-100 text-amber-700" />
         <StatCard href="/trainee/calendar" label="Upcoming quizzes" value={`${statistics.upcomingAssessments.total}`} hint="In this range" hintClass="text-sky-700" icon={CalendarDays} iconClass="bg-sky-100 text-sky-700" />
@@ -280,6 +281,7 @@ function toCurrentLearning(learn: LearnView, progress: ProgressView, batchId?: s
       durationWeeks: learn.program.durationWeeks,
     },
     enrollmentStatus: learn.enrollment.status,
+    course: learn.course,
     percent: learn.progress.percent,
     currentWeek: learn.currentWeek,
     currentDay: learn.currentDay,
@@ -370,10 +372,10 @@ function CourseCard({
 
   const loadError = localError ?? error;
   const mission = learning?.nextActivity ?? null;
-  const today = learnView ? currentDayItems(learnView, flattenLearnPath(learnView)) : [];
+  const today = learnView ? currentDayItems(learnView, flattenLearnPath(learnView), null) : [];
   const todayDone = today.filter((item) => isDoneStatus(item.status)).length;
   const headline = learning
-    ? progressHeadline(learnView?.progress.completedRequired ?? 0, learnView?.progress.totalRequired ?? 0, learning.percent)
+    ? progressHeadline(learnView?.progress.completedRequired ?? 0, learnView?.progress.totalRequired ?? 0, learning.percent, learning.course.outcome)
     : "Ready when you are";
 
   return (
@@ -430,7 +432,7 @@ function CourseCard({
           <div className="mt-4">
             <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-500">
               <span>{headline}</span>
-              {learning.remainingMinutes != null && learning.percent < 100 ? (
+              {learning.remainingMinutes != null && learning.percent < 100 && learning.course.outcome === "PENDING" ? (
                 <span>{formatRemaining(learning.remainingMinutes)}</span>
               ) : (
                 <span>{Math.round(learning.percent)}%</span>
@@ -438,9 +440,14 @@ function CourseCard({
             </div>
             <ProgressBar value={learning.percent} tone="violet" size="md" />
           </div>
+          {learning.course.outcome !== "PENDING" ? (
+            <div className="mt-3">
+              <CourseOutcomePanel course={learning.course} compact />
+            </div>
+          ) : null}
           <Link href={learning.continueHref} className={`${traineePrimaryCtaClass} mt-4`}>
             <Play className="h-4 w-4 fill-current" />
-            Continue Learning
+            {learning.course.outcome === "PENDING" ? "Continue Learning" : "View Course"}
           </Link>
           {today.length > 0 ? (
             <ul className="mt-4 space-y-1 border-t border-slate-100 pt-4">

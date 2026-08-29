@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Award,
+  BookOpen,
   CalendarDays,
   ChevronDown,
   ClipboardCheck,
@@ -44,6 +45,7 @@ type NavItem = {
 
 const TRAINEE_NAV: NavItem[] = [
   { href: "/trainee", label: "Home", icon: LayoutDashboard, exact: true },
+  { href: "/trainee/courses", label: "My Courses", icon: BookOpen },
   { href: "/trainee/learn", label: "Learn", icon: PlayCircle },
   { href: "/trainee/assessments", label: "Quizzes", icon: ClipboardCheck },
   { href: "/trainee/assignments", label: "Assignments", icon: ListChecks },
@@ -232,7 +234,7 @@ export function TraineeShell({
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm shadow-violet-600/25">
                 <GraduationCap className="h-5 w-5" />
               </span>
-              <span className="hidden text-sm font-semibold tracking-tight text-slate-900 sm:inline">LMS</span>
+              <span className="hidden text-sm font-semibold tracking-tight text-slate-900 sm:inline">Learn Lab</span>
             </Link>
             <button
               type="button"

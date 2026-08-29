@@ -42,10 +42,12 @@ export type AssessmentCatalog = {
     timeLimitMin: number | null;
     maxAttempts: number | null;
     randomized: boolean;
+    questionDrawCount: number | null;
     revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
     revealAt?: string | null;
     answersVisible?: boolean;
     questionCount: number;
+    questionBankCount: number;
     programId: string;
     programTitle: string;
     location: string;
@@ -84,7 +86,9 @@ export type TrainerAssessmentSummary = {
   timeLimitMin: number | null;
   maxAttempts: number | null;
   randomized: boolean;
+  questionDrawCount: number | null;
   questionCount: number;
+  questionBankCount: number;
   attemptCount: number;
   programId: string;
   programTitle?: string;

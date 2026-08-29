@@ -12,6 +12,7 @@ type Props = {
   onProgramChange: (programId: string) => void;
   onBatchChange: (batchId: string) => void;
   programDisabled?: boolean;
+  hideProgram?: boolean;
 };
 
 export function TrainerCourseBatchFilters({
@@ -22,26 +23,29 @@ export function TrainerCourseBatchFilters({
   onProgramChange,
   onBatchChange,
   programDisabled = false,
+  hideProgram = false,
 }: Props) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <label className="block text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="trainer-course">
-        Course
-        <select
-          id="trainer-course"
-          className={`${fieldClass} mt-1 font-normal normal-case`}
-          value={programId}
-          disabled={programDisabled || programs.length === 0}
-          onChange={(event) => onProgramChange(event.target.value)}
-        >
-          {programs.length === 0 ? <option value="">No courses</option> : null}
-          {programs.map((program) => (
-            <option key={program.id} value={program.id}>
-              {program.title}
-            </option>
-          ))}
-        </select>
-      </label>
+    <div className={hideProgram ? "max-w-sm" : "grid gap-3 sm:grid-cols-2"}>
+      {hideProgram ? null : (
+        <label className="block text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="trainer-course">
+          Course
+          <select
+            id="trainer-course"
+            className={`${fieldClass} mt-1 font-normal normal-case`}
+            value={programId}
+            disabled={programDisabled || programs.length === 0}
+            onChange={(event) => onProgramChange(event.target.value)}
+          >
+            {programs.length === 0 ? <option value="">No courses</option> : null}
+            {programs.map((program) => (
+              <option key={program.id} value={program.id}>
+                {program.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="block text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="trainer-batch">
         Batch
         <select

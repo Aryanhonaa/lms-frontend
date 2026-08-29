@@ -51,7 +51,7 @@ export function AssessmentsPanel({
   const exams = quizzes.filter((item) => isExamKind(item.kind));
 
   return (
-    <div className="lms-fade-up mx-auto max-w-3xl space-y-6">
+    <div className="lms-fade-up mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-[1.45rem] font-semibold tracking-tight text-slate-900">Assessments</h2>
         <p className="mt-1 text-sm text-slate-500">

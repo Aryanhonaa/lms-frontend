@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronRight, Lock, Play } from "lucide-react";
+import { CourseOutcomePanel } from "@/components/course-outcome";
 import { TraineeCourseFilters } from "@/components/trainee-course-filters";
 import { TraineeShell } from "@/components/trainee-shell";
 import { ContentTypeChip, ContentTypeIcon } from "@/components/learning/content-type-chip";
@@ -97,7 +98,12 @@ function ProgressClient() {
 
   const loadError = error ?? filters.error;
   const headline = view
-    ? progressHeadline(view.overall.completedItems, view.overall.completedItems + view.overall.remainingItems, view.overall.percent)
+    ? progressHeadline(
+        view.overall.completedItems,
+        view.overall.completedItems + view.overall.remainingItems,
+        view.overall.percent,
+        view.course.outcome,
+      )
     : "Your Journey";
 
   return (
@@ -139,6 +145,9 @@ function ProgressClient() {
               </p>
               <div className="mt-4 max-w-md">
                 <ProgressBar value={view.overall.percent} tone="violet" size="md" />
+              </div>
+              <div className="mt-4 max-w-md">
+                <CourseOutcomePanel course={view.course} />
               </div>
             </div>
           </section>

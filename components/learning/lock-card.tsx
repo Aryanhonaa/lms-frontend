@@ -9,12 +9,32 @@ export function LockCard({
   doFirst,
   doFirstHref,
   unlocksTitle,
+  exhaustedAttempts = false,
 }: {
   reason: string | null;
   doFirst?: { title: string; type: string; kind?: string } | null;
   doFirstHref?: string;
   unlocksTitle?: string | null;
+  exhaustedAttempts?: boolean;
 }) {
+  if (exhaustedAttempts) {
+    return (
+      <div className={`${traineeCardClass} overflow-hidden`}>
+        <div className="flex items-start gap-4 bg-gradient-to-br from-emerald-50 via-white to-slate-50 px-5 py-5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-white shadow-sm">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">Available</p>
+            <p className="mt-1.5 text-sm leading-6 text-slate-600">
+              You did not pass the previous quiz, but you have used all available attempts. You can continue with the
+              course.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`${traineeCardClass} overflow-hidden`}>
       <div className="flex items-start gap-4 bg-gradient-to-br from-slate-50 via-white to-violet-50/40 px-5 py-5">

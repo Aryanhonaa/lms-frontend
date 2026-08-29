@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { TrainerShell } from "@/components/trainer-shell";
-import { ProgramPreview } from "@/features/programs/program-preview";
+import { ProgramReview } from "@/features/approvals/program-review";
 import { getTrainerProgram } from "@/lib/api/programs";
 import { updateInterventionSettings } from "@/lib/api/interventions";
 import { ApiClientError } from "@/lib/api/client";
@@ -44,7 +44,7 @@ export default function ProgramPreviewPage() {
 
   return (
     <TrainerShell
-      title="Program preview"
+      title="Course materials"
       user={user}
       crumbLabel={program?.title}
       actions={
@@ -76,9 +76,13 @@ export default function ProgramPreviewPage() {
       {program ? (
         <div className="space-y-6">
           <section className="bg-white px-5 py-4">
-            <p className="text-xs uppercase tracking-wide text-stone-500">Intervention thresholds</p>
+            <p className="text-xs uppercase tracking-wide text-stone-500">When to alert you</p>
+            <p className="mt-1 max-w-2xl text-sm text-stone-600">
+              This does not change pass marks on quizzes. It only notifies you when a trainee who has started the
+              course falls behind, so you can give them extra work.
+            </p>
             <form
-              className="mt-3 grid max-w-lg gap-3 sm:grid-cols-2"
+              className="mt-4 grid max-w-xl gap-3 sm:grid-cols-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 const data = new FormData(event.currentTarget);
@@ -99,42 +103,51 @@ export default function ProgramPreviewPage() {
                     setError(null);
                   })
                   .catch((err: unknown) => {
-                    setError(err instanceof ApiClientError ? err.message : "Unable to save thresholds");
+                    setError(err instanceof ApiClientError ? err.message : "Unable to save alert settings");
                     setSaved(false);
                   });
               }}
             >
               <label className="text-sm text-stone-700">
-                Progress %
-                <input
-                  name="progressThreshold"
-                  type="number"
-                  min={0}
-                  max={100}
-                  className={`${fieldClass} mt-1`}
-                  defaultValue={Number(program.progressThreshold ?? 60)}
-                />
+                Alert if course progress is below
+                <span className="mt-1 flex items-center gap-2">
+                  <input
+                    name="progressThreshold"
+                    type="number"
+                    min={0}
+                    max={100}
+                    className={fieldClass}
+                    defaultValue={Number(program.progressThreshold ?? 60)}
+                  />
+                  <span className="text-stone-500">%</span>
+                </span>
               </label>
               <label className="text-sm text-stone-700">
-                Exam score %
-                <input
-                  name="examScoreThreshold"
-                  type="number"
-                  min={0}
-                  max={100}
-                  className={`${fieldClass} mt-1`}
-                  defaultValue={Number(program.examScoreThreshold ?? 60)}
-                />
+                Alert if an exam score is below
+                <span className="mt-1 flex items-center gap-2">
+                  <input
+                    name="examScoreThreshold"
+                    type="number"
+                    min={0}
+                    max={100}
+                    className={fieldClass}
+                    defaultValue={Number(program.examScoreThreshold ?? 60)}
+                  />
+                  <span className="text-stone-500">%</span>
+                </span>
               </label>
-              <div className="sm:col-span-2">
+              <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
                 <button type="submit" className={secondaryButtonClass}>
-                  Save thresholds
+                  Save alert settings
                 </button>
-                {saved ? <span className="ml-3 text-sm text-stone-500">Saved</span> : null}
+                {saved ? <span className="text-sm text-stone-500">Saved</span> : null}
+                <Link href="/trainer/interventions" className="text-sm font-medium text-stone-700 underline">
+                  View trainees who need help
+                </Link>
               </div>
             </form>
           </section>
-          <ProgramPreview program={program} />
+          <ProgramReview program={program} viewer="trainer" />
         </div>
       ) : error ? null : (
         <p className="text-sm text-zinc-600">Loading preview…</p>

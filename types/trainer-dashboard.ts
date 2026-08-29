@@ -19,6 +19,7 @@ export type TrainerDashboardProgram = {
   durationWeeks: number;
   traineeCount: number;
   progress: number | null;
+  outcomeCounts?: { inProgress: number; completed: number; failed: number };
   href: string;
 };
 

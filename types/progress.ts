@@ -1,4 +1,4 @@
-import type { ProgressStatus } from "@/types/learning";
+import type { CourseOutcomeView, ProgressStatus } from "@/types/learning";
 
 export type TrackedKind =
   | "LESSON"
@@ -45,6 +45,11 @@ export type MilestoneProgress = {
     status: ProgressStatus;
     reason: string | null;
     available: boolean;
+    canRetry?: boolean;
+    score?: number | null;
+    passingScore?: number;
+    attemptsUsed?: number;
+    maxAttempts?: number | null;
   } | null;
 };
 
@@ -57,6 +62,11 @@ export type FinalExamEligibility = {
   reason: string | null;
   reasons: string[];
   requirements: Array<{ label: string; met: boolean }>;
+  canRetry?: boolean;
+  score?: number | null;
+  passingScore?: number | null;
+  attemptsUsed?: number;
+  maxAttempts?: number | null;
 };
 
 export type ProgressView = {
@@ -88,6 +98,7 @@ export type ProgressView = {
   currentDay: { id: string; title: string; sortOrder: number; status: ProgressStatus } | null;
   currentActivity: ProgressActivity | null;
   nextActivity: ProgressActivity | null;
+  course: CourseOutcomeView;
   weekProgress: Array<{
     id: string;
     sortOrder: number;
@@ -127,4 +138,5 @@ export type ProgressListItem = {
   currentActivity: ProgressActivity | null;
   nextActivity: ProgressActivity | null;
   currentMilestone: { id: string; title: string } | null;
+  course?: CourseOutcomeView;
 };

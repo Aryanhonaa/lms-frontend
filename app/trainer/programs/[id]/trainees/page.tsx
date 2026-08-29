@@ -1,14 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { CourseOutcomeBadge } from "@/components/course-outcome";
 import { TrainerShell } from "@/components/trainer-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
 import { getTrainerProgram } from "@/lib/api/programs";
-import { listProgramTrainees, type ProgramTraineeRow } from "@/lib/api/enrollments";
+import { listProgramTrainees, type ProgramTraineeRow, type TraineeRosterCounts } from "@/lib/api/enrollments";
 import {
   createProgramBatch,
   deleteProgramBatch,
@@ -27,6 +29,7 @@ export default function ProgramTraineesPage() {
   const params = useParams<{ id: string }>();
   const [program, setProgram] = useState<ProgramTree | null>(null);
   const [trainees, setTrainees] = useState<ProgramTraineeRow[] | null>(null);
+  const [counts, setCounts] = useState<TraineeRosterCounts | null>(null);
   const [batchState, setBatchState] = useState<ProgramBatchesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
@@ -46,6 +49,7 @@ export default function ProgramTraineesPage() {
     ]);
     setProgram(programPayload.program);
     setTrainees(traineePayload.trainees);
+    setCounts(traineePayload.counts);
     setBatchState(batchesPayload);
     setError(null);
   }, [params.id]);
@@ -62,6 +66,7 @@ export default function ProgramTraineesPage() {
         }
         setProgram(programPayload.program);
         setTrainees(traineePayload.trainees);
+        setCounts(traineePayload.counts);
         setBatchState(batchesPayload);
         setError(null);
       })
@@ -154,6 +159,15 @@ export default function ProgramTraineesPage() {
         </p>
       ) : null}
 
+      {counts ? (
+        <section className="mb-6 grid gap-3 sm:grid-cols-4">
+          <OutcomeStat label="Total trainees" value={counts.total} />
+          <OutcomeStat label="In Progress" value={counts.inProgress} />
+          <OutcomeStat label="Completed" value={counts.completed} />
+          <OutcomeStat label="Failed" value={counts.failed} />
+        </section>
+      ) : null}
+
       {canEnroll && batchState && batches.length === 0 ? (
         <EmptyState
           title="No batches yet"
@@ -207,7 +221,7 @@ export default function ProgramTraineesPage() {
                     {members.length === 0 ? (
                       <p className="text-sm text-stone-500">No trainees in this batch yet.</p>
                     ) : (
-                      <TraineeList rows={members} />
+                      <TraineeList rows={members} programId={program?.id ?? params.id} />
                     )}
                   </div>
                 ) : null}
@@ -274,19 +288,53 @@ export default function ProgramTraineesPage() {
   );
 }
 
-function TraineeList({ rows }: { rows: ProgramTraineeRow[] }) {
+function OutcomeStat({ label, value }: { label: string; value: number }) {
   return (
-    <ul className="divide-y divide-stone-100">
-      {rows.map((row) => (
-        <li key={row.enrollmentId} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-medium text-stone-950">{row.trainee.name}</p>
-            <p className="text-xs text-stone-500">
-              {row.trainee.email} · {Math.round(row.progress)}%
-            </p>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-950/5">
+      <p className="text-xs font-medium text-stone-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-stone-950">{value}</p>
+    </div>
+  );
+}
+
+function TraineeList({ rows, programId }: { rows: ProgramTraineeRow[]; programId: string }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-left text-sm">
+        <thead className="text-xs font-medium uppercase tracking-wide text-stone-500">
+          <tr>
+            <th className="pb-2 font-medium">Trainee</th>
+            <th className="pb-2 font-medium">Progress</th>
+            <th className="pb-2 font-medium">Outcome</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100">
+          {rows.map((row) => (
+            <tr key={row.enrollmentId}>
+              <td className="py-3">
+                <Link
+                  href={`/trainer/programs/${programId}/trainees/${row.enrollmentId}`}
+                  className="font-medium text-stone-950 hover:text-violet-700"
+                >
+                  {row.trainee.name}
+                </Link>
+                <p className="text-xs text-stone-500">{row.trainee.email}</p>
+              </td>
+              <td className="py-3 text-stone-700">{Math.round(row.progress)}%</td>
+              <td className="py-3">
+                <CourseOutcomeBadge
+                  course={{
+                    outcome: row.courseOutcome,
+                    courseStatus: row.courseStatus,
+                    failedAssessments: row.failedAssessments ?? [],
+                  }}
+                  progress={row.progress}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

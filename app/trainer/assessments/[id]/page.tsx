@@ -116,13 +116,14 @@ export default function TrainerAssessmentDetailPage() {
   const questions = payload?.assessment.questions ?? [];
 
   return (
-    <TrainerShell title={payload?.assessment.title ?? "Assessment"} user={user} crumbLabel={payload?.assessment.title}>
+    <TrainerShell title={payload?.assessment.title ?? "Quiz"} user={user} crumbLabel={payload?.assessment.title}>
       <div className="mb-4">
         <TrainerCourseBatchFilters
           programs={filters.programs}
           batches={filters.batches}
           programId={filters.programId}
           batchId={filters.batchId}
+          hideProgram
           onProgramChange={onProgramChange}
           onBatchChange={onBatchChange}
         />
@@ -133,36 +134,13 @@ export default function TrainerAssessmentDetailPage() {
         <EmptyState title="No batches yet." description="Create a batch for this course to review quiz results." />
       ) : null}
       {payload ? (
-        <section className="grid gap-4">
-          <div className="rounded-2xl bg-white px-5 py-4 ring-1 ring-slate-950/5">
-            <p className="text-sm text-slate-500">
-              {payload.assessment.programTitle} · {selectedBatch?.name} · {payload.assessment.location}
-            </p>
-            <p className="mt-1 text-sm text-slate-600">
-              {payload.assessment.questionCount} questions · pass {payload.assessment.passingScore}%
-            </p>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-4">
-              <div className="rounded-xl bg-slate-50 px-3 py-3">
-                <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Average</dt>
-                <dd className="mt-1 text-lg font-semibold text-slate-900">{formatScore(payload.summary.averageScore)}</dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 px-3 py-3">
-                <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Pass rate</dt>
-                <dd className="mt-1 text-lg font-semibold text-slate-900">
-                  {payload.summary.passRate === null ? "—" : `${payload.summary.passRate}%`}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 px-3 py-3">
-                <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Submitted</dt>
-                <dd className="mt-1 text-lg font-semibold text-slate-900">
-                  {payload.summary.submittedCount}/{payload.summary.rosterCount}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 px-3 py-3">
-                <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Not started</dt>
-                <dd className="mt-1 text-lg font-semibold text-slate-900">{payload.summary.notStartedCount}</dd>
-              </div>
-            </dl>
+        <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="border-b border-zinc-200 px-5 py-4 text-sm text-zinc-600 dark:border-zinc-800">
+            {payload.assessment.programTitle} · {selectedBatch?.name} · {payload.assessment.location} ·{" "}
+            {payload.assessment.questionBankCount > payload.assessment.questionCount
+              ? `${payload.assessment.questionCount} of ${payload.assessment.questionBankCount} questions`
+              : `${payload.assessment.questionCount} questions`}{" "}
+            · pass {payload.assessment.passingScore}%
           </div>
           {roster.length === 0 ? (
             <EmptyState
