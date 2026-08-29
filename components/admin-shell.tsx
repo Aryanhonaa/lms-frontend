@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
+import { UserAvatar } from "@/components/user-avatar";
 import { listAdminPrograms } from "@/lib/api/programs";
 import { useAuth } from "@/providers/auth-provider";
 import type { ProgramSummary } from "@/types/program";
@@ -94,17 +95,6 @@ const SUPER_ADMIN_ONLY_PREFIXES = [
   "/admin/certificates",
   "/admin/settings",
 ];
-
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "SA";
-  }
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 function isActivePath(pathname: string, href: string, exact?: boolean): boolean {
   if (exact) {
@@ -238,7 +228,7 @@ export function AdminShell({
               <GraduationCap className="h-5 w-5" />
             </div>
             <div className={collapsed ? "lg:hidden" : ""}>
-              <p className="text-sm font-semibold tracking-tight text-slate-900">LMS</p>
+              <p className="text-sm font-semibold tracking-tight text-slate-900">Learn Lab</p>
               <p className="text-xs text-slate-500">{user.role === "ADMIN" ? "Admin" : "Super Admin"}</p>
             </div>
             <button
@@ -436,16 +426,23 @@ export function AdminShell({
                   setNotificationsOpen(false);
                 }}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-xs font-semibold text-white">
-                  {initialsFromName(user.name)}
-                </span>
+                <UserAvatar name={user.name} avatarUrl={user.avatarUrl} size="md" />
                 <ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" />
               </button>
               {profileOpen ? (
                 <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white p-3 shadow-xl ring-1 ring-slate-950/5">
                   <p className="px-2 text-sm font-medium text-slate-900">{user.name}</p>
                   <p className="px-2 text-xs text-slate-500">{user.email}</p>
-                  <div className="mt-3 border-t border-slate-100 pt-2">
+                  <div className="mt-3 space-y-1 border-t border-slate-100 pt-2">
+                    {user.role === "SUPER_ADMIN" ? (
+                      <Link
+                        href="/admin/settings"
+                        className="block rounded-xl px-3 py-2 text-sm text-slate-600 transition duration-150 hover:bg-slate-50"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        Settings
+                      </Link>
+                    ) : null}
                     <SignOutButton className="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50">
                       Sign out
                     </SignOutButton>

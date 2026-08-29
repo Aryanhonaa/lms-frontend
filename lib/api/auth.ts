@@ -28,6 +28,23 @@ export async function uploadProfilePicture(file: File): Promise<{ user: AuthUser
   return apiUpload<{ user: AuthUser }>("/auth/avatar", body);
 }
 
+export async function updateProfile(name: string): Promise<{ user: AuthUser }> {
+  return apiClient<{ user: AuthUser }>("/auth/profile", {
+    method: "PATCH",
+    body: { name },
+  });
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ user: AuthUser }> {
+  return apiClient<{ user: AuthUser }>("/auth/password", {
+    method: "PATCH",
+    body: { currentPassword, newPassword },
+  });
+}
+
 export async function getAdminUsers(): Promise<AdminUsersResponse> {
   return apiClient<AdminUsersResponse>("/admin/users");
 }

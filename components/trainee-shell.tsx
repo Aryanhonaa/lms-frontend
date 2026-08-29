@@ -232,7 +232,7 @@ export function TraineeShell({
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm shadow-violet-600/25">
                 <GraduationCap className="h-5 w-5" />
               </span>
-              <span className="hidden text-sm font-semibold tracking-tight text-slate-900 sm:inline">LMS</span>
+              <span className="hidden text-sm font-semibold tracking-tight text-slate-900 sm:inline">Learn Lab</span>
             </Link>
             <button
               type="button"
