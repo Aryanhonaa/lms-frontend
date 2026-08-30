@@ -6,6 +6,7 @@ import { formatRoleLabel, initialsFromName, resolvePublicAssetUrl } from "@/lib/
 const SIZE_CLASS = {
   sm: "h-8 w-8 text-[10px]",
   md: "h-9 w-9 text-xs",
+  row: "h-10 w-10 text-sm",
   lg: "h-24 w-24 text-2xl",
 } as const;
 

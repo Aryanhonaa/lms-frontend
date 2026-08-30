@@ -20,6 +20,7 @@ import {
   type EditableUser,
 } from "@/features/admin/edit-user-dialog";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
+import { UserAvatar } from "@/components/user-avatar";
 import { useAdminChrome } from "@/components/admin-shell";
 import { listAdminTrainers } from "@/lib/api/admin";
 import { ApiClientError } from "@/lib/api/client";
@@ -86,14 +87,7 @@ export default function AdminTrainersPage() {
             {visible.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-50 text-sm font-semibold text-violet-700">
-                    {item.name
-                      .split(" ")
-                      .slice(0, 2)
-                      .map((part) => part[0] ?? "")
-                      .join("")
-                      .toUpperCase()}
-                  </span>
+                  <UserAvatar name={item.name} avatarUrl={item.avatarUrl} size="row" />
                   <div>
                     <p className="text-sm font-medium text-slate-900">{item.name}</p>
                     <p className="text-sm text-slate-500">{item.email}</p>
@@ -146,6 +140,7 @@ export default function AdminTrainersPage() {
                     name: updated.name,
                     email: updated.email,
                     role: updated.role,
+                    avatarUrl: updated.avatarUrl ?? row.avatarUrl,
                     isActive: updated.isActive,
                     updatedAt: updated.updatedAt,
                   }

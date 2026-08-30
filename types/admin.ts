@@ -78,6 +78,7 @@ export type AdminDirectoryUser = {
   email: string;
   role: Role;
   isActive: boolean;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   enrollmentCount?: number;
