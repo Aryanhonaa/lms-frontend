@@ -3,7 +3,6 @@
 import { GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Link from "next/link";
 import { LoginForm } from "@/features/auth/login-form";
 import { getDashboardPath } from "@/lib/auth/dashboard-path";
 import { useAuth } from "@/providers/auth-provider";
@@ -42,12 +41,6 @@ export default function LoginPage() {
           <h2 className="mt-2 text-2xl font-semibold text-stone-950">Sign in</h2>
           <p className="mt-2 mb-6 text-sm text-stone-600">Use the account assigned to you.</p>
           <LoginForm />
-          <p className="mt-6 text-sm text-stone-500">
-            Have a certificate ID?{" "}
-            <Link href="/verify" className="font-medium text-violet-700 underline hover:text-violet-800">
-              Verify it
-            </Link>
-          </p>
         </div>
       </div>
     </div>
