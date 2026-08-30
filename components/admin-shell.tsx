@@ -85,6 +85,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/admin/trainers", label: "Trainers", icon: GraduationCap },
   { href: "/admin/trainees", label: "Trainees", icon: Users },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 const SUPER_ADMIN_ONLY_PREFIXES = [
@@ -93,7 +94,6 @@ const SUPER_ADMIN_ONLY_PREFIXES = [
   "/admin/announcements",
   "/admin/feedback",
   "/admin/certificates",
-  "/admin/settings",
 ];
 
 function isActivePath(pathname: string, href: string, exact?: boolean): boolean {
@@ -434,7 +434,7 @@ export function AdminShell({
                   <p className="px-2 text-sm font-medium text-slate-900">{user.name}</p>
                   <p className="px-2 text-xs text-slate-500">{user.email}</p>
                   <div className="mt-3 space-y-1 border-t border-slate-100 pt-2">
-                    {user.role === "SUPER_ADMIN" ? (
+                    {user.role === "SUPER_ADMIN" || user.role === "ADMIN" ? (
                       <Link
                         href="/admin/settings"
                         className="block rounded-xl px-3 py-2 text-sm text-slate-600 transition duration-150 hover:bg-slate-50"

@@ -1,7 +1,7 @@
 "use client";
 
-import { SuperAdminSettings } from "@/features/admin/super-admin-settings";
+import { AdminSettings } from "@/features/admin/admin-settings";
 
 export default function AdminSettingsPage() {
-  return <SuperAdminSettings />;
+  return <AdminSettings />;
 }
