@@ -67,6 +67,12 @@ function updateError(error: unknown): string {
     if (error.status === 403 || error.code === "FORBIDDEN") {
       return "You don't have permission to edit this account.";
     }
+    if (error.message.includes("Route not found")) {
+      return "User update is unavailable on this server. Deploy the latest backend and try again.";
+    }
+    if (error.message) {
+      return error.message;
+    }
     if (error.status === 404 || error.code === "NOT_FOUND") {
       return "User not found.";
     }

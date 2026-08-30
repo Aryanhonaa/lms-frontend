@@ -62,8 +62,9 @@ export async function updateAdminUser(
   userId: string,
   input: { name: string; email: string; password?: string },
 ): Promise<{ user: AdminDirectoryUser }> {
-  return apiClient<{ user: AdminDirectoryUser }>(`/admin/users/${userId}`, {
-    method: "PATCH",
+  const id = encodeURIComponent(userId.trim());
+  return apiClient<{ user: AdminDirectoryUser }>(`/admin/users/${id}/update`, {
+    method: "POST",
     body: input,
   });
 }
