@@ -25,6 +25,10 @@ export function canDeleteRole(actor: Role, target: Role): boolean {
   return false;
 }
 
+export function canEditRole(actor: Role, target: Role): boolean {
+  return canDeleteRole(actor, target);
+}
+
 export const createUserFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   email: z.string().trim().pipe(z.email("Please enter a valid email address.")),

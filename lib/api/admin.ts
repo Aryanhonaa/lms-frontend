@@ -57,3 +57,13 @@ export async function createAdminUser(input: {
 export async function deleteAdminUser(userId: string): Promise<{ deleted: true }> {
   return apiClient<{ deleted: true }>(`/admin/users/${userId}`, { method: "DELETE" });
 }
+
+export async function updateAdminUser(
+  userId: string,
+  input: { name: string; email: string; password?: string },
+): Promise<{ user: AdminDirectoryUser }> {
+  return apiClient<{ user: AdminDirectoryUser }>(`/admin/users/${userId}`, {
+    method: "PATCH",
+    body: input,
+  });
+}

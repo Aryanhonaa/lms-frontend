@@ -14,12 +14,18 @@ import {
   deleteUserButtonClass,
   type DeletableUser,
 } from "@/features/admin/delete-user-dialog";
+import {
+  EditUserDialog,
+  USER_UPDATED_MESSAGE,
+  editUserButtonClass,
+  type EditableUser,
+} from "@/features/admin/edit-user-dialog";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { getAdminUsers } from "@/lib/api/auth";
 import { ApiClientError } from "@/lib/api/client";
 import { useAdminChrome } from "@/components/admin-shell";
 import { useAuth } from "@/providers/auth-provider";
-import { canDeleteRole, type CreatableRole } from "@/lib/auth/create-user-schema";
+import { canDeleteRole, canEditRole, type CreatableRole } from "@/lib/auth/create-user-schema";
 import type { AdminUsersResponse } from "@/types/api";
 import type { Role } from "@/types/domain";
 
@@ -40,6 +46,7 @@ function UsersDirectory() {
   const [success, setSuccess] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<DeletableUser | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<EditableUser | null>(null);
 
   useEffect(() => {
     getAdminUsers()
@@ -131,12 +138,17 @@ function UsersDirectory() {
                     <p className="text-sm text-slate-500">{item.email}</p>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2">
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-medium tracking-wide uppercase ${ROLE_BADGE[item.role] ?? "bg-slate-50 text-slate-600"}`}
                   >
                     {item.role.replaceAll("_", " ")}
                   </span>
+                  {user && canEditRole(user.role, item.role) ? (
+                    <button type="button" className={editUserButtonClass} onClick={() => setPendingEdit(item)}>
+                      Edit
+                    </button>
+                  ) : null}
                   {user && canDeleteRole(user.role, item.role) && user.id !== item.id ? (
                     <button type="button" className={deleteUserButtonClass} onClick={() => setPendingDelete(item)}>
                       Delete User
@@ -172,6 +184,28 @@ function UsersDirectory() {
           }}
         />
       ) : null}
+      <EditUserDialog
+        user={pendingEdit}
+        onClose={() => setPendingEdit(null)}
+        onUpdated={(updated) => {
+          setUsers((current) =>
+            current?.map((row) =>
+              row.id === updated.id
+                ? {
+                    ...row,
+                    name: updated.name,
+                    email: updated.email,
+                    role: updated.role as Role,
+                    isActive: updated.isActive,
+                    updatedAt: updated.updatedAt,
+                  }
+                : row,
+            ) ?? null,
+          );
+          setSuccess(USER_UPDATED_MESSAGE);
+          setPendingEdit(null);
+        }}
+      />
       <DeleteUserDialog
         user={pendingDelete}
         onClose={() => setPendingDelete(null)}
