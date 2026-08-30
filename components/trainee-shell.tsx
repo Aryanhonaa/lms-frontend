@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, Suspense } from "react";
 import Link from "next/link";
+import { AppBrand } from "@/components/learn-lab-logo";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Award,
@@ -230,11 +231,8 @@ export function TraineeShell({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur-md md:px-6">
           <div className="flex items-center gap-2">
-            <Link href="/trainee" className="flex items-center gap-2 rounded-xl pr-1">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm shadow-violet-600/25">
-                <GraduationCap className="h-5 w-5" />
-              </span>
-              <span className="hidden text-sm font-semibold tracking-tight text-slate-900 sm:inline">Learn Lab</span>
+            <Link href="/trainee" className="rounded-xl pr-1">
+              <AppBrand size={36} />
             </Link>
             <button
               type="button"

@@ -13,12 +13,18 @@ import {
   deleteUserButtonClass,
   type DeletableUser,
 } from "@/features/admin/delete-user-dialog";
+import {
+  EditUserDialog,
+  USER_UPDATED_MESSAGE,
+  editUserButtonClass,
+  type EditableUser,
+} from "@/features/admin/edit-user-dialog";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { useAdminChrome } from "@/components/admin-shell";
 import { listAdminTrainers } from "@/lib/api/admin";
 import { ApiClientError } from "@/lib/api/client";
 import { useAuth } from "@/providers/auth-provider";
-import { canDeleteRole } from "@/lib/auth/create-user-schema";
+import { canDeleteRole, canEditRole } from "@/lib/auth/create-user-schema";
 import type { AdminDirectoryUser } from "@/types/admin";
 
 export default function AdminTrainersPage() {
@@ -29,6 +35,7 @@ export default function AdminTrainersPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<DeletableUser | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<EditableUser | null>(null);
 
   useEffect(() => {
     listAdminTrainers()
@@ -92,10 +99,15 @@ export default function AdminTrainersPage() {
                     <p className="text-sm text-slate-500">{item.email}</p>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2">
                   <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium tracking-wide text-sky-800 uppercase">
                     Trainer
                   </span>
+                  {user && canEditRole(user.role, item.role) ? (
+                    <button type="button" className={editUserButtonClass} onClick={() => setPendingEdit(item)}>
+                      Edit
+                    </button>
+                  ) : null}
                   {user && canDeleteRole(user.role, "TRAINER") && user.id !== item.id ? (
                     <button type="button" className={deleteUserButtonClass} onClick={() => setPendingDelete(item)}>
                       Delete User
@@ -122,6 +134,28 @@ export default function AdminTrainersPage() {
           }}
         />
       ) : null}
+      <EditUserDialog
+        user={pendingEdit}
+        onClose={() => setPendingEdit(null)}
+        onUpdated={(updated) => {
+          setTrainers((current) =>
+            current?.map((row) =>
+              row.id === updated.id
+                ? {
+                    ...row,
+                    name: updated.name,
+                    email: updated.email,
+                    role: updated.role,
+                    isActive: updated.isActive,
+                    updatedAt: updated.updatedAt,
+                  }
+                : row,
+            ) ?? null,
+          );
+          setSuccess(USER_UPDATED_MESSAGE);
+          setPendingEdit(null);
+        }}
+      />
       <DeleteUserDialog
         user={pendingDelete}
         onClose={() => setPendingDelete(null)}

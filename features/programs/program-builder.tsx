@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AppLogoIcon } from "@/components/learn-lab-logo";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -9,7 +10,6 @@ import {
   ChevronDown,
   ChevronRight,
   Circle,
-  GraduationCap,
   Menu,
   Plus,
   X,
@@ -171,10 +171,8 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
       <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Link href="/trainer/programs" className="flex items-center gap-2 rounded-xl pr-1">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white">
-                <GraduationCap className="h-5 w-5" />
-              </span>
+            <Link href="/trainer/programs" className="rounded-xl pr-1">
+              <AppLogoIcon size={36} />
             </Link>
             <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-50 lg:hidden" aria-label="Open outline" onClick={() => setOutlineOpen(true)}>
               <Menu className="h-5 w-5" />

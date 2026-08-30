@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AppLogoIcon } from "@/components/learn-lab-logo";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Award,
@@ -224,9 +225,7 @@ export function AdminShell({
           } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         >
           <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? "lg:justify-center lg:px-3" : ""}`}>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm shadow-violet-600/25">
-              <GraduationCap className="h-5 w-5" />
-            </div>
+            <AppLogoIcon size={40} />
             <div className={collapsed ? "lg:hidden" : ""}>
               <p className="text-sm font-semibold tracking-tight text-slate-900">Learn Lab</p>
               <p className="text-xs text-slate-500">{user.role === "ADMIN" ? "Admin" : "Super Admin"}</p>
