@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AppBrand } from "@/components/learn-lab-logo";
+import { AppLogoIcon } from "@/components/learn-lab-logo";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -167,11 +167,15 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
           collapsed ? "lg:w-[76px]" : "lg:w-[260px]"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="flex items-center justify-between px-4 py-4 lg:hidden">
-          <p className="text-sm font-semibold text-slate-900">Menu</p>
+        <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? "lg:justify-center lg:px-3" : ""}`}>
+          <AppLogoIcon size={40} />
+          <div className={collapsed ? "lg:hidden" : ""}>
+            <p className="text-sm font-semibold tracking-tight text-slate-900">Learn Lab</p>
+            <p className="text-xs text-slate-500">Trainer</p>
+          </div>
           <button
             type="button"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-white"
+            className="ml-auto rounded-lg p-1.5 text-slate-500 hover:bg-white lg:hidden"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close menu"
           >
@@ -179,7 +183,7 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4 pt-2" aria-label="Trainer">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4" aria-label="Trainer">
           {TRAINER_NAV.map((item) => {
             const Icon = item.icon;
             const active = isActivePath(pathname, item.href, item.exact);
@@ -202,7 +206,7 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
           })}
         </nav>
 
-        <div className="border-t border-slate-200/80 px-3 py-4">
+        <div className="space-y-1 border-t border-slate-200/80 px-3 py-4">
           <button
             type="button"
             className={`hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition duration-200 hover:bg-white hover:text-slate-900 lg:flex ${
@@ -212,28 +216,31 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
             aria-pressed={collapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <PanelLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            <PanelLeft className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
             <span className={collapsed ? "lg:hidden" : ""}>Collapse</span>
           </button>
+          <SignOutButton
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-white hover:text-slate-900 ${
+              collapsed ? "lg:justify-center lg:px-0" : ""
+            }`}
+          >
+            <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+            <span className={collapsed ? "lg:hidden" : ""}>Logout</span>
+          </SignOutButton>
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur-md md:px-6">
-          <div className="flex items-center gap-2">
-            <Link href="/trainer" className="rounded-xl pr-1">
-              <AppBrand size={36} />
-            </Link>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-slate-600 transition duration-200 hover:bg-slate-50"
-              onClick={onMenuClick}
-              aria-label={sidebarOpen || !collapsed ? "Toggle sidebar" : "Open menu"}
-              aria-expanded={sidebarOpen}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="rounded-xl p-2 text-slate-600 transition duration-200 hover:bg-slate-50"
+            onClick={onMenuClick}
+            aria-label={sidebarOpen || !collapsed ? "Toggle sidebar" : "Open menu"}
+            aria-expanded={sidebarOpen}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
           <TrainerSearch />
 
