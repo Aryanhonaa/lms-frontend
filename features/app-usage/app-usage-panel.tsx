@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { UsageChart } from "@/features/app-usage/usage-chart";
+import { UsageDatePicker } from "@/features/app-usage/usage-date-picker";
 import { formatDuration, shiftYmd, todayYmd } from "@/features/app-usage/format";
 import { getAdminAppUsage, getTrainerAppUsage } from "@/lib/api/app-usage";
 import { ApiClientError } from "@/lib/api/client";
@@ -127,7 +128,12 @@ export function AppUsagePanel({ audience }: { audience: Audience }) {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <p className="min-w-[9.5rem] text-center text-sm font-medium text-slate-800">{analytics?.range.label ?? "—"}</p>
+            <UsageDatePicker
+              value={date}
+              period={period}
+              label={analytics?.range.label ?? "—"}
+              onChange={setDate}
+            />
             <button
               type="button"
               className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
