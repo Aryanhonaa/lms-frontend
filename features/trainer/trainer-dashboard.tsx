@@ -232,7 +232,7 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TrainerDashboard; on
               iconClass="bg-violet-100 text-violet-700"
             />
             <StatCard
-              href="/trainer/programs"
+              href="/trainer/trainees"
               label="Trainees"
               value={statistics.trainees.total}
               hint="Across your programs"

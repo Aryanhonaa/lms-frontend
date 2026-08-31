@@ -15,6 +15,15 @@ export type EligibleTraineesResponse = {
   trainees: EligibleTrainee[];
 };
 
+export type TrainerProgramOption = {
+  id: string;
+  title: string;
+};
+
+export type TrainerTraineeRow = ProgramTraineeRow & {
+  program: TrainerProgramOption;
+};
+
 export type ProgramTraineeRow = {
   enrollmentId: string;
   status: string;
@@ -70,6 +79,23 @@ export async function listProgramTrainees(
   return apiClient<{ trainees: ProgramTraineeRow[]; counts: TraineeRosterCounts }>(
     `/trainer/programs/${programId}/trainees`,
   );
+}
+
+export async function listTrainerTrainees(programId?: string): Promise<{
+  programs: TrainerProgramOption[];
+  trainees: TrainerTraineeRow[];
+  counts: TraineeRosterCounts;
+}> {
+  const params = new URLSearchParams();
+  if (programId) {
+    params.set("programId", programId);
+  }
+  const query = params.toString();
+  return apiClient<{
+    programs: TrainerProgramOption[];
+    trainees: TrainerTraineeRow[];
+    counts: TraineeRosterCounts;
+  }>(`/trainer/trainees${query ? `?${query}` : ""}`);
 }
 
 export async function getEnrollmentProgress(enrollmentId: string) {
