@@ -75,9 +75,9 @@ export default function ProgramPreviewPage() {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {program ? (
         <div className="space-y-6">
-          <section className="bg-white px-5 py-4">
-            <p className="text-xs uppercase tracking-wide text-stone-500">When to alert you</p>
-            <p className="mt-1 max-w-2xl text-sm text-stone-600">
+          <section className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">When to alert you</p>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600">
               This does not change pass marks on quizzes. It only notifies you when a trainee who has started the
               course falls behind, so you can give them extra work.
             </p>
@@ -108,7 +108,7 @@ export default function ProgramPreviewPage() {
                   });
               }}
             >
-              <label className="text-sm text-stone-700">
+              <label className="text-sm text-slate-700">
                 Alert if course progress is below
                 <span className="mt-1 flex items-center gap-2">
                   <input
@@ -119,10 +119,10 @@ export default function ProgramPreviewPage() {
                     className={fieldClass}
                     defaultValue={Number(program.progressThreshold ?? 60)}
                   />
-                  <span className="text-stone-500">%</span>
+                  <span className="text-slate-500">%</span>
                 </span>
               </label>
-              <label className="text-sm text-stone-700">
+              <label className="text-sm text-slate-700">
                 Alert if an exam score is below
                 <span className="mt-1 flex items-center gap-2">
                   <input
@@ -133,15 +133,15 @@ export default function ProgramPreviewPage() {
                     className={fieldClass}
                     defaultValue={Number(program.examScoreThreshold ?? 60)}
                   />
-                  <span className="text-stone-500">%</span>
+                  <span className="text-slate-500">%</span>
                 </span>
               </label>
               <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
                 <button type="submit" className={secondaryButtonClass}>
                   Save alert settings
                 </button>
-                {saved ? <span className="text-sm text-stone-500">Saved</span> : null}
-                <Link href="/trainer/interventions" className="text-sm font-medium text-stone-700 underline">
+                {saved ? <span className="text-sm text-slate-500">Saved</span> : null}
+                <Link href="/trainer/interventions" className="text-sm font-medium text-violet-700 hover:text-violet-800">
                   View trainees who need help
                 </Link>
               </div>
@@ -150,7 +150,7 @@ export default function ProgramPreviewPage() {
           <ProgramReview program={program} viewer="trainer" />
         </div>
       ) : error ? null : (
-        <p className="text-sm text-zinc-600">Loading preview…</p>
+        <p className="text-sm text-slate-500">Loading preview…</p>
       )}
       <DeleteProgramDialog
         program={deleteOpen && program ? program : null}

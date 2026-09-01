@@ -134,8 +134,8 @@ export default function TrainerAssessmentDetailPage() {
         <EmptyState title="No batches yet." description="Create a batch for this course to review quiz results." />
       ) : null}
       {payload ? (
-        <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="border-b border-zinc-200 px-5 py-4 text-sm text-zinc-600 dark:border-zinc-800">
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+          <div className="border-b border-slate-100 px-5 py-4 text-sm text-slate-600">
             {payload.assessment.programTitle} · {selectedBatch?.name} · {payload.assessment.location} ·{" "}
             {payload.assessment.questionBankCount > payload.assessment.questionCount
               ? `${payload.assessment.questionCount} of ${payload.assessment.questionBankCount} questions`
@@ -152,7 +152,7 @@ export default function TrainerAssessmentDetailPage() {
               const latest = row.latest;
               const answerMap = new Map((latest?.answers ?? []).map((answer) => [answer.questionId, answer]));
               return (
-                <article key={row.enrollmentId} className="rounded-2xl bg-white p-5 ring-1 ring-slate-950/5">
+                <article key={row.enrollmentId} className="border-t border-slate-100 p-5">
                   <button
                     type="button"
                     className="flex w-full items-start justify-between gap-3 text-left"

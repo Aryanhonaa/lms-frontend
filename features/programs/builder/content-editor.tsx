@@ -427,7 +427,7 @@ export function ContentEditor(props: ContentEditorProps) {
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className={`${resourceMode === "upload" ? "border-stone-900 bg-stone-50" : "border-stone-200 bg-white"} rounded-md border px-3 py-2 text-sm`}
+            className={`${resourceMode === "upload" ? "border-violet-300 bg-violet-50 text-violet-900" : "border-slate-200 bg-white text-slate-700"} rounded-xl border px-3 py-2.5 text-sm font-medium`}
             disabled={disabled || busy}
             onClick={() => setResourceMode("upload")}
           >
@@ -435,7 +435,7 @@ export function ContentEditor(props: ContentEditorProps) {
           </button>
           <button
             type="button"
-            className={`${resourceMode === "url" ? "border-stone-900 bg-stone-50" : "border-stone-200 bg-white"} rounded-md border px-3 py-2 text-sm`}
+            className={`${resourceMode === "url" ? "border-violet-300 bg-violet-50 text-violet-900" : "border-slate-200 bg-white text-slate-700"} rounded-xl border px-3 py-2.5 text-sm font-medium`}
             disabled={disabled || busy}
             onClick={() => {
               setResourceMode("url");
@@ -546,7 +546,7 @@ export function ContentEditor(props: ContentEditorProps) {
       ) : null}
       {state.kind === "ASSIGNMENT" ? (
         <>
-          <p className="text-xs font-medium tracking-wide text-stone-500 uppercase">Assignment details</p>
+          <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">Assignment details</p>
           <Field label="After which file?">
             <select name="linkedKey" className={fieldClass} defaultValue="" disabled={disabled || busy}>
               <option value="">End of day (after all files)</option>
@@ -576,20 +576,20 @@ export function ContentEditor(props: ContentEditorProps) {
               <input name="maxScore" type="number" min={1} defaultValue={100} className={fieldClass} disabled={disabled || busy} />
             </Field>
           </div>
-          <p className="text-xs font-medium tracking-wide text-stone-500 uppercase">Submission settings</p>
-          <label className="flex items-center gap-2 text-sm text-stone-800">
+          <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">Submission settings</p>
+          <label className="flex items-center gap-2 text-sm text-slate-800">
             <input name="allowTextResponse" type="checkbox" defaultChecked disabled={disabled || busy} />
             Allow text response
           </label>
-          <label className="flex items-center gap-2 text-sm text-stone-800">
+          <label className="flex items-center gap-2 text-sm text-slate-800">
             <input name="allowFileUpload" type="checkbox" defaultChecked disabled={disabled || busy} />
             Allow file upload
           </label>
-          <label className="flex items-center gap-2 text-sm text-stone-800">
+          <label className="flex items-center gap-2 text-sm text-slate-800">
             <input name="allowLateSubmission" type="checkbox" defaultChecked disabled={disabled || busy} />
             Allow late submission
           </label>
-          <label className="flex items-center gap-2 text-sm text-stone-800">
+          <label className="flex items-center gap-2 text-sm text-slate-800">
             <input name="allowResubmission" type="checkbox" disabled={disabled || busy} />
             Allow resubmission
           </label>

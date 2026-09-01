@@ -154,7 +154,7 @@ export default function ProgramTraineesPage() {
       {error ? <ErrorState message={error} /> : null}
       {trainees === null && !error ? <LoadingState label="Loading batches..." /> : null}
       {program ? (
-        <p className="mb-4 text-sm text-stone-600">
+        <p className="mb-4 text-sm text-slate-600">
           Reusable course · {program.status}. Each batch is its own run with its own seats.
         </p>
       ) : null}
@@ -177,7 +177,7 @@ export default function ProgramTraineesPage() {
 
       {batches.length > 0 ? (
         <section className="mb-6 grid gap-3">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-stone-500">Batches</h2>
+          <h2 className="text-sm font-medium uppercase tracking-wide text-slate-500">Batches</h2>
           {batches.map((batch) => {
             const members = membersOf(batch.id);
             const open = openBatchId === batch.id;
@@ -185,10 +185,10 @@ export default function ProgramTraineesPage() {
               <article key={batch.id} className="rounded-2xl bg-white p-5 ring-1 ring-slate-950/5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <button type="button" className="text-left" onClick={() => setOpenBatchId(open ? null : batch.id)}>
-                    <p className="font-medium text-stone-950">
+                    <p className="font-medium text-slate-900">
                       {program?.title ? `${program.title} — ${batch.name}` : batch.name}
                     </p>
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 text-sm text-slate-500">
                       {batch.memberCount} / {batch.capacity} enrolled · {batch.remaining} remaining
                       {batch.description ? ` · ${batch.description}` : ""}
                     </p>
@@ -217,9 +217,9 @@ export default function ProgramTraineesPage() {
                   </div>
                 </div>
                 {open ? (
-                  <div className="mt-4 border-t border-stone-100 pt-4">
+                  <div className="mt-4 border-t border-slate-100 pt-4">
                     {members.length === 0 ? (
-                      <p className="text-sm text-stone-500">No trainees in this batch yet.</p>
+                      <p className="text-sm text-slate-500">No trainees in this batch yet.</p>
                     ) : (
                       <TraineeList rows={members} programId={program?.id ?? params.id} />
                     )}
@@ -248,30 +248,30 @@ export default function ProgramTraineesPage() {
 
       <Dialog open={createOpen} title="Create batch" onClose={() => setCreateOpen(false)}>
         <form className="grid gap-3" onSubmit={(event) => void onCreateBatch(event)}>
-          <p className="text-sm text-stone-600">{program?.title ?? "Course"}</p>
+          <p className="text-sm text-slate-600">{program?.title ?? "Course"}</p>
           <label className="grid gap-1 text-sm">
-            <span className="font-medium text-stone-800">
+            <span className="font-medium text-slate-800">
               Batch name
               <RequiredMark />
             </span>
             <input name="name" required className={fieldClass} placeholder="September 2026" disabled={busyId === "create"} />
           </label>
           <label className="grid gap-1 text-sm">
-            <span className="font-medium text-stone-800">Capacity</span>
+            <span className="font-medium text-slate-800">Capacity</span>
             <input name="capacity" type="number" min={1} max={200} defaultValue={25} className={fieldClass} disabled={busyId === "create"} />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1 text-sm">
-              <span className="font-medium text-stone-800">Start date</span>
+              <span className="font-medium text-slate-800">Start date</span>
               <input name="startDate" type="date" className={fieldClass} disabled={busyId === "create"} />
             </label>
             <label className="grid gap-1 text-sm">
-              <span className="font-medium text-stone-800">End date</span>
+              <span className="font-medium text-slate-800">End date</span>
               <input name="endDate" type="date" className={fieldClass} disabled={busyId === "create"} />
             </label>
           </div>
           <label className="grid gap-1 text-sm">
-            <span className="font-medium text-stone-800">Description</span>
+            <span className="font-medium text-slate-800">Description</span>
             <textarea name="description" rows={3} className={fieldClass} disabled={busyId === "create"} />
           </label>
           <div className="mt-2 flex justify-end gap-2">
@@ -291,8 +291,8 @@ export default function ProgramTraineesPage() {
 function OutcomeStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-950/5">
-      <p className="text-xs font-medium text-stone-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-stone-950">{value}</p>
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -301,26 +301,26 @@ function TraineeList({ rows, programId }: { rows: ProgramTraineeRow[]; programId
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-left text-sm">
-        <thead className="text-xs font-medium uppercase tracking-wide text-stone-500">
+        <thead className="text-xs font-medium uppercase tracking-wide text-slate-500">
           <tr>
             <th className="pb-2 font-medium">Trainee</th>
             <th className="pb-2 font-medium">Progress</th>
             <th className="pb-2 font-medium">Outcome</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-stone-100">
+        <tbody className="divide-y divide-slate-100">
           {rows.map((row) => (
             <tr key={row.enrollmentId}>
               <td className="py-3">
                 <Link
                   href={`/trainer/programs/${programId}/trainees/${row.enrollmentId}`}
-                  className="font-medium text-stone-950 hover:text-violet-700"
+                  className="font-medium text-slate-900 hover:text-violet-700"
                 >
                   {row.trainee.name}
                 </Link>
-                <p className="text-xs text-stone-500">{row.trainee.email}</p>
+                <p className="text-xs text-slate-500">{row.trainee.email}</p>
               </td>
-              <td className="py-3 text-stone-700">{Math.round(row.progress)}%</td>
+              <td className="py-3 text-slate-700">{Math.round(row.progress)}%</td>
               <td className="py-3">
                 <CourseOutcomeBadge
                   course={{

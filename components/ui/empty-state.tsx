@@ -14,8 +14,8 @@ export function EmptyState({
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center">
-      <p className="text-sm font-medium text-stone-950">{title}</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">{description}</p>
+      <p className="text-sm font-medium text-slate-900">{title}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{description}</p>
       {actionHref && actionLabel ? (
         <Link href={actionHref} className={`${primaryButtonClass} mt-5`}>
           {actionLabel}
@@ -26,12 +26,12 @@ export function EmptyState({
 }
 
 export function LoadingState({ label = "Loading…" }: { label?: string }) {
-  return <p className="px-1 py-6 text-sm text-stone-500">{label}</p>;
+  return <p className="px-1 py-6 text-sm text-slate-500">{label}</p>;
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
       <p>{message}</p>
       {onRetry ? (
         <button

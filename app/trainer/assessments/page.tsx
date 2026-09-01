@@ -8,6 +8,7 @@ import { TrainerShell } from "@/components/trainer-shell";
 import { useTrainerCourseBatch } from "@/hooks/use-trainer-course-batch";
 import { listTrainerAssessments } from "@/lib/api/assessments";
 import { ApiClientError } from "@/lib/api/client";
+import { primaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 import type { TrainerAssessmentSummary } from "@/types/assessment";
 
@@ -82,10 +83,10 @@ export default function TrainerAssessmentsPage() {
 
   return (
     <TrainerShell title="Quizzes" user={user}>
-      <section className="border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <h2 className="text-base font-medium text-zinc-950 dark:text-zinc-50">Program assessments</h2>
-          <p className="mt-1 text-sm text-zinc-500">Create quizzes in the program builder. Review attempts here.</p>
+      <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h2 className="text-base font-medium text-slate-900">Program assessments</h2>
+          <p className="mt-1 text-sm text-slate-500">Create quizzes in the program builder. Review attempts here.</p>
           <div className="mt-4">
             <TrainerCourseBatchFilters
               programs={filters.programs}
@@ -99,28 +100,28 @@ export default function TrainerAssessmentsPage() {
         </div>
         {loadError ? <p className="px-5 py-4 text-sm text-red-600">{loadError}</p> : null}
         {filters.ready && filters.programs.length === 0 && !loadError ? (
-          <p className="px-5 py-6 text-sm text-zinc-600">No courses assigned yet.</p>
+          <p className="px-5 py-6 text-sm text-slate-500">No courses assigned yet.</p>
         ) : null}
         {filters.ready && filters.programs.length > 0 && filters.batches.length === 0 && !loadError ? (
-          <p className="px-5 py-6 text-sm text-zinc-600">Create a batch for this course to review assessment attempts.</p>
+          <p className="px-5 py-6 text-sm text-slate-500">Create a batch for this course to review assessment attempts.</p>
         ) : null}
         {assessments && assessments.length === 0 && filters.batchId && !loadError ? (
-          <p className="px-5 py-6 text-sm text-zinc-600">No assessments authored yet.</p>
+          <p className="px-5 py-6 text-sm text-slate-500">No assessments authored yet.</p>
         ) : null}
         {assessments && assessments.length > 0 ? (
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="divide-y divide-slate-100">
             {assessments.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-4">
                 <div>
-                  <p className="font-medium text-zinc-950 dark:text-zinc-50">{item.title}</p>
-                  <p className="mt-1 text-sm text-zinc-500">
+                  <p className="font-medium text-slate-900">{item.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">
                     {item.programTitle ?? selectedCourse?.title} · {selectedBatch?.name} ·{" "}
                     {item.kind.replaceAll("_", " ").toLowerCase()} · {item.location} · {item.attemptCount} attempts
                   </p>
                 </div>
                 <Link
                   href={`/trainer/assessments/${item.id}?programId=${filters.programId}&batchId=${filters.batchId}`}
-                  className="text-sm underline"
+                  className={primaryButtonClass}
                 >
                   Review
                 </Link>

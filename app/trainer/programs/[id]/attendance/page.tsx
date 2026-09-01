@@ -73,8 +73,8 @@ export default function TrainerAttendancePage() {
 
       {data ? (
         <div className="space-y-6">
-          <section className="bg-white px-5 py-4">
-            <h2 className="text-base font-medium text-stone-950">{data.program.title}</h2>
+          <section className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+            <h2 className="text-base font-medium text-slate-900">{data.program.title}</h2>
             <form
               className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-2"
               onSubmit={(event) => {
@@ -104,9 +104,9 @@ export default function TrainerAttendancePage() {
                   .finally(() => setBusy(false));
               }}
             >
-              <p className="sm:col-span-2 text-xs uppercase tracking-wide text-stone-500">New training session</p>
+              <p className="sm:col-span-2 text-xs uppercase tracking-wide text-slate-500">New training session</p>
               <label className="grid gap-1 text-sm">
-                <span className="font-medium text-stone-800">
+                <span className="font-medium text-slate-800">
                   Week
                   <RequiredMark />
                 </span>
@@ -119,33 +119,33 @@ export default function TrainerAttendancePage() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="font-medium text-stone-800">
+                <span className="font-medium text-slate-800">
                   Title
                   <RequiredMark />
                 </span>
                 <input name="title" required className={fieldClass} placeholder="Title" />
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="font-medium text-stone-800">
+                <span className="font-medium text-slate-800">
                   Date
                   <RequiredMark />
                 </span>
                 <input name="date" type="date" required className={fieldClass} />
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="font-medium text-stone-800">Start time</span>
+                <span className="font-medium text-slate-800">Start time</span>
                 <input name="startTime" type="time" className={fieldClass} defaultValue="09:00" />
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="font-medium text-stone-800">End time</span>
+                <span className="font-medium text-slate-800">End time</span>
                 <input name="endTime" type="time" className={fieldClass} defaultValue="10:00" />
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="font-medium text-stone-800">Meeting link</span>
+                <span className="font-medium text-slate-800">Meeting link</span>
                 <input name="meetingLink" className={fieldClass} placeholder="Meeting link" />
               </label>
               <label className="grid gap-1 text-sm sm:col-span-2">
-                <span className="font-medium text-stone-800">Description</span>
+                <span className="font-medium text-slate-800">Description</span>
                 <textarea name="description" className={fieldClass} placeholder="Description" rows={2} />
               </label>
               <button type="submit" className={primaryButtonClass} disabled={busy || data.weeks.length === 0}>
@@ -158,8 +158,8 @@ export default function TrainerAttendancePage() {
             <EmptyState title="No sessions yet" description="Create a live session for a week, then mark who attended." />
           ) : (
             <>
-              <section className="bg-white px-5 py-4">
-                <label className="text-sm text-stone-700">
+              <section className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+                <label className="text-sm text-slate-700">
                   Session
                   <select
                     className={`${fieldClass} mt-1`}
@@ -178,24 +178,24 @@ export default function TrainerAttendancePage() {
                   </select>
                 </label>
                 {selected ? (
-                  <p className="mt-2 text-sm text-stone-500">
+                  <p className="mt-2 text-sm text-slate-500">
                     {selected.week.title} · {selected.startTime}–{selected.endTime}
                     {selected.meetingLink ? ` · ${selected.meetingLink}` : ""}
                   </p>
                 ) : null}
               </section>
 
-              <section className="bg-white">
-                <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Enrolled trainees</div>
+              <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+                <div className="border-b border-slate-100 px-5 py-3 text-sm font-medium text-slate-800">Enrolled trainees</div>
                 {data.roster.length === 0 ? (
-                  <p className="px-5 py-6 text-sm text-stone-500">No trainees enrolled yet.</p>
+                  <p className="px-5 py-6 text-sm text-slate-500">No trainees enrolled yet.</p>
                 ) : (
-                  <ul className="divide-y divide-stone-100">
+                  <ul className="divide-y divide-slate-100">
                     {data.roster.map((row) => (
                       <li key={row.enrollmentId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
                         <div>
-                          <p className="font-medium text-stone-950">{row.trainee.name}</p>
-                          <p className="text-xs text-stone-500">
+                          <p className="font-medium text-slate-900">{row.trainee.name}</p>
+                          <p className="text-xs text-slate-500">
                             {row.trainee.email} · {row.attendancePercent === null ? "No marked sessions" : `${row.attendancePercent}% attendance`}
                           </p>
                         </div>
@@ -219,7 +219,7 @@ export default function TrainerAttendancePage() {
                   </ul>
                 )}
                 {selected && data.roster.length > 0 ? (
-                  <div className="border-t border-stone-200 px-5 py-3">
+                  <div className="border-t border-slate-100 px-5 py-3">
                     <button
                       type="button"
                       className={primaryButtonClass}

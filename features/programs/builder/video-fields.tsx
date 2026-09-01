@@ -85,7 +85,7 @@ export function VideoFields({
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          className={`${value.mode === "upload" ? "border-stone-900 bg-stone-50" : "border-stone-200 bg-white"} rounded-md border px-3 py-2 text-sm`}
+          className={`${value.mode === "upload" ? "border-violet-300 bg-violet-50 text-violet-900" : "border-slate-200 bg-white text-slate-700"} rounded-xl border px-3 py-2.5 text-sm font-medium`}
           disabled={disabled || progress !== null}
           onClick={() => onChange({ ...value, mode: "upload", source: "UPLOADED" })}
         >
@@ -93,7 +93,7 @@ export function VideoFields({
         </button>
         <button
           type="button"
-          className={`${value.mode === "url" ? "border-stone-900 bg-stone-50" : "border-stone-200 bg-white"} rounded-md border px-3 py-2 text-sm`}
+          className={`${value.mode === "url" ? "border-violet-300 bg-violet-50 text-violet-900" : "border-slate-200 bg-white text-slate-700"} rounded-xl border px-3 py-2.5 text-sm font-medium`}
           disabled={disabled || progress !== null}
           onClick={() =>
             onChange({
@@ -168,7 +168,7 @@ export function VideoFields({
               })
             }
           />
-          <span className="text-xs text-stone-500">
+          <span className="text-xs text-slate-500">
             {value.source === "YOUTUBE" ? "Detected as YouTube." : "Stored as an external URL."}
           </span>
         </label>

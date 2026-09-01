@@ -76,7 +76,7 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
         {errors.description ? <span className="text-red-700">{errors.description.message}</span> : null}
       </label>
       <details className="md:col-span-2">
-        <summary className="cursor-pointer text-sm font-medium text-stone-800">Advanced options</summary>
+        <summary className="cursor-pointer text-sm font-medium text-slate-800">Advanced options</summary>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Category</span>

@@ -40,17 +40,17 @@ export default function TrainerCertificatesPage() {
         <EmptyState title="None issued" description="Certificates appear here when trainees on your programs meet every eligibility rule." />
       ) : null}
       {certificates && certificates.length > 0 ? (
-        <section className="bg-white">
-          <ul className="divide-y divide-stone-100">
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+          <ul className="divide-y divide-slate-100">
             {certificates.map((item) => (
               <li key={item.certificateId} className="flex flex-wrap items-baseline justify-between gap-3 px-5 py-4 text-sm">
                 <div>
-                  <p className="font-medium text-stone-950">
+                  <p className="font-medium text-slate-900">
                     {item.traineeName} · {item.program.title}
                   </p>
-                  <p className="mt-1 font-mono text-stone-600">{item.certificateId}</p>
+                  <p className="mt-1 font-mono text-slate-600">{item.certificateId}</p>
                 </div>
-                <p className="text-stone-500">
+                <p className="text-slate-500">
                   {formatWhen(item.completionDate)} · {item.status.toLowerCase()}
                 </p>
               </li>

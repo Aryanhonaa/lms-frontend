@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-stat
 import { LeaderboardBoardView } from "@/features/engagement/leaderboard-board";
 import { getTrainerLeaderboard } from "@/lib/api/engagement";
 import { ApiClientError } from "@/lib/api/client";
+import { fieldClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 import type { LeaderboardBoard } from "@/types/engagement";
 
@@ -95,12 +96,12 @@ export default function TrainerLeaderboardPage() {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           {programs.length > 1 ? (
             <div className="flex-1">
-              <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="program">
+              <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="program">
                 Course
               </label>
               <select
                 id="program"
-                className="mt-1 w-full max-w-sm rounded-md border border-stone-300 bg-white px-3 py-2 text-sm"
+                className={`${fieldClass} mt-1 max-w-sm`}
                 value={selected}
                 onChange={(event) => {
                   const id = event.target.value;
@@ -119,12 +120,12 @@ export default function TrainerLeaderboardPage() {
           ) : null}
           {batches.length > 0 ? (
             <div className="flex-1">
-              <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="batch">
+              <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="batch">
                 Batch
               </label>
               <select
                 id="batch"
-                className="mt-1 w-full max-w-sm rounded-md border border-stone-300 bg-white px-3 py-2 text-sm"
+                className={`${fieldClass} mt-1 max-w-sm`}
                 value={batchId}
                 onChange={(event) => setBatchId(event.target.value)}
               >
@@ -141,6 +142,7 @@ export default function TrainerLeaderboardPage() {
       {board ? (
         <LeaderboardBoardView
           board={board}
+          tone="admin"
           subtitle={board.batch ? `${board.batch.name} · ranked within this batch` : undefined}
         />
       ) : null}

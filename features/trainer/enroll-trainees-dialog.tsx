@@ -123,7 +123,7 @@ export function EnrollTraineesDialog({
         side
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-stone-600">Selected: {selectedCount}</p>
+            <p className="text-sm text-slate-600">Selected: {selectedCount}</p>
             <div className="flex gap-2">
               <button type="button" className={secondaryButtonClass} onClick={close}>
                 Cancel
@@ -135,7 +135,7 @@ export function EnrollTraineesDialog({
           </div>
         }
       >
-      <p className="mb-4 text-sm text-stone-600">
+      <p className="mb-4 text-sm text-slate-600">
         {programTitle}
         {batchName ? ` · ${batchName}` : ""}
       </p>
@@ -156,9 +156,9 @@ export function EnrollTraineesDialog({
       ) : null}
       {result ? <p className="mb-3 text-sm text-emerald-700">{result}</p> : null}
 
-      {trainees === null && !error ? <p className="text-sm text-stone-500">Loading trainees...</p> : null}
+      {trainees === null && !error ? <p className="text-sm text-slate-500">Loading trainees...</p> : null}
       {trainees && available.length === 0 ? (
-        <p className="text-sm text-stone-500">
+        <p className="text-sm text-slate-500">
           {debounced ? "No trainees found." : "No eligible trainees available for enrollment."}
         </p>
       ) : null}
@@ -169,8 +169,8 @@ export function EnrollTraineesDialog({
           return (
             <li key={trainee.id}>
               <label
-                className={`flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 ${
-                  trainee.enrolled ? "cursor-default opacity-70" : "hover:bg-stone-50"
+                className={`flex cursor-pointer items-start gap-3 rounded-xl px-2 py-2 ${
+                  trainee.enrolled ? "cursor-default opacity-70" : "hover:bg-slate-50"
                 }`}
               >
                 <input
@@ -181,8 +181,8 @@ export function EnrollTraineesDialog({
                   onChange={() => toggle(trainee.id, trainee.enrolled)}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-stone-950">{trainee.name}</span>
-                  <span className="block text-xs text-stone-500">{trainee.email}</span>
+                  <span className="block text-sm font-medium text-slate-900">{trainee.name}</span>
+                  <span className="block text-xs text-slate-500">{trainee.email}</span>
                 </span>
                 {trainee.enrolled ? <span className="text-xs font-medium text-emerald-700">Already enrolled</span> : null}
               </label>

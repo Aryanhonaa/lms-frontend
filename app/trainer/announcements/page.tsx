@@ -80,19 +80,19 @@ export default function TrainerAnnouncementsPage() {
       {error ? <ErrorState message={error} /> : null}
       {items === null && !error ? <LoadingState /> : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Visible to you</div>
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+          <div className="border-b border-slate-100 px-5 py-3 text-sm font-medium text-slate-800">Visible to you</div>
           {items && items.length === 0 ? (
             <EmptyState title="None yet" description="Platform and program announcements will appear here." />
           ) : null}
           {items ? <AnnouncementList announcements={items} /> : null}
         </section>
-        <section className="bg-white px-5 py-5">
-          <h2 className="text-base font-medium text-stone-950">Program note</h2>
-          <p className="mt-1 text-sm text-stone-600">Post to everyone in a program, or pick people in a batch.</p>
+        <section className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+          <h2 className="text-base font-medium text-slate-900">Program note</h2>
+          <p className="mt-1 text-sm text-slate-600">Post to everyone in a program, or pick people in a batch.</p>
           <form className="mt-4 space-y-4" onSubmit={onSubmit}>
             <div>
-              <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="audience">
+              <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="audience">
                 Audience
                 <RequiredMark />
               </label>
@@ -110,7 +110,7 @@ export default function TrainerAnnouncementsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="program">
+              <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="program">
                 Program
                 <RequiredMark />
               </label>
@@ -156,7 +156,7 @@ export default function TrainerAnnouncementsPage() {
               </>
             ) : null}
             <div>
-              <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="title">
+              <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="title">
                 Title
                 <RequiredMark />
               </label>
@@ -169,7 +169,7 @@ export default function TrainerAnnouncementsPage() {
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-wide text-stone-500" htmlFor="body">
+              <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="body">
                 Body
                 <RequiredMark />
               </label>

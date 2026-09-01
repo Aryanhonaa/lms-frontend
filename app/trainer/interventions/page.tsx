@@ -155,9 +155,9 @@ export default function TrainerInterventionsPage() {
 
   return (
     <TrainerShell title="Trainees who need help" user={user}>
-      <section className="mb-6 bg-white">
-        <div className="border-b border-stone-200 px-5 py-4">
-          <p className="max-w-2xl text-sm text-stone-600">
+      <section className="mb-6 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <p className="max-w-2xl text-sm text-slate-600">
             Lists trainees in this batch who have started the course and fallen below the alert lines you set (progress or
             exam score). It does not change pass marks. Mark as seen, dismiss, or give extra work.
           </p>
@@ -193,7 +193,7 @@ export default function TrainerInterventionsPage() {
       ) : null}
 
       {showList && openFlags.length > 0 ? (
-        <section className="mb-6 border border-red-200 bg-red-50 px-5 py-4">
+        <section className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-5 py-4">
           <p className="text-xs font-medium uppercase tracking-wide text-red-800">Open alerts</p>
           <p className="mt-1 text-sm text-red-900">
             {openFlags.length} trainee{openFlags.length === 1 ? "" : "s"} below the alert line.
@@ -202,11 +202,11 @@ export default function TrainerInterventionsPage() {
       ) : null}
 
       {showList && scopedFlags.length > 0 ? (
-        <section className="bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Alerts</div>
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+          <div className="border-b border-slate-100 px-5 py-3 text-sm font-medium text-slate-800">Alerts</div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
+              <thead className="border-b border-slate-100 text-xs font-medium tracking-wide text-slate-500 uppercase">
                 <tr>
                   <th className="px-5 py-2 font-medium">Trainee</th>
                   <th className="px-3 py-2 font-medium">Batch</th>
@@ -218,18 +218,18 @@ export default function TrainerInterventionsPage() {
                   <th className="px-5 py-2 font-medium" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-slate-100">
                 {scopedFlags.map((flag) => (
                   <tr key={flag.id} className="align-top">
                     <td className="px-5 py-3">
-                      <p className="font-medium text-stone-950">{flag.trainee.name}</p>
-                      <p className="text-xs text-stone-500">{flag.trainee.email}</p>
+                      <p className="font-medium text-slate-900">{flag.trainee.name}</p>
+                      <p className="text-xs text-slate-500">{flag.trainee.email}</p>
                     </td>
                     <td className="px-3 py-3">{flag.batch.name}</td>
                     <td className="px-3 py-3">{flag.progress ?? 0}%</td>
                     <td className="px-3 py-3">
                       {flag.examScore !== null ? `${flag.examScore}%` : "—"}
-                      {flag.examTitle ? <span className="mt-1 block text-xs text-stone-500">{flag.examTitle}</span> : null}
+                      {flag.examTitle ? <span className="mt-1 block text-xs text-slate-500">{flag.examTitle}</span> : null}
                     </td>
                     <td className="px-3 py-3">{triggerLabel(flag.trigger)}</td>
                     <td className="px-3 py-3">{statusLabel(flag.status)}</td>
@@ -307,14 +307,14 @@ export default function TrainerInterventionsPage() {
                           }}
                         >
                           <label className="grid gap-1 text-sm">
-                            <span className="font-medium text-stone-800">
+                            <span className="font-medium text-slate-800">
                               Title
                               <RequiredMark />
                             </span>
                             <input name="title" required className={fieldClass} placeholder="Title" />
                           </label>
                           <label className="grid gap-1 text-sm">
-                            <span className="font-medium text-stone-800">
+                            <span className="font-medium text-slate-800">
                               Type
                               <RequiredMark />
                             </span>
@@ -343,14 +343,14 @@ export default function TrainerInterventionsPage() {
       ) : null}
 
       {showList && scopedRequirements.length > 0 ? (
-        <section className="mt-6 bg-white">
-          <div className="border-b border-stone-200 px-5 py-3 text-sm font-medium">Extra work assigned</div>
-          <ul className="divide-y divide-stone-100">
+        <section className="mt-6 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
+          <div className="border-b border-slate-100 px-5 py-3 text-sm font-medium text-slate-800">Extra work assigned</div>
+          <ul className="divide-y divide-slate-100">
             {scopedRequirements.map((item) => (
               <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-3 px-5 py-3 text-sm">
                 <div>
-                  <p className="font-medium text-stone-950">{item.title}</p>
-                  <p className="mt-1 text-stone-500">
+                  <p className="font-medium text-slate-900">{item.title}</p>
+                  <p className="mt-1 text-slate-500">
                     {item.trainee.name} · {item.batch.name} · {item.status.toLowerCase()}
                     {item.deadline ? ` · due ${formatDate(item.deadline)}` : ""}
                   </p>
@@ -361,9 +361,9 @@ export default function TrainerInterventionsPage() {
         </section>
       ) : null}
 
-      <p className="mt-4 text-sm text-stone-500">
+      <p className="mt-4 text-sm text-slate-500">
         Alert lines are set on each{" "}
-        <Link href="/trainer/programs" className="underline">
+        <Link href="/trainer/programs" className="font-medium text-violet-700 hover:text-violet-800">
           course
         </Link>
         . A trainee is not listed for low progress until they have started the course.
