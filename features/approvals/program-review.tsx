@@ -7,6 +7,7 @@ import { FileActionsRow, FileViewer } from "@/components/files/file-viewer";
 import { StatusBadge } from "@/components/status-badge";
 import { RejectionBanner } from "@/features/programs/rejection-banner";
 import { getAttachmentAccess, getItemFileAccess, type FileAudience } from "@/lib/api/files";
+import { programTrainerNames } from "@/lib/programs/enrollment";
 import { isYoutubeShortsUrl, youtubeEmbedSrc, youtubeVideoId } from "@/lib/media/youtube";
 import type {
   Assignment,
@@ -484,7 +485,7 @@ export function ProgramReview({
               {program.description || "No description was provided."}
             </p>
             <p className="mt-3 text-xs text-slate-500">
-              {program.createdBy.name} · {program.category} · {program.difficulty.toLowerCase()} · {weeks.length} week
+              {programTrainerNames(program)} · {program.category} · {program.difficulty.toLowerCase()} · {weeks.length} week
               {weeks.length === 1 ? "" : "s"} · {items.length} item{items.length === 1 ? "" : "s"}
             </p>
           </div>

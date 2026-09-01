@@ -42,7 +42,7 @@ export default function TrainerProgramsPage() {
         </Link>
       }
     >
-      {error ? <p className="text-sm text-red-600">{error}</p> : <ProgramList programs={programs} onDelete={setPendingDelete} />}
+      {error ? <p className="text-sm text-red-600">{error}</p> : <ProgramList programs={programs} currentUserId={user.id} onDelete={setPendingDelete} />}
       <DeleteProgramDialog
         program={pendingDelete}
         onClose={() => setPendingDelete(null)}

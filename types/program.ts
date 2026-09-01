@@ -13,6 +13,14 @@ export type PersonRef = {
   email: string;
 };
 
+export type ProgramTrainerAssignment = {
+  id: string;
+  programId: string;
+  userId: string;
+  role: "OWNER" | "CO_TRAINER";
+  user: PersonRef;
+};
+
 export type QuestionOption = {
   id: string;
   sortOrder: number;
@@ -188,6 +196,7 @@ export type ProgramSummary = {
   updatedAt: string;
   createdBy: PersonRef;
   rejectedBy: PersonRef | null;
+  trainers?: ProgramTrainerAssignment[];
   _count?: { weeks: number; enrollments?: number };
 };
 

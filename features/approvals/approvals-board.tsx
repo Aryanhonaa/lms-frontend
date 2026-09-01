@@ -6,8 +6,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { ProgramReview } from "@/features/approvals/program-review";
 import { approveProgram, getAdminProgram, listAdminPrograms, rejectProgram } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
-import { programStatusLabel } from "@/lib/programs/enrollment";
+import { programStatusLabel, programTrainerNames } from "@/lib/programs/enrollment";
 import { RequiredMark } from "@/components/ui/required-mark";
+import { ProgramTrainersPicker } from "@/features/approvals/program-trainers-picker";
 import type { ProgramStatus } from "@/types/domain";
 import type { ProgramSummary, ProgramTree } from "@/types/program";
 
@@ -95,7 +96,7 @@ export function ApprovalsBoard() {
       return programs;
     }
     return programs.filter((program) =>
-      `${program.title} ${program.createdBy.name} ${program.category}`.toLowerCase().includes(needle),
+      `${program.title} ${program.createdBy.name} ${programTrainerNames(program)} ${program.category}`.toLowerCase().includes(needle),
     );
   }, [programs, query]);
 
@@ -191,7 +192,7 @@ export function ApprovalsBoard() {
                         </span>
                       </span>
                       <span className="mt-auto truncate text-xs text-slate-500">
-                        {program.createdBy.name} · {weeks} {weeks === 1 ? "week" : "weeks"}
+                        {programTrainerNames(program)} · {weeks} {weeks === 1 ? "week" : "weeks"}
                       </span>
                       <span className="text-[11px] text-slate-400">
                         Updated {new Date(program.updatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
@@ -265,6 +266,13 @@ export function ApprovalsBoard() {
                 Status: {programStatusLabel(selected.status)}. Materials below are still available to inspect.
               </div>
             )}
+            <ProgramTrainersPicker
+              program={selected}
+              onUpdated={(program) => {
+                setSelected(program);
+                setPrograms((current) => current.map((row) => (row.id === program.id ? { ...row, trainers: program.trainers } : row)));
+              }}
+            />
             <ProgramReview program={selected} />
           </div>
         )}

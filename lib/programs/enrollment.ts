@@ -31,3 +31,14 @@ export function programStatusLabel(status: ProgramStatus): string {
   }
   return "Published";
 }
+
+export function programTrainerNames(program: {
+  createdBy: { name: string };
+  trainers?: Array<{ user: { name: string } }>;
+}): string {
+  const names = (program.trainers ?? []).map((row) => row.user.name).filter(Boolean);
+  if (names.length === 0) {
+    return program.createdBy.name;
+  }
+  return names.join(", ");
+}

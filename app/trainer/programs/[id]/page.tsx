@@ -58,12 +58,12 @@ export default function ProgramPreviewPage() {
             <Link href={`/trainer/programs/${program.id}/attendance`} className={secondaryButtonClass}>
               Attendance
             </Link>
-            {programAllowsBuilder(program.status) ? (
+            {user.id === program.createdByUserId && programAllowsBuilder(program.status) ? (
               <Link href={`/trainer/programs/${program.id}/builder`} className={primaryButtonClass}>
                 Open builder
               </Link>
             ) : null}
-            {programAllowsTrainerDelete(program.status) ? (
+            {user.id === program.createdByUserId && programAllowsTrainerDelete(program.status) ? (
               <button type="button" className={deleteCourseButtonClass} onClick={() => setDeleteOpen(true)}>
                 Delete
               </button>

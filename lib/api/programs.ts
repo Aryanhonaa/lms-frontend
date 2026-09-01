@@ -60,6 +60,16 @@ export async function rejectProgram(programId: string, reason: string): Promise<
   });
 }
 
+export async function assignProgramTrainers(
+  programId: string,
+  trainerIds: string[],
+): Promise<ProgramPayload> {
+  return apiClient<ProgramPayload>(`/admin/programs/${programId}/trainers`, {
+    method: "PUT",
+    body: { trainerIds },
+  });
+}
+
 export async function addWeek(programId: string, body: { title: string; description?: string }): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/programs/${programId}/weeks`, { method: "POST", body });
 }

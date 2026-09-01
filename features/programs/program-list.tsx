@@ -10,9 +10,11 @@ import type { ProgramSummary } from "@/types/program";
 
 export function ProgramList({
   programs,
+  currentUserId,
   onDelete,
 }: {
   programs: ProgramSummary[];
+  currentUserId?: string;
   onDelete?: (program: ProgramSummary) => void;
 }) {
   if (programs.length === 0) {
@@ -40,7 +42,9 @@ export function ProgramList({
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-100">
-          {programs.map((program) => (
+          {programs.map((program) => {
+            const isOwner = !currentUserId || program.createdByUserId === currentUserId;
+            return (
             <tr key={program.id}>
               <td className="px-4 py-3">
                 <p className="font-medium text-stone-950">{program.title}</p>
@@ -57,7 +61,7 @@ export function ProgramList({
                   <Link href={`/trainer/programs/${program.id}`} className={secondaryButtonClass}>
                     Preview
                   </Link>
-                  {programAllowsBuilder(program.status) ? (
+                  {isOwner && programAllowsBuilder(program.status) ? (
                     <Link href={`/trainer/programs/${program.id}/builder`} className={primaryButtonClass}>
                       Builder
                     </Link>
@@ -67,7 +71,7 @@ export function ProgramList({
                       Batches
                     </Link>
                   ) : null}
-                  {onDelete && programAllowsTrainerDelete(program.status) ? (
+                  {isOwner && onDelete && programAllowsTrainerDelete(program.status) ? (
                     <button type="button" className={deleteCourseButtonClass} onClick={() => onDelete(program)}>
                       Delete
                     </button>
@@ -75,7 +79,8 @@ export function ProgramList({
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

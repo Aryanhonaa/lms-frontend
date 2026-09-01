@@ -9,7 +9,7 @@ import { useAdminChrome } from "@/components/admin-shell";
 import { listAdminCatalog } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { useAuth } from "@/providers/auth-provider";
-import { programAllowsAdminDelete } from "@/lib/programs/enrollment";
+import { programAllowsAdminDelete, programTrainerNames } from "@/lib/programs/enrollment";
 import { DeleteProgramDialog, deleteCourseButtonClass } from "@/features/programs/delete-program-dialog";
 import type { ProgramSummary } from "@/types/program";
 
@@ -41,7 +41,7 @@ export default function AdminCoursesPage() {
       return programs;
     }
     return programs.filter((program) =>
-      `${program.title} ${program.category} ${program.status} ${program.createdBy.name}`.toLowerCase().includes(needle),
+      `${program.title} ${program.category} ${program.status} ${programTrainerNames(program)}`.toLowerCase().includes(needle),
     );
   }, [programs, searchQuery]);
 
@@ -62,7 +62,7 @@ export default function AdminCoursesPage() {
             <thead className="border-b border-slate-100 text-xs tracking-wide text-slate-400 uppercase">
               <tr>
                 <th className="px-5 py-3 font-medium">{isOps ? "Program" : "Course"}</th>
-                <th className="px-3 py-3 font-medium">Trainer</th>
+                <th className="px-3 py-3 font-medium">Trainers</th>
                 {isOps ? null : <th className="px-3 py-3 font-medium">Category</th>}
                 {isOps ? <th className="px-3 py-3 font-medium">Submitted</th> : <th className="px-3 py-3 font-medium">Weeks</th>}
                 {isOps ? <th className="px-3 py-3 font-medium">Trainees Enrolled</th> : null}
@@ -74,7 +74,7 @@ export default function AdminCoursesPage() {
               {visible.map((program) => (
                 <tr key={program.id}>
                   <td className="px-5 py-4 font-medium text-slate-900">{program.title}</td>
-                  <td className="px-3 py-4 text-slate-600">{program.createdBy.name}</td>
+                  <td className="px-3 py-4 text-slate-600">{programTrainerNames(program)}</td>
                   {isOps ? (
                     <td className="px-3 py-4 text-slate-600">
                       {new Date(program.updatedAt).toLocaleDateString(undefined, {
