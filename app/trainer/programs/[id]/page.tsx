@@ -8,7 +8,7 @@ import { ProgramReview } from "@/features/approvals/program-review";
 import { getTrainerProgram } from "@/lib/api/programs";
 import { updateInterventionSettings } from "@/lib/api/interventions";
 import { ApiClientError } from "@/lib/api/client";
-import { programAllowsBuilder, programAllowsEnrollment, programAllowsTrainerDelete } from "@/lib/programs/enrollment";
+import { programAllowsBuilder, programAllowsTrainerDelete } from "@/lib/programs/enrollment";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { DeleteProgramDialog, deleteCourseButtonClass } from "@/features/programs/delete-program-dialog";
 import { useAuth } from "@/providers/auth-provider";
@@ -50,11 +50,12 @@ export default function ProgramPreviewPage() {
       actions={
         program ? (
           <div className="flex flex-wrap gap-2">
-            {programAllowsEnrollment(program.status) ? (
-              <Link href={`/trainer/programs/${program.id}/trainees`} className={primaryButtonClass}>
-                Batches
-              </Link>
-            ) : null}
+            <Link href="/trainer/training-tracker/batches" className={primaryButtonClass}>
+              Batches
+            </Link>
+            <Link href={`/trainer/programs/${program.id}/trainees`} className={secondaryButtonClass}>
+              Course roster
+            </Link>
             <Link href={`/trainer/programs/${program.id}/attendance`} className={secondaryButtonClass}>
               Attendance
             </Link>

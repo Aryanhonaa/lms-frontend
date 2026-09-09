@@ -173,7 +173,7 @@ export function AppUsagePanel({ audience }: { audience: Audience }) {
               value={batchId}
               onChange={(event) => setBatchId(event.target.value)}
             >
-              <option value="">All batches</option>
+              <option value="">All course groups</option>
               {batches.map((row) => (
                 <option key={row.id} value={row.id}>
                   {row.name}

@@ -62,8 +62,14 @@ export default function TrainerTraineesPage() {
   }
 
   return (
-    <TrainerShell title="Trainees" user={user}>
-      <p className="mb-4 text-sm text-slate-500">Trainees enrolled in your programs.</p>
+    <TrainerShell title="Course trainees" user={user}>
+      <p className="mb-4 text-sm text-slate-500">
+        People enrolled in your <span className="font-medium text-slate-700">courses</span>. New-hire batches live under{" "}
+        <Link href="/trainer/training-tracker" className="font-medium text-violet-700 hover:underline">
+          Batches
+        </Link>
+        .
+      </p>
 
       <div className="mb-6 max-w-sm">
         <label className="block text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="trainer-trainee-program">
@@ -104,7 +110,7 @@ export default function TrainerTraineesPage() {
           description={
             programFilter
               ? "No trainees are enrolled in this program yet."
-              : "Enroll trainees into a program batch to see them here."
+              : "Add people from Batches (create batch → select course → add trainee). They appear here after enrollment."
           }
         />
       ) : null}
@@ -115,8 +121,7 @@ export default function TrainerTraineesPage() {
             <thead className="border-b border-slate-100 text-xs font-medium tracking-wide text-slate-500 uppercase">
               <tr>
                 <th className="px-5 py-3 font-medium">Trainee</th>
-                <th className="px-5 py-3 font-medium">Program</th>
-                <th className="px-5 py-3 font-medium">Batch</th>
+                <th className="px-5 py-3 font-medium">Course</th>
                 <th className="px-5 py-3 font-medium">Progress</th>
                 <th className="px-5 py-3 font-medium">Outcome</th>
               </tr>
@@ -138,7 +143,6 @@ export default function TrainerTraineesPage() {
                       {row.program.title}
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-slate-600">{row.batch?.name ?? "—"}</td>
                   <td className="px-5 py-3 text-slate-700">{Math.round(row.progress)}%</td>
                   <td className="px-5 py-3">
                     <CourseOutcomeBadge

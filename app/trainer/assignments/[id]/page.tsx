@@ -233,7 +233,7 @@ export default function TrainerAssignmentDetailPage() {
           {roster.length === 0 ? (
             <EmptyState
               title="No trainees enrolled in this batch."
-              description="Enroll trainees in this batch to collect submissions."
+              description="Add people from Batches (select this course on the batch) to collect submissions."
             />
           ) : visibleRoster.length === 0 ? (
             <EmptyState

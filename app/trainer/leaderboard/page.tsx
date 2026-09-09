@@ -90,7 +90,7 @@ export default function TrainerLeaderboardPage() {
       {error ? <ErrorState message={error} /> : null}
       {boards === null && !error ? <LoadingState /> : null}
       {boards && boards.length === 0 ? (
-        <EmptyState title="No batches yet" description="Leaderboards appear for each batch you operate." />
+        <EmptyState title="No course groups yet" description="Leaderboards appear for each course group you operate." />
       ) : null}
       {boards && boards.length > 0 ? (
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
@@ -121,7 +121,7 @@ export default function TrainerLeaderboardPage() {
           {batches.length > 0 ? (
             <div className="flex-1">
               <label className="text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="batch">
-                Batch
+                Course group
               </label>
               <select
                 id="batch"

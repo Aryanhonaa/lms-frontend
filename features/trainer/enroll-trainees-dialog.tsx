@@ -118,7 +118,7 @@ export function EnrollTraineesDialog({
   return (
       <Dialog
         open={open}
-        title={batchName ? `Enroll into ${batchName}` : "Enroll Trainees"}
+        title="Enroll trainees"
         onClose={close}
         side
         footer={
@@ -135,10 +135,7 @@ export function EnrollTraineesDialog({
           </div>
         }
       >
-      <p className="mb-4 text-sm text-slate-600">
-        {programTitle}
-        {batchName ? ` · ${batchName}` : ""}
-      </p>
+      <p className="mb-4 text-sm text-slate-600">{programTitle}</p>
       <label className="mb-4 block text-sm">
         <span className="sr-only">Search trainees</span>
         <input

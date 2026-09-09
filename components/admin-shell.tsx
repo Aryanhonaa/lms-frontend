@@ -19,6 +19,7 @@ import {
   Megaphone,
   Menu,
   MessageSquare,
+  Layers,
   PanelLeft,
   Search,
   Settings,
@@ -54,8 +55,23 @@ type NavItem = {
   children?: readonly NavChild[];
 };
 
+const TRACKER_NAV_CHILDREN = [
+  { href: "/admin/training-tracker", label: "Overview" },
+  { href: "/admin/training-tracker/batches", label: "All batches" },
+  { href: "/admin/training-tracker/trainees", label: "People" },
+  { href: "/admin/training-tracker/trainers", label: "By trainer" },
+  { href: "/admin/training-tracker/lca", label: "Quality checks" },
+  { href: "/admin/training-tracker/tni", label: "Extra support" },
+] as const;
+
 const SUPER_ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  {
+    href: "/admin/training-tracker",
+    label: "Batches",
+    icon: Layers,
+    children: TRACKER_NAV_CHILDREN,
+  },
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/admin/usage", label: "App Usage", icon: Clock3 },
   {
@@ -80,7 +96,13 @@ const SUPER_ADMIN_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/courses", label: "Programs", icon: BookOpen },
+  {
+    href: "/admin/training-tracker",
+    label: "Batches",
+    icon: Layers,
+    children: TRACKER_NAV_CHILDREN,
+  },
+  { href: "/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/admin/usage", label: "App Usage", icon: Clock3 },
   { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
@@ -135,6 +157,7 @@ export function AdminShell({
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarReady, setSidebarReady] = useState(false);
   const [usersOpen, setUsersOpen] = useState(pathname.startsWith("/admin/users"));
+  const [trackerOpen, setTrackerOpen] = useState(pathname.startsWith("/admin/training-tracker"));
   const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -162,6 +185,7 @@ export function AdminShell({
       setProfileOpen(false);
       setNotificationsOpen(false);
       setUsersOpen(pathname.startsWith("/admin/users"));
+      setTrackerOpen(pathname.startsWith("/admin/training-tracker"));
     });
     return () => window.cancelAnimationFrame(frame);
   }, [pathname]);
@@ -265,6 +289,7 @@ export function AdminShell({
                   );
                 }
 
+                const sectionOpen = item.href.startsWith("/admin/training-tracker") ? trackerOpen : usersOpen;
                 return (
                   <div key={item.href}>
                     <button
@@ -272,13 +297,19 @@ export function AdminShell({
                       className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                         active ? "bg-violet-50 font-medium text-violet-700" : "text-slate-600 hover:bg-white hover:text-slate-900"
                       }`}
-                      onClick={() => setUsersOpen((open) => !open)}
+                      onClick={() => {
+                        if (item.href.startsWith("/admin/training-tracker")) {
+                          setTrackerOpen((open) => !open);
+                          return;
+                        }
+                        setUsersOpen((open) => !open);
+                      }}
                     >
                       <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
                       <span className="flex-1 text-left">{item.label}</span>
-                      <ChevronDown className={`h-4 w-4 transition ${usersOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 transition ${sectionOpen ? "rotate-180" : ""}`} />
                     </button>
-                    {usersOpen ? (
+                    {sectionOpen ? (
                       <div className="mt-1 ml-4 space-y-1 border-l border-slate-200 pl-3">
                         {children.map((child) => {
                           const childActive = isActiveChild(child.href, pathname, roleFilter);

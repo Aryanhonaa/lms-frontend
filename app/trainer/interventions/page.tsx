@@ -181,8 +181,8 @@ export default function TrainerInterventionsPage() {
       ) : null}
       {filters.ready && filters.programs.length > 0 && filters.batches.length === 0 && !loadError ? (
         <EmptyState
-          title="No batches yet"
-          description="Create a batch for this course to see who needs help."
+          title="No course groups yet"
+          description="Create a course group for this course to see who needs help."
         />
       ) : null}
       {showList && scopedFlags.length === 0 ? (

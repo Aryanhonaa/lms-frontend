@@ -47,7 +47,7 @@ export function TrainerCourseBatchFilters({
         </label>
       )}
       <label className="block text-xs font-medium tracking-wide text-slate-500 uppercase" htmlFor="trainer-batch">
-        Batch
+        Course group
         <select
           id="trainer-batch"
           className={`${fieldClass} mt-1 font-normal normal-case`}
@@ -55,7 +55,7 @@ export function TrainerCourseBatchFilters({
           disabled={batches.length === 0}
           onChange={(event) => onBatchChange(event.target.value)}
         >
-          {batches.length === 0 ? <option value="">No batches</option> : null}
+          {batches.length === 0 ? <option value="">No course groups</option> : null}
           {batches.map((batch) => (
             <option key={batch.id} value={batch.id}>
               {batch.name}

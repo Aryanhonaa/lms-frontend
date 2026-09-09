@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
   Clock3,
   LayoutDashboard,
+  Layers,
   ListChecks,
   LogOut,
   Megaphone,
@@ -45,8 +46,9 @@ type NavItem = {
 
 const TRAINER_NAV: NavItem[] = [
   { href: "/trainer", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/trainer/programs", label: "Programs", icon: BookOpen },
-  { href: "/trainer/trainees", label: "Trainees", icon: Users },
+  { href: "/trainer/training-tracker", label: "Batches", icon: Layers },
+  { href: "/trainer/programs", label: "Courses", icon: BookOpen },
+  { href: "/trainer/trainees", label: "Course trainees", icon: Users },
   { href: "/trainer/usage", label: "App Usage", icon: Clock3 },
   { href: "/trainer/assessments", label: "Quizzes", icon: ClipboardCheck },
   { href: "/trainer/assignments", label: "Assignments", icon: ListChecks },

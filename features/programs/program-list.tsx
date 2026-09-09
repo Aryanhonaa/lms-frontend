@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { programAllowsBuilder, programAllowsEnrollment, programAllowsTrainerDelete } from "@/lib/programs/enrollment";
+import { programAllowsBuilder, programAllowsTrainerDelete } from "@/lib/programs/enrollment";
 import { deleteCourseButtonClass } from "@/features/programs/delete-program-dialog";
 import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import type { ProgramSummary } from "@/types/program";
@@ -64,11 +64,6 @@ export function ProgramList({
                   {isOwner && programAllowsBuilder(program.status) ? (
                     <Link href={`/trainer/programs/${program.id}/builder`} className={primaryButtonClass}>
                       Builder
-                    </Link>
-                  ) : null}
-                  {programAllowsEnrollment(program.status) ? (
-                    <Link href={`/trainer/programs/${program.id}/trainees`} className={primaryButtonClass}>
-                      Batches
                     </Link>
                   ) : null}
                   {isOwner && onDelete && programAllowsTrainerDelete(program.status) ? (

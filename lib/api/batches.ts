@@ -32,6 +32,23 @@ export async function createProgramBatch(
   return apiClient(`/trainer/programs/${programId}/batches`, { method: "POST", body: input });
 }
 
+/** Hidden roster used by course enrollments. Trainers should not create these from the UI. */
+export async function ensureCourseEnrollmentRoster(
+  programId: string,
+  programTitle: string,
+): Promise<ProgramBatch> {
+  const existing = await listProgramBatches(programId);
+  const withSeats = existing.batches.find((batch) => batch.remaining > 0) ?? existing.batches[0];
+  if (withSeats) {
+    return withSeats;
+  }
+  const created = await createProgramBatch(programId, {
+    name: programTitle.trim() || "Course roster",
+    capacity: 500,
+  });
+  return created.batch;
+}
+
 export async function updateProgramBatch(
   batchId: string,
   input: { name?: string; description?: string; capacity?: number },

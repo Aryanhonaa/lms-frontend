@@ -46,11 +46,26 @@ function labelForSegment(
     if (parent === "users") {
       return entityLabel ?? "User";
     }
+    if (parent === "batches" && grandparent === "training-tracker") {
+      return entityLabel ?? "Batch";
+    }
     return entityLabel ?? "Details";
   }
 
   if (segment === "trainees" && isUuid(parent) && grandparent === "programs") {
-    return "Batches";
+    return "Course trainees";
+  }
+
+  if (segment === "trainees" && previous.includes("training-tracker")) {
+    return "People";
+  }
+
+  if (segment === "lca") {
+    return "Quality checks";
+  }
+
+  if (segment === "tni") {
+    return "Extra support";
   }
 
   if (segment === "courses") {
@@ -58,7 +73,7 @@ function labelForSegment(
   }
 
   const labels: Record<string, string> = {
-    programs: "Programs",
+    programs: "Courses",
     courses: "Courses",
     new: parent === "programs" ? "New course" : "New",
     builder: "Builder",
@@ -83,6 +98,10 @@ function labelForSegment(
     approvals: "Approvals",
     settings: "Settings",
     program: "Course",
+    "training-tracker": "Batches",
+    batches: "All batches",
+    lca: "Quality checks",
+    tni: "Extra support",
   };
 
   return labels[segment] ?? segment.replaceAll("-", " ");
