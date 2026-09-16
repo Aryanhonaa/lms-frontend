@@ -24,11 +24,17 @@ function deletionError(error: unknown): string {
 export function DeleteProgramDialog({
   program,
   asAdmin,
+  title = "Delete course?",
+  message,
+  confirmLabel = "Delete course",
   onClose,
   onDeleted,
 }: {
   program: Pick<ProgramSummary, "id" | "title"> | null;
   asAdmin?: boolean;
+  title?: string;
+  message?: string;
+  confirmLabel?: string;
   onClose: () => void;
   onDeleted: (programId: string) => void;
 }) {
@@ -62,10 +68,14 @@ export function DeleteProgramDialog({
   }
 
   return (
-    <Dialog open={Boolean(program)} title="Delete course?" onClose={close}>
+    <Dialog open={Boolean(program)} title={title} onClose={close}>
       <p className="text-sm text-slate-600">
-        This permanently removes <span className="font-medium text-slate-900">{program?.title}</span> and its
-        curriculum. This cannot be undone.
+        {message ?? (
+          <>
+            This permanently removes <span className="font-medium text-slate-900">{program?.title}</span> and its
+            curriculum. This cannot be undone.
+          </>
+        )}
       </p>
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -73,7 +83,7 @@ export function DeleteProgramDialog({
           Cancel
         </button>
         <button type="button" className={dangerButtonClass} disabled={busy} onClick={confirm}>
-          {busy ? "Deleting…" : "Delete course"}
+          {busy ? "Deleting…" : confirmLabel}
         </button>
       </div>
     </Dialog>

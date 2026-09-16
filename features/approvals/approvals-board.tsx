@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, ClipboardCheck, Search, X } from "lucide-react";
+import { Check, ClipboardCheck, Search, Trash2, X } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { ProgramReview } from "@/features/approvals/program-review";
+import { DeleteProgramDialog } from "@/features/programs/delete-program-dialog";
 import { approveProgram, getAdminProgram, listAdminPrograms, rejectProgram } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
-import { programStatusLabel, programTrainerNames } from "@/lib/programs/enrollment";
+import { programAllowsAdminDelete, programStatusLabel, programTrainerNames } from "@/lib/programs/enrollment";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { ProgramTrainersPicker } from "@/features/approvals/program-trainers-picker";
+import { useAuth } from "@/providers/auth-provider";
 import type { ProgramStatus } from "@/types/domain";
 import type { ProgramSummary, ProgramTree } from "@/types/program";
 
@@ -23,6 +25,7 @@ const CARD =
   "rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5";
 
 export function ApprovalsBoard() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<ProgramStatus | "ALL">("SUBMITTED");
   const [query, setQuery] = useState("");
   const [programs, setPrograms] = useState<ProgramSummary[]>([]);
@@ -33,6 +36,8 @@ export function ApprovalsBoard() {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProgramSummary | null>(null);
+  const canDeleteApproved = user?.role === "SUPER_ADMIN" && filter === "APPROVED";
 
   useEffect(() => {
     let cancelled = false;
@@ -171,12 +176,15 @@ export function ApprovalsBoard() {
               {visible.map((program) => {
                 const active = selectedId === program.id;
                 const weeks = program._count?.weeks ?? 0;
+                const showDelete = canDeleteApproved && programAllowsAdminDelete(program.status);
                 return (
-                  <li key={program.id} className="w-64 shrink-0 snap-start">
+                  <li key={program.id} className="group relative w-64 shrink-0 snap-start">
                     <button
                       type="button"
                       aria-pressed={active}
-                      className={`flex h-full w-full flex-col gap-2 rounded-xl border px-3.5 py-3 text-left transition ${
+                      className={`flex h-full w-full flex-col gap-2 rounded-xl border py-3 pl-3.5 text-left transition ${
+                        showDelete ? "pr-10" : "pr-3.5"
+                      } ${
                         active
                           ? "border-violet-300 bg-violet-50 shadow-sm ring-1 ring-violet-200"
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
@@ -198,6 +206,19 @@ export function ApprovalsBoard() {
                         Updated {new Date(program.updatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
                       </span>
                     </button>
+                    {showDelete ? (
+                      <button
+                        type="button"
+                        aria-label={`Delete ${program.title}`}
+                        className="absolute top-2 right-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-red-600 opacity-0 shadow-sm ring-1 ring-red-100 transition hover:bg-red-50 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPendingDelete(program);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null}
                   </li>
                 );
               })}
@@ -277,6 +298,22 @@ export function ApprovalsBoard() {
           </div>
         )}
       </section>
+      <DeleteProgramDialog
+        asAdmin
+        program={pendingDelete}
+        title="Delete material?"
+        message="Are you sure you want to delete?"
+        confirmLabel="Delete"
+        onClose={() => setPendingDelete(null)}
+        onDeleted={(programId) => {
+          setPrograms((current) => current.filter((row) => row.id !== programId));
+          if (selectedId === programId) {
+            setSelectedId(null);
+            setSelected(null);
+          }
+          setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }
