@@ -4,7 +4,7 @@ import { Plus, X } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
-import type { QuizInput } from "@/types/program";
+import type { Quiz, QuizInput } from "@/types/program";
 
 function Field({
   label,
@@ -32,6 +32,7 @@ function Field({
 type QuizFormProps = {
   submitLabel: string;
   disabled?: boolean;
+  initial?: Quiz;
   onSubmit: (input: QuizInput) => Promise<void>;
 };
 
@@ -49,10 +50,23 @@ const emptyQuestion = (): QuestionDraft => ({
   options: [emptyOption(true), emptyOption(false)],
 });
 
-export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
+function questionsFromQuiz(quiz?: Quiz): QuestionDraft[] {
+  if (!quiz?.questions.length) {
+    return [emptyQuestion()];
+  }
+  return quiz.questions.map((question) => ({
+    prompt: question.prompt,
+    options: question.options.map((option) => ({
+      label: option.label,
+      isCorrect: option.isCorrect,
+    })),
+  }));
+}
+
+export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() => questionsFromQuiz(initial));
 
   function updateQuestion(index: number, nextQuestion: QuestionDraft) {
     setQuestions((current) => current.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
@@ -156,8 +170,10 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
     setError(null);
     try {
       await onSubmit(payload);
-      form.reset();
-      setQuestions([emptyQuestion()]);
+      if (!initial) {
+        form.reset();
+        setQuestions([emptyQuestion()]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save quiz");
     } finally {
@@ -171,10 +187,22 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
     <form className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={handleSubmit}>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Title" required>
-          <input name="title" placeholder="Week 1 quiz" className={fieldClass} disabled={locked} />
+          <input
+            name="title"
+            placeholder="Week 1 quiz"
+            defaultValue={initial?.title ?? ""}
+            className={fieldClass}
+            disabled={locked}
+          />
         </Field>
         <Field label="Description">
-          <input name="description" placeholder="Optional" className={fieldClass} disabled={locked} />
+          <input
+            name="description"
+            placeholder="Optional"
+            defaultValue={initial?.description ?? ""}
+            className={fieldClass}
+            disabled={locked}
+          />
         </Field>
         <Field label="Passing score" hint="Percent needed to pass.">
           <input
@@ -182,16 +210,32 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
             type="number"
             min={0}
             max={100}
-            defaultValue={70}
+            defaultValue={initial?.passingScore ?? 70}
             className={fieldClass}
             disabled={locked}
           />
         </Field>
         <Field label="Time limit" hint="Minutes. Leave blank for no limit.">
-          <input name="timeLimitMin" type="number" min={1} placeholder="Optional" className={fieldClass} disabled={locked} />
+          <input
+            name="timeLimitMin"
+            type="number"
+            min={1}
+            placeholder="Optional"
+            defaultValue={initial?.timeLimitMin ?? undefined}
+            className={fieldClass}
+            disabled={locked}
+          />
         </Field>
         <Field label="Max attempts" hint="Leave blank for unlimited.">
-          <input name="maxAttempts" type="number" min={1} placeholder="Optional" className={fieldClass} disabled={locked} />
+          <input
+            name="maxAttempts"
+            type="number"
+            min={1}
+            placeholder="Optional"
+            defaultValue={initial?.maxAttempts ?? undefined}
+            className={fieldClass}
+            disabled={locked}
+          />
         </Field>
         <Field label="Questions per attempt" hint="How many questions a trainee sees. Leave blank to use the whole bank.">
           <input
@@ -200,12 +244,13 @@ export function QuizForm({ submitLabel, disabled, onSubmit }: QuizFormProps) {
             min={1}
             max={200}
             placeholder="All questions"
+            defaultValue={initial?.questionDrawCount ?? undefined}
             className={fieldClass}
             disabled={locked}
           />
         </Field>
         <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700">
-          <input type="checkbox" name="randomized" defaultChecked disabled={locked} />
+          <input type="checkbox" name="randomized" defaultChecked={initial?.randomized ?? true} disabled={locked} />
           Shuffle question and option order
         </label>
         <p className="self-end pb-2 text-sm text-slate-500">

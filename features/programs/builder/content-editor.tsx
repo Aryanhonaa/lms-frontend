@@ -7,7 +7,7 @@ import { VideoFields, type VideoDraft } from "@/features/programs/builder/video-
 import { AttachmentUploadField } from "@/components/files/attachment-upload-field";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
-import type { QuizInput } from "@/types/program";
+import type { Quiz, QuizInput } from "@/types/program";
 import type { UploadedFile } from "@/types/files";
 
 export type PickerKind = "VIDEO" | "LESSON" | "RESOURCE" | "REEL" | "QUIZ" | "ASSIGNMENT";
@@ -20,7 +20,8 @@ export type EditorState =
   | { view: "weekly-quiz"; weekId: string }
   | { view: "weekly-exam"; weekId: string }
   | { view: "final-exam" }
-  | { view: "milestone" };
+  | { view: "milestone" }
+  | { view: "edit-quiz"; quiz: Quiz };
 
 const PICKER_OPTIONS: Array<{ kind: PickerKind; label: string; hint: string; icon: typeof Play }> = [
   { kind: "VIDEO", label: "Video", hint: "Upload a file or paste a URL", icon: Play },
@@ -98,6 +99,7 @@ type ContentEditorProps = {
   onAddWeeklyQuiz: (weekId: string, input: QuizInput) => Promise<void>;
   onAddWeeklyExam: (weekId: string, input: QuizInput) => Promise<void>;
   onAddFinalExam: (input: QuizInput) => Promise<void>;
+  onUpdateQuiz: (quizId: string, input: QuizInput) => Promise<void>;
   onAddMilestone: (input: { title: string; afterWeekIndex: number }) => Promise<void>;
   fileOptions?: Array<{ type: "LESSON" | "VIDEO" | "RESOURCE" | "REEL"; id: string; title: string }>;
 };
@@ -271,6 +273,24 @@ export function ContentEditor(props: ContentEditorProps) {
           </button>
         </div>
       </form>
+    );
+  }
+
+  if (state.view === "edit-quiz") {
+    return (
+      <div className="grid gap-3">
+        <EditorNav onCancel={onClose} />
+        <QuizForm
+          key={state.quiz.id}
+          submitLabel="Save quiz"
+          disabled={disabled || busy}
+          initial={state.quiz}
+          onSubmit={async (input) => {
+            await props.onUpdateQuiz(state.quiz.id, input);
+            onClose();
+          }}
+        />
+      </div>
     );
   }
 
@@ -652,6 +672,9 @@ export function editorTitle(state: EditorState): string {
   }
   if (state.view === "final-exam") {
     return "Final exam";
+  }
+  if (state.view === "edit-quiz") {
+    return "Edit quiz";
   }
   return `Add ${state.kind.toLowerCase()}`;
 }

@@ -6,7 +6,7 @@ import { collectAssignments, collectQuizzes, isExamKind, linkedFileTitle } from 
 import { CARD, dangerButtonClass, fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import { QuizForm } from "@/features/programs/quiz-form";
 import { RequiredMark } from "@/components/ui/required-mark";
-import type { ProgramTree, QuizInput } from "@/types/program";
+import type { ProgramTree, Quiz, QuizInput } from "@/types/program";
 
 export function AssessmentsPanel({
   program,
@@ -20,6 +20,7 @@ export function AssessmentsPanel({
   onAddMilestone,
   onAddMilestoneExam,
   onAddRequirement,
+  onEditQuiz,
   onDeleteQuiz,
   onDeleteAssignment,
   onDeleteMilestone,
@@ -39,6 +40,7 @@ export function AssessmentsPanel({
     milestoneId: string,
     input: { label: string; kind?: "WEEKS_COMPLETED" | "ASSESSMENTS_PASSED" | "ASSIGNMENTS_COMPLETE" | "ATTENDANCE" | "CUSTOM"; targetCount?: number },
   ) => Promise<void>;
+  onEditQuiz: (quiz: Quiz) => void;
   onDeleteQuiz: (id: string) => void;
   onDeleteAssignment: (id: string) => void;
   onDeleteMilestone: (id: string) => void;
@@ -111,7 +113,16 @@ export function AssessmentsPanel({
         ) : (
           <ul className="divide-y divide-slate-100">
             {practice.concat(weekly).map((item) => (
-              <QuizRow key={item.id} title={item.title} scope={item.scope} kind={item.kind} editable={editable} busy={busy} onDelete={() => onDeleteQuiz(item.id)} />
+              <QuizRow
+                key={item.id}
+                title={item.title}
+                scope={item.scope}
+                kind={item.kind}
+                editable={editable}
+                busy={busy}
+                onEdit={() => onEditQuiz(item)}
+                onDelete={() => onDeleteQuiz(item.id)}
+              />
             ))}
           </ul>
         )}
@@ -146,7 +157,16 @@ export function AssessmentsPanel({
         ) : (
           <ul className="divide-y divide-slate-100">
             {exams.map((item) => (
-              <QuizRow key={item.id} title={item.title} scope={item.scope} kind={item.kind} editable={editable} busy={busy} onDelete={() => onDeleteQuiz(item.id)} />
+              <QuizRow
+                key={item.id}
+                title={item.title}
+                scope={item.scope}
+                kind={item.kind}
+                editable={editable}
+                busy={busy}
+                onEdit={() => onEditQuiz(item)}
+                onDelete={() => onDeleteQuiz(item.id)}
+              />
             ))}
           </ul>
         )}
@@ -239,7 +259,14 @@ export function AssessmentsPanel({
                   </form>
                 ) : null}
                 {milestone.exam ? (
-                  <p className="mt-2 text-sm text-slate-600">Exam: {milestone.exam.title}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="text-sm text-slate-600">Exam: {milestone.exam.title}</p>
+                    {editable ? (
+                      <button type="button" className={secondaryButtonClass} disabled={busy} onClick={() => onEditQuiz(milestone.exam!)}>
+                        Edit
+                      </button>
+                    ) : null}
+                  </div>
                 ) : editable ? (
                   <div className="mt-3">
                     <QuizForm submitLabel="Add milestone exam" disabled={busy} onSubmit={(input) => onAddMilestoneExam(milestone.id, input)} />
@@ -309,6 +336,7 @@ function QuizRow({
   kind,
   editable,
   busy,
+  onEdit,
   onDelete,
 }: {
   title: string;
@@ -316,6 +344,7 @@ function QuizRow({
   kind: string;
   editable: boolean;
   busy: boolean;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -330,9 +359,14 @@ function QuizRow({
         </p>
       </div>
       {editable ? (
-        <button type="button" className={dangerButtonClass} disabled={busy} onClick={onDelete}>
-          Delete
-        </button>
+        <>
+          <button type="button" className={secondaryButtonClass} disabled={busy} onClick={onEdit}>
+            Edit
+          </button>
+          <button type="button" className={dangerButtonClass} disabled={busy} onClick={onDelete}>
+            Delete
+          </button>
+        </>
       ) : null}
     </li>
   );

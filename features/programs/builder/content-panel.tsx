@@ -54,6 +54,7 @@ export function ContentPanel({
   onDeleteReel,
   onDeleteAssignment,
   onDeleteQuiz,
+  onEditQuiz,
   onManageFiles,
   onPreviewFile,
 }: {
@@ -76,6 +77,7 @@ export function ContentPanel({
   onDeleteReel: (id: string) => void;
   onDeleteAssignment: (id: string) => void;
   onDeleteQuiz: (id: string) => void;
+  onEditQuiz: (quiz: Day["quizzes"][number]) => void;
   onManageFiles: (target: { kind: "lesson" | "assignment"; id: string; title: string; attachments?: ContentAttachment[] }) => void;
   onPreviewFile: (item: {
     type: "VIDEO" | "RESOURCE" | "REEL";
@@ -361,6 +363,7 @@ export function ContentPanel({
                 meta="Practice quiz"
                 editable={editable}
                 busy={busy}
+                onEdit={() => onEditQuiz(item)}
                 onDelete={() => onDeleteQuiz(item.id)}
               />
             ))}
@@ -443,6 +446,7 @@ function ItemRow({
   editable,
   busy,
   onRename,
+  onEdit,
   onDuplicate,
   onDelete,
   onManageFiles,
@@ -456,6 +460,7 @@ function ItemRow({
   editable: boolean;
   busy: boolean;
   onRename?: () => void;
+  onEdit?: () => void;
   onDuplicate?: () => void;
   onDelete: () => void;
   onManageFiles?: () => void;
@@ -484,6 +489,11 @@ function ItemRow({
         {onManageFiles ? (
           <button type="button" className={ghostButtonClass} disabled={busy} onClick={onManageFiles}>
             Files
+          </button>
+        ) : null}
+        {onEdit ? (
+          <button type="button" className={ghostButtonClass} disabled={!editable || busy} onClick={onEdit}>
+            Edit
           </button>
         ) : null}
         {onRename ? (

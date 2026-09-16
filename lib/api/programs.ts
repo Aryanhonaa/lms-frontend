@@ -248,6 +248,10 @@ export async function addMilestoneExam(milestoneId: string, body: QuizInput): Pr
   return apiClient<ProgramPayload>(`/trainer/milestones/${milestoneId}/exam`, { method: "POST", body });
 }
 
+export async function updateQuiz(quizId: string, body: QuizInput): Promise<ProgramPayload> {
+  return apiClient<ProgramPayload>(`/trainer/quizzes/${quizId}`, { method: "PATCH", body });
+}
+
 export async function deleteQuiz(quizId: string): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/quizzes/${quizId}`, { method: "DELETE" });
 }

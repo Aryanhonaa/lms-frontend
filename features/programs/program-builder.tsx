@@ -44,6 +44,7 @@ import {
   updateDay,
   updateLesson,
   updateProgram,
+  updateQuiz,
   updateWeek,
 } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
@@ -362,6 +363,7 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
                 onDeleteReel={(id) => void mutate(() => deleteReel(id)).catch(() => undefined)}
                 onDeleteAssignment={(id) => void mutate(() => deleteAssignment(id)).catch(() => undefined)}
                 onDeleteQuiz={(id) => void mutate(() => deleteQuiz(id)).catch(() => undefined)}
+                onEditQuiz={(quiz) => setEditor({ view: "edit-quiz", quiz })}
                 onManageFiles={setFileManager}
                 onPreviewFile={setFilePreview}
               />
@@ -379,6 +381,7 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
                 onAddMilestone={(input) => mutate(() => addMilestone(program.id, input)).then(() => undefined)}
                 onAddMilestoneExam={(milestoneId, input) => mutate(() => addMilestoneExam(milestoneId, input)).then(() => undefined)}
                 onAddRequirement={(milestoneId, input) => mutate(() => addRequirement(milestoneId, input)).then(() => undefined)}
+                onEditQuiz={(quiz) => setEditor({ view: "edit-quiz", quiz })}
                 onDeleteQuiz={(id) => void mutate(() => deleteQuiz(id)).catch(() => undefined)}
                 onDeleteAssignment={(id) => void mutate(() => deleteAssignment(id)).catch(() => undefined)}
                 onDeleteMilestone={(id) => void mutate(() => deleteMilestone(id)).catch(() => undefined)}
@@ -491,6 +494,7 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
             onAddWeeklyQuiz={(weekId, input) => mutate(() => addWeeklyQuiz(weekId, input)).then(() => undefined)}
             onAddWeeklyExam={(weekId, input) => mutate(() => addWeeklyExam(weekId, input)).then(() => undefined)}
             onAddFinalExam={(input) => mutate(() => addFinalExam(program.id, input)).then(() => undefined)}
+            onUpdateQuiz={(quizId, input) => mutate(() => updateQuiz(quizId, input)).then(() => undefined)}
             onAddMilestone={(input) => mutate(() => addMilestone(program.id, input)).then(() => undefined)}
             fileOptions={(() => {
               if (editor.view !== "content" && editor.view !== "picker") {
