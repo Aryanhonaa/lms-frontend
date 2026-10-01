@@ -28,11 +28,15 @@ export type QuestionOption = {
   isCorrect: boolean;
 };
 
+export type QuestionType = "MULTIPLE_CHOICE" | "WRITTEN";
+
 export type Question = {
   id: string;
   sortOrder: number;
+  type?: QuestionType;
   prompt: string;
   points: number;
+  modelAnswer?: string;
   options: QuestionOption[];
 };
 
@@ -232,8 +236,10 @@ export type QuizInput = {
   revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
   revealAt?: string | null;
   questions?: Array<{
+    type?: QuestionType;
     prompt: string;
     points?: number;
-    options: Array<{ label: string; isCorrect: boolean }>;
+    modelAnswer?: string;
+    options?: Array<{ label: string; isCorrect: boolean }>;
   }>;
 };

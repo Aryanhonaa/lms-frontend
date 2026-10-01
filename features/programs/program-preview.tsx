@@ -16,11 +16,17 @@ function QuizPreview({ quiz }: { quiz: Quiz }) {
         {quiz.questions.map((question) => (
           <li key={question.id}>
             {question.prompt}
-            <ul className="list-disc pl-5">
-              {question.options.map((option) => (
-                <li key={option.id}>{option.label}</li>
-              ))}
-            </ul>
+            {question.type === "WRITTEN" ? (
+              <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                Written · {question.points} pts
+              </span>
+            ) : (
+              <ul className="list-disc pl-5">
+                {question.options.map((option) => (
+                  <li key={option.id}>{option.label}</li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ol>

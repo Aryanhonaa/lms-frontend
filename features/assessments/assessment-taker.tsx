@@ -1,5 +1,6 @@
 "use client";
 
+import { Hourglass, PenLine } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getAssessmentAttempt,
@@ -40,6 +41,7 @@ export function AssessmentTaker({
   const [gateOpen, setGateOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [texts, setTexts] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,31 +51,42 @@ export function AssessmentTaker({
   const taking = attempt?.status === "IN_PROGRESS";
   const closed = attempt && attempt.status !== "IN_PROGRESS";
   const current = attempt?.questions[index];
-  const answeredCount = useMemo(
-    () => attempt?.questions.filter((question) => answers[question.id]).length ?? 0,
-    [attempt, answers],
+  const isLastQuestion = attempt ? index === attempt.questions.length - 1 : false;
+  const isAnswered = useCallback(
+    (questionId: string) => Boolean(answers[questionId] || texts[questionId]?.trim()),
+    [answers, texts],
   );
+  const answeredCount = useMemo(
+    () => attempt?.questions.filter((question) => isAnswered(question.id)).length ?? 0,
+    [attempt, isAnswered],
+  );
+  const unansweredCount = (attempt?.questions.length ?? 0) - answeredCount;
+  const writtenInAttempt = attempt?.questions.filter((question) => question.type === "WRITTEN").length ?? 0;
+  const writtenInQuiz = catalog.assessment.writtenQuestionCount ?? 0;
   const attemptRef = useRef(attempt);
   const answersRef = useRef(answers);
+  const textsRef = useRef(texts);
   const finishingRef = useRef(false);
   const secure = useSecureQuizMode(Boolean(taking));
 
   useEffect(() => {
     attemptRef.current = attempt;
     answersRef.current = answers;
-  }, [attempt, answers]);
+    textsRef.current = texts;
+  }, [attempt, answers, texts]);
 
   const finish = useCallback(
-    async (currentAttempt: AssessmentAttemptView, selected: Record<string, string>) => {
+    async (currentAttempt: AssessmentAttemptView, selected: Record<string, string>, written: Record<string, string>) => {
       setBusy(true);
       setError(null);
       try {
         const payload = await submitAssessmentAttempt(
           currentAttempt.id,
-          currentAttempt.questions.map((question) => ({
-            questionId: question.id,
-            optionIds: selected[question.id] ? [selected[question.id]] : [],
-          })),
+          currentAttempt.questions.map((question) =>
+            question.type === "WRITTEN"
+              ? { questionId: question.id, optionIds: [], text: (written[question.id] ?? "").trim() }
+              : { questionId: question.id, optionIds: selected[question.id] ? [selected[question.id]] : [] },
+          ),
         );
         setAttempt(payload.attempt);
         setConfirming(false);
@@ -101,7 +114,7 @@ export function AssessmentTaker({
         !finishingRef.current
       ) {
         finishingRef.current = true;
-        void finish(currentAttempt, answersRef.current).finally(() => {
+        void finish(currentAttempt, answersRef.current, textsRef.current).finally(() => {
           finishingRef.current = false;
         });
       }
@@ -119,6 +132,7 @@ export function AssessmentTaker({
       setAttempt(payload.attempt);
       setIndex(0);
       setAnswers({});
+      setTexts({});
       setConfirming(false);
       setGateOpen(false);
     } catch (err: unknown) {
@@ -130,6 +144,10 @@ export function AssessmentTaker({
 
   function selectOption(questionId: string, optionId: string) {
     setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
+  }
+
+  function writeAnswer(questionId: string, text: string) {
+    setTexts((currentTexts) => ({ ...currentTexts, [questionId]: text }));
   }
 
   function leaveAttempt() {
@@ -188,17 +206,28 @@ export function AssessmentTaker({
                 Attempts: {catalog.attemptsUsed}
                 {catalog.assessment.maxAttempts ? ` / ${catalog.assessment.maxAttempts}` : " (unlimited)"}
               </div>
+              {writtenInQuiz > 0 ? (
+                <div>
+                  Written questions: {writtenInQuiz} (graded by your trainer)
+                </div>
+              ) : null}
               {catalog.bestScore !== null ? <div>Best score: {catalog.bestScore}%</div> : null}
-              <div>Result: {catalog.passed ? "Passed" : "Not passed"}</div>
+              <div>
+                Result:{" "}
+                {catalog.passed ? "Passed" : catalog.pendingReview ? "Awaiting trainer review" : "Not passed"}
+              </div>
             </dl>
             <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
-              After you submit you will see your score. Questions and answers stay hidden. Your trainer can still review
-              your paper.
+              {writtenInQuiz > 0
+                ? "Multiple-choice answers are marked instantly. Your trainer reads and grades written answers, then your final score appears here. Questions and answers stay hidden."
+                : "After you submit you will see your score. Questions and answers stay hidden. Your trainer can still review your paper."}
             </p>
             {catalog.assessment.status === "LOCKED" ? (
               <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
                 This quiz is locked for now. {friendlyLockReason(catalog.assessment.reason)}
               </p>
+            ) : catalog.pendingReview && !catalog.activeAttemptId ? (
+              <PendingReviewNotice />
             ) : catalog.activeAttemptId || catalog.canStart ? (
               <button
                 className={`${traineePrimaryCtaClass} mt-6`}
@@ -242,11 +271,14 @@ export function AssessmentTaker({
                     className={`h-8 w-full rounded-lg text-xs font-medium transition ${
                       questionIndex === index
                         ? "bg-violet-600 text-white"
-                        : answers[question.id]
+                        : isAnswered(question.id)
                           ? "bg-violet-50 text-violet-800 ring-1 ring-violet-100"
                           : "border border-slate-200 text-slate-500 hover:bg-slate-50"
                     }`}
-                    onClick={() => setIndex(questionIndex)}
+                    onClick={() => {
+                      setConfirming(false);
+                      setIndex(questionIndex);
+                    }}
                   >
                     {questionIndex + 1}
                   </button>
@@ -262,10 +294,23 @@ export function AssessmentTaker({
           </nav>
           <div className="overflow-y-auto px-4 py-6 md:px-8">
             <div className={`${traineeCardClass} px-5 py-5`}>
-              <p className="text-xs font-medium text-slate-500">
+              <p className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
                 Question {index + 1} of {attempt.questions.length} · {current.points} pt
+                {current.points === 1 ? "" : "s"}
+                {current.type === "WRITTEN" ? (
+                  <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                    Written answer
+                  </span>
+                ) : null}
               </p>
-              <p className="mt-2 text-base font-medium leading-7 text-slate-900">{current.prompt}</p>
+              <p className="mt-2 whitespace-pre-line text-base font-medium leading-7 text-slate-900">{current.prompt}</p>
+              {current.type === "WRITTEN" ? (
+                <WrittenAnswerField
+                  key={current.id}
+                  value={texts[current.id] ?? ""}
+                  onChange={(text) => writeAnswer(current.id, text)}
+                />
+              ) : (
               <ul className="mt-4 grid gap-2">
                 {current.options.map((option) => {
                   const selected = answers[current.id] === option.id;
@@ -289,27 +334,57 @@ export function AssessmentTaker({
                   );
                 })}
               </ul>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <button type="button" className={traineeSecondaryCtaClass} disabled={index === 0} onClick={() => setIndex((value) => value - 1)}>
-                  Previous
-                </button>
+              )}
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
                 <button
                   type="button"
                   className={traineeSecondaryCtaClass}
-                  disabled={index === attempt.questions.length - 1}
-                  onClick={() => setIndex((value) => value + 1)}
+                  disabled={index === 0}
+                  onClick={() => {
+                    setConfirming(false);
+                    setIndex((value) => value - 1);
+                  }}
                 >
-                  Next
+                  Previous
                 </button>
-                <button type="button" className={traineePrimaryCtaClass} disabled={busy} onClick={() => setConfirming(true)}>
-                  Submit
-                </button>
+                {isLastQuestion ? (
+                  <button
+                    type="button"
+                    className={traineePrimaryCtaClass}
+                    disabled={busy || confirming}
+                    onClick={() => setConfirming(true)}
+                  >
+                    Submit
+                  </button>
+                ) : (
+                  <button type="button" className={traineePrimaryCtaClass} onClick={() => setIndex((value) => value + 1)}>
+                    Next
+                  </button>
+                )}
               </div>
               {confirming ? (
                 <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-700 ring-1 ring-slate-950/5">
-                  <p>Submit this attempt? Answers are graded on the server and cannot be changed afterwards.</p>
+                  <p className="font-medium text-slate-900">Submit this attempt?</p>
+                  <p className="mt-1">Your answers can&apos;t be changed after you submit.</p>
+                  {unansweredCount > 0 ? (
+                    <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-amber-900 ring-1 ring-amber-200">
+                      {unansweredCount} question{unansweredCount === 1 ? " is" : "s are"} still unanswered and will
+                      score 0.
+                    </p>
+                  ) : null}
+                  {writtenInAttempt > 0 ? (
+                    <p className="mt-2 text-slate-600">
+                      Your trainer will grade the written answer{writtenInAttempt === 1 ? "" : "s"}. You&apos;ll see
+                      your final score once grading is done.
+                    </p>
+                  ) : null}
                   <div className="mt-3 flex gap-2">
-                    <button type="button" className={traineePrimaryCtaClass} disabled={busy} onClick={() => void finish(attempt, answers)}>
+                    <button
+                      type="button"
+                      className={traineePrimaryCtaClass}
+                      disabled={busy}
+                      onClick={() => void finish(attempt, answers, texts)}
+                    >
                       {busy ? "Submitting…" : "Confirm submit"}
                     </button>
                     <button type="button" className={traineeSecondaryCtaClass} disabled={busy} onClick={() => setConfirming(false)}>
@@ -326,13 +401,38 @@ export function AssessmentTaker({
       {closed ? (
         <section className="grid gap-6 px-4 py-6 md:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className={`${traineeCardClass} px-5 py-5`}>
-            <p className={`text-lg font-semibold ${attempt.passed ? "text-emerald-700" : "text-red-700"}`}>
-              {attempt.status === "TIMED_OUT" ? "Timed out · " : ""}
-              {attempt.passed ? "Passed" : "Failed"} · {attempt.score ?? 0}% (pass {attempt.passingScore}%)
-            </p>
-            <p className="mt-3 text-sm text-slate-600">
-              Your attempt is recorded. Questions and answers stay hidden. Your trainer can review your paper.
-            </p>
+            {attempt.needsReview ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                    <Hourglass className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-lg font-semibold text-amber-800">
+                      {attempt.status === "TIMED_OUT" ? "Time's up · " : ""}Submitted · Waiting for your trainer
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Your multiple-choice answers are marked. Your trainer will read and grade your written answers.
+                      Your final score will appear here, and you&apos;ll get a notification when it&apos;s ready.
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+                  You don&apos;t need to wait. The next part of the course is open, so carry on while your trainer
+                  grades.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className={`text-lg font-semibold ${attempt.passed ? "text-emerald-700" : "text-red-700"}`}>
+                  {attempt.status === "TIMED_OUT" ? "Timed out · " : ""}
+                  {attempt.passed ? "Passed" : "Failed"} · {attempt.score ?? 0}% (pass {attempt.passingScore}%)
+                </p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Your attempt is recorded. Questions and answers stay hidden. Your trainer can review your paper.
+                </p>
+              </>
+            )}
             <button type="button" className={`${traineeSecondaryCtaClass} mt-4`} onClick={leaveAttempt}>
               Back to overview
             </button>
@@ -361,15 +461,65 @@ function AttemptHistory({ attempts }: { attempts: AssessmentCatalog["attempts"] 
           {attempts.map((item) => (
             <li key={item.id} className="py-2">
               <p>Attempt {item.attemptNumber}</p>
-              <p className="text-slate-500">
-                {item.status.replaceAll("_", " ").toLowerCase()}
-                {item.score !== null ? ` · ${item.score}%` : ""}
-                {item.passed === true ? " · passed" : item.passed === false ? " · failed" : ""}
-              </p>
+              {item.needsReview ? (
+                <p className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+                  <Hourglass className="h-3 w-3" />
+                  Waiting for trainer review
+                </p>
+              ) : (
+                <p className="text-slate-500">
+                  {item.status.replaceAll("_", " ").toLowerCase()}
+                  {item.score !== null ? ` · ${item.score}%` : ""}
+                  {item.passed === true ? " · passed" : item.passed === false ? " · failed" : ""}
+                </p>
+              )}
             </li>
           ))}
         </ul>
       )}
     </aside>
+  );
+}
+
+function PendingReviewNotice() {
+  return (
+    <div className="mt-4 flex items-start gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+      <Hourglass className="mt-0.5 h-4 w-4 shrink-0" />
+      <div>
+        <p className="font-medium">Submitted · Waiting for your trainer to grade</p>
+        <p className="mt-1 text-amber-800">
+          Your trainer is reviewing your written answers. You can carry on with the course in the meantime. Your score
+          will show up here once grading is done.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const WRITTEN_ANSWER_MAX = 10_000;
+
+function WrittenAnswerField({ value, onChange }: { value: string; onChange: (text: string) => void }) {
+  const words = value.trim() ? value.trim().split(/\s+/).length : 0;
+  return (
+    <div className="mt-4">
+      <textarea
+        className="min-h-[200px] w-full resize-y rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-violet-400"
+        placeholder="Type your answer here…"
+        value={value}
+        maxLength={WRITTEN_ANSWER_MAX}
+        aria-label="Your answer"
+        autoFocus
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <span className="inline-flex items-center gap-1">
+          <PenLine className="h-3.5 w-3.5" />
+          Your trainer grades this answer by hand.
+        </span>
+        <span>
+          {words} word{words === 1 ? "" : "s"} · {value.length.toLocaleString()}/{WRITTEN_ANSWER_MAX.toLocaleString()}
+        </span>
+      </div>
+    </div>
   );
 }

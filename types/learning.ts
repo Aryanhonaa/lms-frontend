@@ -1,4 +1,11 @@
-export type AccessStatus = "LOCKED" | "AVAILABLE" | "IN_PROGRESS" | "COMPLETED" | "PASSED" | "FAILED";
+export type AccessStatus =
+  | "LOCKED"
+  | "AVAILABLE"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "PASSED"
+  | "FAILED"
+  | "PENDING_REVIEW";
 export type ProgressStatus = AccessStatus;
 export type CourseOutcome = "PENDING" | "PASSED" | "FAILED";
 export type CourseRunStatus = "IN_PROGRESS" | "FINISHED";

@@ -67,6 +67,7 @@ function labelForSegment(
     users: "Users",
     assessments: "Quizzes",
     assignments: "Assignments",
+    grading: "To grade",
     calendar: "Calendar",
     interventions: "Needs help",
     leaderboard: "Leaderboard",

@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronDown, Circle, CircleDot, Lock, X } from "lucide-react";
+import { Check, ChevronDown, Circle, CircleDot, Hourglass, Lock, X } from "lucide-react";
 import { CourseOutcomePanel } from "@/components/course-outcome";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { traineeContinueHref, type PathItem } from "@/lib/learning/path";
@@ -80,6 +80,13 @@ function StatusGlyph({ item, active }: { item: PathItem; active: boolean }) {
     return (
       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white" aria-hidden>
         <X className="h-3 w-3" strokeWidth={3} />
+      </span>
+    );
+  }
+  if (item.status === "PENDING_REVIEW") {
+    return (
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white" aria-hidden>
+        <Hourglass className="h-3 w-3" strokeWidth={2.5} />
       </span>
     );
   }

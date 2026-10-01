@@ -1,5 +1,6 @@
 "use client";
 
+import { PenLine } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -8,7 +9,7 @@ import { TrainerShell } from "@/components/trainer-shell";
 import { useTrainerCourseBatch } from "@/hooks/use-trainer-course-batch";
 import { listTrainerAssessments } from "@/lib/api/assessments";
 import { ApiClientError } from "@/lib/api/client";
-import { primaryButtonClass } from "@/lib/ui/form-classes";
+import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 import type { TrainerAssessmentSummary } from "@/types/assessment";
 
@@ -110,23 +111,39 @@ export default function TrainerAssessmentsPage() {
         ) : null}
         {assessments && assessments.length > 0 ? (
           <ul className="divide-y divide-slate-100">
-            {assessments.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-4">
-                <div>
-                  <p className="font-medium text-slate-900">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {item.programTitle ?? selectedCourse?.title} · {selectedBatch?.name} ·{" "}
-                    {item.kind.replaceAll("_", " ").toLowerCase()} · {item.location} · {item.attemptCount} attempts
-                  </p>
-                </div>
-                <Link
-                  href={`/trainer/assessments/${item.id}?programId=${filters.programId}&batchId=${filters.batchId}`}
-                  className={primaryButtonClass}
-                >
-                  Review
-                </Link>
-              </li>
-            ))}
+            {assessments.map((item) => {
+              const toGrade = item.pendingReviewCount ?? 0;
+              const written = item.writtenQuestionCount ?? 0;
+              return (
+                <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-4">
+                  <div className="min-w-0">
+                    <p className="flex flex-wrap items-center gap-2 font-medium text-slate-900">
+                      {item.title}
+                      {toGrade > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+                          <PenLine className="h-3 w-3" />
+                          {toGrade} to grade
+                        </span>
+                      ) : written > 0 ? (
+                        <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                          {written} written
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {item.programTitle ?? selectedCourse?.title} · {selectedBatch?.name} ·{" "}
+                      {item.kind.replaceAll("_", " ").toLowerCase()} · {item.location} · {item.attemptCount} attempts
+                    </p>
+                  </div>
+                  <Link
+                    href={`/trainer/assessments/${item.id}?programId=${filters.programId}&batchId=${filters.batchId}`}
+                    className={toGrade > 0 ? primaryButtonClass : secondaryButtonClass}
+                  >
+                    {toGrade > 0 ? `Grade (${toGrade})` : "Review"}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
       </section>

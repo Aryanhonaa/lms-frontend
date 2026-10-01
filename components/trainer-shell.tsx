@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ClipboardCheck,
   Clock3,
+  Inbox,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -30,6 +31,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { PageBreadcrumb } from "@/components/page-breadcrumb";
 import { SignOutButton } from "@/components/sign-out-button";
 import { UserAvatar, formatRoleLabel } from "@/components/user-avatar";
+import { GRADING_CHANGED_EVENT, getGradingCount } from "@/lib/api/assessments";
 import { searchTrainerWorkspace } from "@/lib/api/trainer";
 import { ApiClientError } from "@/lib/api/client";
 import { useAuth } from "@/providers/auth-provider";
@@ -41,10 +43,12 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
+  badge?: "grading";
 };
 
 const TRAINER_NAV: NavItem[] = [
   { href: "/trainer", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/trainer/grading", label: "To grade", icon: Inbox, badge: "grading" },
   { href: "/trainer/programs", label: "Programs", icon: BookOpen },
   { href: "/trainer/trainees", label: "Trainees", icon: Users },
   { href: "/trainer/usage", label: "App Usage", icon: Clock3 },
@@ -94,7 +98,29 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarReady, setSidebarReady] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [gradingCount, setGradingCount] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    function refresh() {
+      getGradingCount()
+        .then((data) => {
+          if (!cancelled) {
+            setGradingCount(data.pending);
+          }
+        })
+        .catch(() => undefined);
+    }
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener(GRADING_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener(GRADING_CHANGED_EVENT, refresh);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -189,11 +215,13 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
           {TRAINER_NAV.map((item) => {
             const Icon = item.icon;
             const active = isActivePath(pathname, item.href, item.exact);
+            const badge = item.badge === "grading" ? gradingCount : 0;
+            const badgeText = badge > 99 ? "99+" : String(badge);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? (badge > 0 ? `${item.label} (${badgeText})` : item.label) : undefined}
                 aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition duration-200 ${
                   active
@@ -201,8 +229,23 @@ export function TrainerShell({ title, user: userProp, actions, hideHeader = fals
                     : "text-slate-600 hover:bg-white hover:text-slate-900"
                 } ${collapsed ? "lg:justify-center lg:px-0" : ""}`}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
-                <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
+                <span className="relative shrink-0">
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                  {badge > 0 && collapsed ? (
+                    <span className="absolute -right-1 -top-1 hidden h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-[#f3f4f8] lg:block" />
+                  ) : null}
+                </span>
+                <span className={`flex-1 ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
+                {badge > 0 ? (
+                  <span
+                    className={`rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold leading-4 text-white ${
+                      collapsed ? "lg:hidden" : ""
+                    }`}
+                    aria-label={`${badge} waiting`}
+                  >
+                    {badgeText}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
