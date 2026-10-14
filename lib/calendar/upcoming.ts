@@ -3,19 +3,27 @@ import type { CalendarEvent, CalendarEventType } from "@/types/calendar";
 export const CALENDAR_TYPE_LABEL: Record<CalendarEventType, string> = {
   SESSION: "Session",
   EXAM: "Exam",
+  QUIZ: "Quiz",
   ASSIGNMENT: "Assignment",
+  TASK: "Task",
+  NOTIFICATION: "Notification",
   MILESTONE: "Milestone",
   DEADLINE: "Deadline",
   PROGRAM: "Course",
+  HOLIDAY: "Holiday",
 };
 
 export const CALENDAR_TYPE_COLOR: Record<CalendarEventType, "violet" | "blue" | "orange" | "pink" | "green"> = {
   SESSION: "blue",
   EXAM: "violet",
+  QUIZ: "violet",
   ASSIGNMENT: "orange",
+  TASK: "orange",
+  NOTIFICATION: "pink",
   MILESTONE: "pink",
   DEADLINE: "orange",
   PROGRAM: "green",
+  HOLIDAY: "pink",
 };
 
 export type UpcomingEventGroup = {
@@ -98,7 +106,7 @@ export function getCalendarSummary(events: CalendarEvent[], now = new Date()) {
   return {
     courseStarts: upcoming.filter((event) => event.type === "PROGRAM" && /starts$/i.test(event.title)).length,
     sessions: upcoming.filter((event) => event.type === "SESSION").length,
-    exams: upcoming.filter((event) => event.type === "EXAM").length,
+    exams: upcoming.filter((event) => event.type === "EXAM" || event.type === "QUIZ").length,
     deadlines: upcoming.filter((event) => event.type === "ASSIGNMENT" || event.type === "DEADLINE").length,
   };
 }

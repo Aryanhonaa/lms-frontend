@@ -19,6 +19,9 @@ export function statusCopy(status: AccessStatus, canRetry = false): { label: str
   if (status === "IN_PROGRESS") {
     return { label: "In progress", className: "bg-violet-50 text-violet-700" };
   }
+  if (status === "PENDING_REVIEW") {
+    return { label: "Awaiting review", className: "bg-amber-50 text-amber-800" };
+  }
   if (status === "FAILED") {
     if (canRetry) {
       return { label: "Retry", className: "bg-amber-50 text-amber-800" };
@@ -70,7 +73,7 @@ export function contentTypeLabel(type: string, kind?: string | null): string {
     return "Reel";
   }
   if (type === "RESOURCE") {
-    return "Reading";
+    return kind === "CALL_RECORDING" ? "Call recording" : "Reading";
   }
   if (kind === "FINAL_EXAM") {
     return "Final Exam";
@@ -117,6 +120,9 @@ export function pathItemStatusCopy(
   if (item.status === "IN_PROGRESS") {
     return { label: "In progress", className: "bg-violet-50 text-violet-700" };
   }
+  if (item.status === "PENDING_REVIEW") {
+    return { label: "Submitted · Awaiting trainer review", className: "bg-amber-50 text-amber-800" };
+  }
   if (item.status === "FAILED") {
     if (item.canRetry) {
       return { label: "Not passed · Retry available", className: "bg-amber-50 text-amber-800" };
@@ -159,6 +165,9 @@ export function quizActionLabel(item: { kind?: string | null; status: AccessStat
   }
   if (item.status === "IN_PROGRESS") {
     return exam ? "Continue exam" : "Continue quiz";
+  }
+  if (item.status === "PENDING_REVIEW") {
+    return "View status";
   }
   if (item.status === "FAILED" && item.canRetry) {
     return exam ? "Retry exam" : "Retry quiz";

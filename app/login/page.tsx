@@ -21,6 +21,10 @@ export default function LoginPage() {
     return <p className="px-8 py-16 text-center text-sm text-stone-500">Loading…</p>;
   }
 
+
+
+  
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
       <div className="flex w-full max-w-md flex-col items-center text-center">

@@ -147,7 +147,9 @@ export function FileViewer({
   if ((loading && !access) || (access && access.strategy !== "signed" && !blobUrl && !blobError)) {
     return (
       <div className="rounded-2xl bg-white px-4 py-6 text-sm text-slate-500 ring-1 ring-slate-950/5">
-        <p className="animate-pulse">{isVideo(mimeType) ? "Preparing video…" : "Loading document…"}</p>
+        <p className="animate-pulse">
+          {isVideo(mimeType) ? "Preparing video…" : isAudio(mimeType) ? "Preparing audio…" : "Loading document…"}
+        </p>
         <div className="mt-3 h-2 w-40 animate-pulse rounded-full bg-slate-200" />
       </div>
     );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TrainerShell } from "@/components/trainer-shell";
 import { ProgramList } from "@/features/programs/program-list";
 import { DeleteProgramDialog } from "@/features/programs/delete-program-dialog";
+import { DuplicateProgramDialog } from "@/features/programs/duplicate-program-dialog";
 import { listTrainerPrograms } from "@/lib/api/programs";
 import { ApiClientError } from "@/lib/api/client";
 import { primaryButtonClass } from "@/lib/ui/form-classes";
@@ -16,6 +17,7 @@ export default function TrainerProgramsPage() {
   const [programs, setPrograms] = useState<ProgramSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ProgramSummary | null>(null);
+  const [duplicating, setDuplicating] = useState<ProgramSummary | null>(null);
 
   useEffect(() => {
     listTrainerPrograms()
@@ -42,7 +44,17 @@ export default function TrainerProgramsPage() {
         </Link>
       }
     >
-      {error ? <p className="text-sm text-red-600">{error}</p> : <ProgramList programs={programs} currentUserId={user.id} onDelete={setPendingDelete} />}
+      {error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : (
+        <ProgramList
+          programs={programs}
+          currentUserId={user.id}
+          onDelete={setPendingDelete}
+          onDuplicate={setDuplicating}
+        />
+      )}
+      <DuplicateProgramDialog program={duplicating} onClose={() => setDuplicating(null)} />
       <DeleteProgramDialog
         program={pendingDelete}
         onClose={() => setPendingDelete(null)}

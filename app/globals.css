@@ -99,6 +99,23 @@ textarea:focus-visible {
     padding: 2rem;
     font-family: sans-serif;
   }
+
+  html.printing-certificate body > *:not(.certificate-print-root) {
+    display: none !important;
+  }
+
+  html.printing-certificate .certificate-print-root {
+    display: block;
+    width: 297mm;
+    height: 210mm;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.certificate-print-root {
+  display: none;
 }
 
 .secure-quiz-root {

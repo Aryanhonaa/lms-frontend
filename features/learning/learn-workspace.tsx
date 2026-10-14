@@ -469,7 +469,11 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
               />
             ) : null}
 
-            {!next && current.status === "FAILED" && !current.canRetry ? (
+            {!next && current.status === "PENDING_REVIEW" ? (
+              <p className="text-sm text-amber-800">
+                Your trainer is grading your written answers. You can keep going with the course while you wait.
+              </p>
+            ) : !next && current.status === "FAILED" && !current.canRetry ? (
               <p className="text-sm text-slate-500">
                 You have used all available attempts. You can continue with the course. This assessment was not passed.
               </p>

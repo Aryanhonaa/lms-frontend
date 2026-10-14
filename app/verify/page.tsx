@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { ShieldCheck, ShieldX } from "lucide-react";
+import { CertificateArtwork } from "@/features/certificates/certificate-artwork";
 import { verifyCertificate } from "@/lib/api/certificates";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass } from "@/lib/ui/form-classes";
@@ -55,7 +57,7 @@ function VerifyForm() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
       <div className="w-full max-w-lg bg-white px-6 py-8">
         <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Public verification</p>
         <h1 className="mt-2 text-2xl font-semibold text-stone-950">Verify a certificate</h1>
@@ -86,39 +88,40 @@ function VerifyForm() {
             {error}
           </p>
         ) : null}
-        {result ? (
-          <div className="mt-6 border border-stone-200 px-4 py-4">
-            <p className="text-xs uppercase tracking-wide text-stone-500">{result.status === "VALID" ? "Valid" : "Revoked"}</p>
-            <p className="mt-1 font-mono text-sm font-medium text-stone-950">{result.certificateId}</p>
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-stone-500">Trainee</dt>
-                <dd className="mt-1 text-stone-900">{result.traineeName}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-stone-500">Program</dt>
-                <dd className="mt-1 text-stone-900">{result.program}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-stone-500">Trainer</dt>
-                <dd className="mt-1 text-stone-900">{result.trainer}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-stone-500">Completed</dt>
-                <dd className="mt-1 text-stone-900">{formatWhen(result.completionDate)}</dd>
-              </div>
-            </dl>
-            {result.status === "REVOKED" ? (
-              <p className="mt-4 text-sm text-red-800">This certificate has been revoked and is no longer valid.</p>
-            ) : null}
-          </div>
-        ) : null}
         <p className="mt-6 text-sm text-stone-500">
           <Link href="/login" className="underline">
             Sign in
           </Link>
         </p>
       </div>
+      {result ? (
+        <div className="w-full max-w-4xl">
+          {result.status === "VALID" ? (
+            <p className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+              <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+              Authentic certificate issued to {result.traineeName} for {result.program} on{" "}
+              {formatWhen(result.completionDate)}.
+            </p>
+          ) : (
+            <p className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+              <ShieldX className="h-5 w-5 shrink-0 text-red-600" />
+              This certificate has been revoked and is no longer valid.
+            </p>
+          )}
+          <div className="shadow-xl ring-1 ring-slate-950/5">
+            <CertificateArtwork
+              certificate={{
+                certificateId: result.certificateId,
+                traineeName: result.traineeName,
+                programTitle: result.program,
+                trainerName: result.trainer,
+                completionDate: result.completionDate,
+                status: result.status,
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

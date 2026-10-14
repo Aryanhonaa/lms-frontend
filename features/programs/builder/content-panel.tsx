@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 import {
+  AudioLines,
   ClipboardCheck,
   FileText,
   Film,
@@ -27,6 +28,7 @@ const LEARNING: Array<{ kind: PickerKind; label: string; hint: string; icon: typ
   { kind: "LESSON", label: "Text lesson", hint: "Notes trainees can read", icon: FileText },
   { kind: "RESOURCE", label: "Link / document", hint: "PDF, article, or site", icon: LinkIcon },
   { kind: "REEL", label: "Reel", hint: "Short clip", icon: Film },
+  { kind: "CALL_RECORDING", label: "Call recording", hint: "Upload an audio recording", icon: AudioLines },
 ];
 
 const ACTIVITIES: Array<{ kind: PickerKind; label: string; hint: string; icon: typeof Play }> = [
@@ -272,9 +274,9 @@ export function ContentPanel({
             {day.resources.map((item) => (
               <Fragment key={item.id}>
                 <ItemRow
-                  icon={LinkIcon}
+                  icon={item.kind === "CALL_RECORDING" ? AudioLines : LinkIcon}
                   title={item.title}
-                  meta={`${item.kind.toLowerCase()}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}`}
+                  meta={`${item.kind === "CALL_RECORDING" ? "Call recording" : item.kind.toLowerCase()}${item.fileKey ? ` · ${formatFileSize(item.fileSize ?? 0)}` : ""}`}
                   href={externalHref(item.url)}
                   editable={editable}
                   busy={busy}

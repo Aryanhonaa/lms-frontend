@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   BookOpen,
   CircleHelp,
   Clapperboard,
@@ -48,6 +49,13 @@ const IDENTITY: Record<string, Identity> = {
     iconWrap: "bg-slate-700 text-white",
     accent: "from-slate-500 to-slate-700",
   },
+  CALL_RECORDING: {
+    label: "Call recording",
+    icon: AudioLines,
+    chip: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    iconWrap: "bg-emerald-600 text-white",
+    accent: "from-emerald-500 to-teal-600",
+  },
   QUIZ: {
     label: "Quiz",
     icon: CircleHelp,
@@ -79,6 +87,9 @@ const IDENTITY: Record<string, Identity> = {
 };
 
 function identityFor(type: string, kind?: string | null): Identity {
+  if (kind === "CALL_RECORDING") {
+    return IDENTITY.CALL_RECORDING;
+  }
   if (type === "ASSIGNMENT" || kind === "ASSIGNMENT") {
     return IDENTITY.ASSIGNMENT;
   }

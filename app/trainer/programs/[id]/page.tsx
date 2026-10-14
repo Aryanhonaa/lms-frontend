@@ -11,6 +11,7 @@ import { ApiClientError } from "@/lib/api/client";
 import { programAllowsBuilder, programAllowsEnrollment, programAllowsTrainerDelete } from "@/lib/programs/enrollment";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { DeleteProgramDialog, deleteCourseButtonClass } from "@/features/programs/delete-program-dialog";
+import { DuplicateProgramDialog } from "@/features/programs/duplicate-program-dialog";
 import { useAuth } from "@/providers/auth-provider";
 import type { ProgramTree } from "@/types/program";
 
@@ -22,6 +23,7 @@ export default function ProgramPreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   useEffect(() => {
     if (!params.id) {
@@ -63,6 +65,9 @@ export default function ProgramPreviewPage() {
                 Open builder
               </Link>
             ) : null}
+            <button type="button" className={secondaryButtonClass} onClick={() => setDuplicateOpen(true)}>
+              Duplicate
+            </button>
             {user.id === program.createdByUserId && programAllowsTrainerDelete(program.status) ? (
               <button type="button" className={deleteCourseButtonClass} onClick={() => setDeleteOpen(true)}>
                 Delete
@@ -75,6 +80,17 @@ export default function ProgramPreviewPage() {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {program ? (
         <div className="space-y-6">
+          {!programAllowsBuilder(program.status) ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-violet-50 px-5 py-4 ring-1 ring-violet-100">
+              <p className="text-sm text-violet-900">
+                This course is locked for editing while it&apos;s in review or live. To make next month&apos;s version,
+                duplicate it, edit the copy and submit it for approval.
+              </p>
+              <button type="button" className={primaryButtonClass} onClick={() => setDuplicateOpen(true)}>
+                Duplicate to edit
+              </button>
+            </div>
+          ) : null}
           <section className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
             <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">When to alert you</p>
             <p className="mt-1 max-w-2xl text-sm text-slate-600">
@@ -152,6 +168,7 @@ export default function ProgramPreviewPage() {
       ) : error ? null : (
         <p className="text-sm text-slate-500">Loading preview…</p>
       )}
+      <DuplicateProgramDialog program={duplicateOpen && program ? program : null} onClose={() => setDuplicateOpen(false)} />
       <DeleteProgramDialog
         program={deleteOpen && program ? program : null}
         onClose={() => setDeleteOpen(false)}

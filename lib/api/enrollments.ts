@@ -37,6 +37,7 @@ export type ProgramTraineeRow = {
   enrolledBy: { id: string; name: string; email: string } | null;
   trainee: { id: string; name: string; email: string };
   batch: { id: string; name: string } | null;
+  canRemove?: boolean;
 };
 
 export type TraineeRosterCounts = {
@@ -112,9 +113,10 @@ export async function enrollTrainees(
   programId: string,
   traineeIds: string[],
   batchId: string,
+  joinedAt?: string,
 ): Promise<EnrollResult> {
   return apiClient<EnrollResult>(`/trainer/programs/${programId}/enrollments`, {
     method: "POST",
-    body: { traineeIds, batchId },
+    body: { traineeIds, batchId, ...(joinedAt ? { joinedAt } : {}) },
   });
 }

@@ -241,11 +241,12 @@ function WeekCard({
             </button>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-            {!hasWeeklyQuiz && editable ? (
+            {/* Temporarily hide weekly quiz creation. */}
+            {/* {!hasWeeklyQuiz && editable ? (
               <button type="button" className={ghostButtonClass} onClick={onAddWeeklyQuiz}>
                 + Weekly quiz
               </button>
-            ) : null}
+            ) : null} */}
             {!hasWeeklyExam && editable ? (
               <button type="button" className={ghostButtonClass} onClick={onAddWeeklyExam}>
                 + Weekly exam

@@ -30,7 +30,6 @@ export default function TraineeAssessmentDetailPage() {
   if (!user) {
     return null;
   }
-
   return (
     <TraineeShell title={catalog?.assessment.title ?? "Quiz"} user={user} dense crumbLabel={catalog?.assessment.title}>
       <LearnReturnLink />
@@ -39,3 +38,4 @@ export default function TraineeAssessmentDetailPage() {
     </TraineeShell>
   );
 }
+

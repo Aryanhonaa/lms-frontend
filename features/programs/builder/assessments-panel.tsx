@@ -118,6 +118,7 @@ export function AssessmentsPanel({
                 title={item.title}
                 scope={item.scope}
                 kind={item.kind}
+                writtenCount={item.questions.filter((question) => question.type === "WRITTEN").length}
                 editable={editable}
                 busy={busy}
                 onEdit={() => onEditQuiz(item)}
@@ -162,6 +163,7 @@ export function AssessmentsPanel({
                 title={item.title}
                 scope={item.scope}
                 kind={item.kind}
+                writtenCount={item.questions.filter((question) => question.type === "WRITTEN").length}
                 editable={editable}
                 busy={busy}
                 onEdit={() => onEditQuiz(item)}
@@ -334,6 +336,7 @@ function QuizRow({
   title,
   scope,
   kind,
+  writtenCount,
   editable,
   busy,
   onEdit,
@@ -342,6 +345,7 @@ function QuizRow({
   title: string;
   scope: string;
   kind: string;
+  writtenCount: number;
   editable: boolean;
   busy: boolean;
   onEdit: () => void;
@@ -353,7 +357,14 @@ function QuizRow({
         <ClipboardCheck className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-900">{title}</p>
+        <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
+          {title}
+          {writtenCount > 0 ? (
+            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+              {writtenCount} written
+            </span>
+          ) : null}
+        </p>
         <p className="text-xs text-slate-500">
           {kind.replaceAll("_", " ").toLowerCase()} · {scope}
         </p>
