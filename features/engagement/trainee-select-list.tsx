@@ -36,7 +36,9 @@ export function TraineeSelectList({
     listBatchTrainees(batchId, role)
       .then((payload) => {
         if (!cancelled) {
-          setTrainees(payload.trainees.filter((row) => row.status !== "WITHDRAWN"));
+          setTrainees(payload.trainees.filter(
+              (row) => row.status !== "WITHDRAWN" && row.status !== "TERMINATED" && row.status !== "REMOVED",
+            ));
           setError(null);
         }
       })

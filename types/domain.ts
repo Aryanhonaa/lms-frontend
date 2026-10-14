@@ -13,10 +13,10 @@ export type Difficulty = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 
 export type ProgramTrainerRole = "OWNER" | "CO_TRAINER";
 
-export type EnrollmentStatus = "ACTIVE" | "COMPLETED" | "WITHDRAWN";
+export type EnrollmentStatus = "ACTIVE" | "COMPLETED" | "WITHDRAWN" | "TERMINATED" | "REMOVED";
 
 export type VideoSource = "YOUTUBE" | "UPLOADED" | "EXTERNAL";
 
-export type ResourceKind = "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL";
+export type ResourceKind = "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL" | "CALL_RECORDING";
 
 export type QuizKind = "PRACTICE_QUIZ" | "WEEKLY_QUIZ" | "WEEKLY_EXAM" | "MILESTONE_EXAM" | "FINAL_EXAM";

@@ -32,8 +32,10 @@ export default function TraineeAssessmentsPage() {
     return null;
   }
 
+   
+
   return (
-    <TraineeShell title="Quizzes" user={user}>
+    <TraineeShell title="Evaluations" user={user}>
       <section className={`${traineeCardClass} overflow-hidden`}>
         <div className="border-b border-slate-100 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">Your quizzes</h2>
@@ -86,3 +88,5 @@ export default function TraineeAssessmentsPage() {
     </TraineeShell>
   );
 }
+
+

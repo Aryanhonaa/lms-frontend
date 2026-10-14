@@ -6,6 +6,11 @@ import { enrollTrainees, listEligibleTrainees, type EligibleTrainee } from "@/li
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 export function EnrollTraineesDialog({
   open,
   programId,
@@ -30,6 +35,8 @@ export function EnrollTraineesDialog({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [today] = useState(localToday);
+  const [joinedAt, setJoinedAt] = useState(today);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(query), 250);
@@ -66,6 +73,7 @@ export function EnrollTraineesDialog({
     setTrainees(null);
     setError(null);
     setResult(null);
+    setJoinedAt(today);
     onClose();
   }
 
@@ -95,7 +103,7 @@ export function EnrollTraineesDialog({
     setError(null);
     setResult(null);
     try {
-      const payload = await enrollTrainees(programId, [...selected], batchId);
+      const payload = await enrollTrainees(programId, [...selected], batchId, joinedAt || undefined);
       const parts = [`${payload.enrolledCount} enrolled successfully`];
       if (payload.alreadyEnrolledCount > 0) {
         parts.push(`${payload.alreadyEnrolledCount} were already enrolled`);
@@ -139,6 +147,16 @@ export function EnrollTraineesDialog({
         {programTitle}
         {batchName ? ` · ${batchName}` : ""}
       </p>
+      <label className="mb-4 flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-slate-800">Joined on</span>
+        <input
+          type="date"
+          value={joinedAt}
+          max={today}
+          onChange={(event) => setJoinedAt(event.target.value)}
+          className={`${fieldClass} max-w-44`}
+        />
+      </label>
       <label className="mb-4 block text-sm">
         <span className="sr-only">Search trainees</span>
         <input

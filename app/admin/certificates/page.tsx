@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminPageHeader } from "@/features/admin/page-header";
+import { artworkFromOwned, type CertificateArtworkData } from "@/features/certificates/certificate-artwork";
+import { CertificateViewer } from "@/features/certificates/certificate-viewer";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { listAdminCertificates, revokeCertificate } from "@/lib/api/certificates";
 import { ApiClientError } from "@/lib/api/client";
@@ -19,6 +21,8 @@ export default function AdminCertificatesPage() {
   const [certificates, setCertificates] = useState<OwnedCertificate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<CertificateArtworkData | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
 
   function reload() {
     listAdminCertificates()
@@ -70,6 +74,13 @@ export default function AdminCertificatesPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewing(artworkFromOwned(item))}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-violet-50 hover:text-violet-800"
+                  >
+                    View
+                  </button>
                   <Link
                     href={`/verify?id=${encodeURIComponent(item.certificateId)}`}
                     className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-violet-50 hover:text-violet-800"
@@ -90,6 +101,7 @@ export default function AdminCertificatesPage() {
           </ul>
         </section>
       ) : null}
+      <CertificateViewer certificate={viewing} onClose={closeViewer} />
     </>
   );
 }

@@ -467,11 +467,19 @@ function AttemptHistory({ attempts }: { attempts: AssessmentCatalog["attempts"] 
                   Waiting for trainer review
                 </p>
               ) : (
-                <p className="text-slate-500">
-                  {item.status.replaceAll("_", " ").toLowerCase()}
-                  {item.score !== null ? ` · ${item.score}%` : ""}
-                  {item.passed === true ? " · passed" : item.passed === false ? " · failed" : ""}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-slate-500">{item.status.replaceAll("_", " ").toLowerCase()}</span>
+                  {item.score !== null ? <span className="text-slate-500">· {item.score}%</span> : null}
+                  {item.passed === true ? (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                      Passed
+                    </span>
+                  ) : item.passed === false ? (
+                    <span className="rounded-full bg-rose-50 px-2 py-0.5 font-semibold text-rose-700 ring-1 ring-rose-200">
+                      Failed
+                    </span>
+                  ) : null}
+                </div>
               )}
             </li>
           ))}

@@ -46,6 +46,9 @@ function labelForSegment(
     if (parent === "users") {
       return entityLabel ?? "User";
     }
+    if (parent === "batch-tracker") {
+      return entityLabel ?? "Batch";
+    }
     return entityLabel ?? "Details";
   }
 
@@ -65,7 +68,7 @@ function labelForSegment(
     trainees: "Trainees",
     trainers: "Trainers",
     users: "Users",
-    assessments: "Quizzes",
+    assessments: "Evaluations",
     assignments: "Assignments",
     grading: "To grade",
     calendar: "Calendar",
@@ -84,6 +87,7 @@ function labelForSegment(
     approvals: "Approvals",
     settings: "Settings",
     program: "Course",
+    "batch-tracker": "Batch Tracker",
   };
 
   return labels[segment] ?? segment.replaceAll("-", " ");

@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api/client";
-import type { ProgramStatus } from "@/types/domain";
+import type { ProgramStatus, ResourceKind } from "@/types/domain";
 import type { CreateProgramInput, ProgramSummary, ProgramTree, QuizInput } from "@/types/program";
 
 type ProgramPayload = { program: ProgramTree };
@@ -35,6 +35,10 @@ export async function updateProgram(
   input: Partial<CreateProgramInput>,
 ): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/programs/${programId}`, { method: "PATCH", body: input });
+}
+
+export async function duplicateProgram(programId: string, title: string): Promise<ProgramPayload> {
+  return apiClient<ProgramPayload>(`/trainer/programs/${programId}/duplicate`, { method: "POST", body: { title } });
 }
 
 export async function deleteTrainerProgram(programId: string): Promise<{ deleted: true }> {
@@ -146,7 +150,7 @@ export async function addResource(
   body: {
     title: string;
     url?: string;
-    kind: "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL";
+    kind: ResourceKind;
     description?: string;
   } & StoredFileInput,
 ): Promise<ProgramPayload> {
@@ -158,7 +162,7 @@ export async function updateResource(
   body: Partial<{
     title: string;
     url: string;
-    kind: "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL";
+    kind: ResourceKind;
     description: string;
   }> &
     StoredFileInput,

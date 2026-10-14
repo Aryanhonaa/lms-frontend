@@ -48,10 +48,14 @@ const CARD =
 const EVENT_STYLE: Record<CalendarEventType, { wrap: string; icon: typeof CalendarDays }> = {
   SESSION: { wrap: "bg-emerald-50 text-emerald-700", icon: CalendarDays },
   EXAM: { wrap: "bg-sky-50 text-sky-700", icon: ClipboardCheck },
+  QUIZ: { wrap: "bg-sky-50 text-sky-700", icon: ClipboardCheck },
   ASSIGNMENT: { wrap: "bg-amber-50 text-amber-700", icon: ListChecks },
+  TASK: { wrap: "bg-rose-50 text-rose-700", icon: FileText },
+  NOTIFICATION: { wrap: "bg-fuchsia-50 text-fuchsia-700", icon: Megaphone },
   MILESTONE: { wrap: "bg-fuchsia-50 text-fuchsia-700", icon: Trophy },
   DEADLINE: { wrap: "bg-rose-50 text-rose-700", icon: FileText },
   PROGRAM: { wrap: "bg-violet-50 text-violet-700", icon: BookOpen },
+  HOLIDAY: { wrap: "bg-slate-100 text-slate-600", icon: CalendarDays },
 };
 
 function firstName(name: string): string {

@@ -32,6 +32,7 @@ export type UploadPurpose =
   | "VIDEO"
   | "REEL"
   | "RESOURCE"
+  | "CALL_RECORDING"
   | "LESSON_ATTACHMENT"
   | "ASSIGNMENT_ATTACHMENT";
 

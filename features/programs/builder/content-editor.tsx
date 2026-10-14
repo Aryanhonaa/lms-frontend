@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck, ChevronLeft } from "lucide-react";
+import { AudioLines, FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck, ChevronLeft } from "lucide-react";
 import { QuizForm } from "@/features/programs/quiz-form";
 import { VideoFields, type VideoDraft } from "@/features/programs/builder/video-fields";
 import { AttachmentUploadField } from "@/components/files/attachment-upload-field";
@@ -10,7 +10,7 @@ import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass 
 import type { Quiz, QuizInput } from "@/types/program";
 import type { UploadedFile } from "@/types/files";
 
-export type PickerKind = "VIDEO" | "LESSON" | "RESOURCE" | "REEL" | "QUIZ" | "ASSIGNMENT";
+export type PickerKind = "VIDEO" | "LESSON" | "RESOURCE" | "REEL" | "CALL_RECORDING" | "QUIZ" | "ASSIGNMENT";
 
 export type EditorState =
   | { view: "picker"; dayId: string }
@@ -28,6 +28,7 @@ const PICKER_OPTIONS: Array<{ kind: PickerKind; label: string; hint: string; ico
   { kind: "LESSON", label: "Text lesson", hint: "Notes and reading", icon: FileText },
   { kind: "RESOURCE", label: "Link / document", hint: "PDF, article, or site", icon: LinkIcon },
   { kind: "REEL", label: "Reel", hint: "Short-form clip", icon: Film },
+  { kind: "CALL_RECORDING", label: "Call recording", hint: "Upload an audio recording", icon: AudioLines },
   { kind: "QUIZ", label: "Quiz", hint: "Practice questions", icon: ClipboardCheck },
   { kind: "ASSIGNMENT", label: "Assignment", hint: "Work to review", icon: ListChecks },
 ];
@@ -57,7 +58,7 @@ type ContentEditorProps = {
     input: {
       title: string;
       url?: string;
-      kind: "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL";
+      kind: "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL" | "CALL_RECORDING";
       fileKey?: string;
       fileName?: string;
       mimeType?: string;
@@ -149,6 +150,7 @@ export function ContentEditor(props: ContentEditorProps) {
   const [reel, setReel] = useState<VideoDraft>({ mode: "upload", title: "", url: "", source: "UPLOADED" });
   const [resourceFile, setResourceFile] = useState<UploadedFile | null>(null);
   const [resourceMode, setResourceMode] = useState<"upload" | "url">("upload");
+  const [recordingFile, setRecordingFile] = useState<UploadedFile | null>(null);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -500,6 +502,67 @@ export function ContentEditor(props: ContentEditorProps) {
           <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
           <button type="submit" className={primaryButtonClass} disabled={disabled || busy || uploading}>
             {busy ? "Adding…" : uploading ? "Uploading…" : "Add to day"}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  if (state.kind === "CALL_RECORDING") {
+    return (
+      <form
+        className="grid gap-3"
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          const title = String(new FormData(event.currentTarget).get("title") ?? "").trim();
+          if (!title) {
+            setError("A title is required");
+            return;
+          }
+          if (!recordingFile) {
+            setError("Upload a call recording before saving.");
+            return;
+          }
+          if (uploading) {
+            setError("Wait for the upload to finish before saving.");
+            return;
+          }
+          void run(() =>
+            props.onAddResource(state.dayId, {
+              title,
+              kind: "CALL_RECORDING",
+              fileKey: recordingFile.key,
+              fileName: recordingFile.fileName,
+              mimeType: recordingFile.mimeType,
+              fileSize: recordingFile.fileSize,
+            }),
+          );
+        }}
+      >
+        <Field label="Title" required>
+          <input name="title" className={fieldClass} disabled={disabled || busy} placeholder="Team call recording" />
+        </Field>
+        <div className="grid gap-1 text-sm">
+          <span className="font-medium text-slate-800">
+            Audio file
+            <RequiredMark />
+          </span>
+          <AttachmentUploadField
+            dayId={state.dayId}
+            purpose="CALL_RECORDING"
+            accept=".mp3,.wav,.m4a,.ogg,audio/mpeg,audio/wav,audio/mp4,audio/ogg"
+            hint="MP3, WAV, M4A, or OGG"
+            disabled={disabled || busy}
+            uploaded={recordingFile}
+            onUploaded={setRecordingFile}
+            onUploadingChange={setUploading}
+          />
+        </div>
+        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
+          <button type="submit" className={primaryButtonClass} disabled={disabled || busy || uploading}>
+            {busy ? "Adding…" : uploading ? "Uploading…" : "Add call recording"}
           </button>
         </div>
       </form>

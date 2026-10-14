@@ -22,6 +22,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { UserAvatar } from "@/components/user-avatar";
 import { AdminPageHeader } from "@/features/admin/page-header";
+import { TeamSettings, WorkCalendarSettings } from "@/features/batch-tracker/tracker-settings";
 import { changePassword, updateProfile, uploadProfilePicture } from "@/lib/api/auth";
 import { getAdminDashboard, getOperationsDashboard } from "@/lib/api/admin";
 import { ApiClientError } from "@/lib/api/client";
@@ -517,6 +518,11 @@ export function AdminSettings() {
             {workspaceSection}
           </div>
         )}
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <WorkCalendarSettings />
+          <TeamSettings />
+        </div>
       </div>
     </>
   );

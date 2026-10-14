@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TrainerShell } from "@/components/trainer-shell";
+import { artworkFromOwned, type CertificateArtworkData } from "@/features/certificates/certificate-artwork";
+import { CertificateViewer } from "@/features/certificates/certificate-viewer";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { listTrainerCertificates } from "@/lib/api/certificates";
 import { ApiClientError } from "@/lib/api/client";
@@ -16,6 +18,8 @@ export default function TrainerCertificatesPage() {
   const { user } = useAuth();
   const [certificates, setCertificates] = useState<OwnedCertificate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<CertificateArtworkData | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
 
   useEffect(() => {
     listTrainerCertificates()
@@ -50,14 +54,24 @@ export default function TrainerCertificatesPage() {
                   </p>
                   <p className="mt-1 font-mono text-slate-600">{item.certificateId}</p>
                 </div>
-                <p className="text-slate-500">
-                  {formatWhen(item.completionDate)} · {item.status.toLowerCase()}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-slate-500">
+                    {formatWhen(item.completionDate)} · {item.status.toLowerCase()}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setViewing(artworkFromOwned(item))}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-violet-50 hover:text-violet-800"
+                  >
+                    View
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         </section>
       ) : null}
+      <CertificateViewer certificate={viewing} onClose={closeViewer} />
     </TrainerShell>
   );
 }

@@ -6,8 +6,14 @@ import { TraineeShell } from "@/components/trainee-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { listTraineeCertificates } from "@/lib/api/certificates";
 import { ApiClientError } from "@/lib/api/client";
+import {
+  CertificateArtwork,
+  artworkFromOwned,
+  type CertificateArtworkData,
+} from "@/features/certificates/certificate-artwork";
+import { CertificateViewer } from "@/features/certificates/certificate-viewer";
 import { COURSE_REVIEW_CHECK_EVENT } from "@/lib/course-review";
-import { secondaryButtonClass } from "@/lib/ui/form-classes";
+import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 import type { OwnedCertificate, PendingCourseReview } from "@/types/certificate";
 
@@ -20,6 +26,8 @@ export default function TraineeCertificatesPage() {
   const [certificates, setCertificates] = useState<OwnedCertificate[] | null>(null);
   const [pendingReviews, setPendingReviews] = useState<PendingCourseReview[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<CertificateArtworkData | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
 
   const load = useCallback(() => {
     listTraineeCertificates()
@@ -66,29 +74,46 @@ export default function TraineeCertificatesPage() {
         />
       ) : null}
       {certificates && certificates.length > 0 ? (
-        <ul className="grid gap-4">
-          {certificates.map((item) => (
-            <li key={item.certificateId} className="bg-white px-5 py-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-500">
-                    {item.status === "VALID" ? "Certificate" : "Revoked"}
-                  </p>
-                  <h2 className="mt-1 text-lg font-medium text-stone-950">{item.program.title}</h2>
-                  <p className="mt-2 font-mono text-sm text-stone-800">{item.certificateId}</p>
-                  <p className="mt-2 text-sm text-stone-600">Completed {formatWhen(item.completionDate)}</p>
-                </div>
-                <Link
-                  href={`/verify?id=${encodeURIComponent(item.certificateId)}`}
-                  className={secondaryButtonClass}
+        <ul className="grid gap-6 md:grid-cols-2">
+          {certificates.map((item) => {
+            const artwork = artworkFromOwned(item);
+            return (
+              <li
+                key={item.certificateId}
+                className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setViewing(artwork)}
+                  className="group block w-full bg-slate-100/70 p-4 text-left"
+                  aria-label={`Open certificate for ${item.program.title}`}
                 >
-                  Verify
-                </Link>
-              </div>
-            </li>
-          ))}
+                  <div className="shadow-md ring-1 ring-slate-950/5 transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-xl">
+                    <CertificateArtwork certificate={artwork} />
+                  </div>
+                </button>
+                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                  <div className="min-w-0">
+                    <h2 className="truncate font-medium text-slate-900">{item.program.title}</h2>
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      {item.status === "VALID" ? "Completed" : "Revoked ·"} {formatWhen(item.completionDate)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {/* <Link href={`/verify?id=${encodeURIComponent(item.certificateId)}`} className={secondaryButtonClass}>
+                      Verify
+                    </Link> */}
+                    <button type="button" className={primaryButtonClass} onClick={() => setViewing(artwork)}>
+                      View
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
+      <CertificateViewer certificate={viewing} onClose={closeViewer} />
     </TraineeShell>
   );
 }

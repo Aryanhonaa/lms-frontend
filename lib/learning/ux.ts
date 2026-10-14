@@ -73,7 +73,7 @@ export function contentTypeLabel(type: string, kind?: string | null): string {
     return "Reel";
   }
   if (type === "RESOURCE") {
-    return "Reading";
+    return kind === "CALL_RECORDING" ? "Call recording" : "Reading";
   }
   if (kind === "FINAL_EXAM") {
     return "Final Exam";

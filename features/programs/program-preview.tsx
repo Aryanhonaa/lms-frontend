@@ -63,7 +63,7 @@ export function ProgramPreview({ program }: { program: ProgramTree }) {
                 <ul className="mt-2 space-y-1 text-sm text-slate-700">
                   {day.resources.map((item) => (
                     <li key={item.id}>
-                      Resource · {item.title}
+                      {item.kind === "CALL_RECORDING" ? "Call recording" : "Resource"} · {item.title}
                       {day.assignments
                         .filter((assignment) => assignment.linkedItemType === "RESOURCE" && assignment.linkedItemId === item.id)
                         .map((assignment) => (

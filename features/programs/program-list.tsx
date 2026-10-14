@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { programAllowsBuilder, programAllowsEnrollment, programAllowsTrainerDelete } from "@/lib/programs/enrollment";
 import { deleteCourseButtonClass } from "@/features/programs/delete-program-dialog";
+import { duplicateCourseButtonClass } from "@/features/programs/duplicate-program-dialog";
 import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import type { ProgramSummary } from "@/types/program";
 
@@ -12,10 +13,12 @@ export function ProgramList({
   programs,
   currentUserId,
   onDelete,
+  onDuplicate,
 }: {
   programs: ProgramSummary[];
   currentUserId?: string;
   onDelete?: (program: ProgramSummary) => void;
+  onDuplicate?: (program: ProgramSummary) => void;
 }) {
   if (programs.length === 0) {
     return (
@@ -70,6 +73,16 @@ export function ProgramList({
                     <Link href={`/trainer/programs/${program.id}/trainees`} className={primaryButtonClass}>
                       Batches
                     </Link>
+                  ) : null}
+                  {onDuplicate ? (
+                    <button
+                      type="button"
+                      className={duplicateCourseButtonClass}
+                      title="Make an editable copy of this course"
+                      onClick={() => onDuplicate(program)}
+                    >
+                      Duplicate
+                    </button>
                   ) : null}
                   {isOwner && onDelete && programAllowsTrainerDelete(program.status) ? (
                     <button type="button" className={deleteCourseButtonClass} onClick={() => onDelete(program)}>

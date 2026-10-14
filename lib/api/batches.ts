@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import type { EnrollResult, ProgramTraineeRow } from "@/lib/api/enrollments";
+import type { LineOfBusiness } from "@/types/batch-tracker";
 
 export type ProgramBatch = {
   id: string;
@@ -9,9 +10,29 @@ export type ProgramBatch = {
   capacity: number;
   startDate: string | null;
   endDate: string | null;
+  code: string | null;
+  month: number | null;
+  year: number | null;
+  batchNumber: number | null;
+  lineOfBusiness: LineOfBusiness | null;
+  actualCompletionDate: string | null;
+  salesTrainer: { id: string; name: string; email: string } | null;
+  supportTrainer: { id: string; name: string; email: string } | null;
   createdAt: string;
   memberCount: number;
   remaining: number;
+};
+
+export type CreateBatchInput = {
+  name?: string;
+  description?: string;
+  capacity?: number;
+  startDate?: string;
+  endDate?: string;
+  lineOfBusiness?: LineOfBusiness;
+  batchNumber?: number;
+  salesTrainerId?: string;
+  supportTrainerId?: string;
 };
 
 export type ProgramBatchesResponse = {
@@ -27,7 +48,7 @@ export async function listProgramBatches(
 
 export async function createProgramBatch(
   programId: string,
-  input: { name: string; description?: string; capacity?: number; startDate?: string; endDate?: string },
+  input: CreateBatchInput,
 ): Promise<{ batch: ProgramBatch }> {
   return apiClient(`/trainer/programs/${programId}/batches`, { method: "POST", body: input });
 }
@@ -50,6 +71,13 @@ export async function listBatchTrainees(
   return apiClient(`/${role}/batches/${batchId}/trainees`);
 }
 
-export async function enrollIntoBatch(batchId: string, traineeIds: string[]): Promise<EnrollResult> {
-  return apiClient(`/trainer/batches/${batchId}/enrollments`, { method: "POST", body: { traineeIds } });
+export async function enrollIntoBatch(
+  batchId: string,
+  traineeIds: string[],
+  joinedAt?: string,
+): Promise<EnrollResult> {
+  return apiClient(`/trainer/batches/${batchId}/enrollments`, {
+    method: "POST",
+    body: { traineeIds, ...(joinedAt ? { joinedAt } : {}) },
+  });
 }

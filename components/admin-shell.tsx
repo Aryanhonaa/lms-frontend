@@ -7,6 +7,7 @@ import { AppLogoIcon } from "@/components/learn-lab-logo";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Award,
+  BarChart3,
   Bell,
   BookOpen,
   CalendarDays,
@@ -57,6 +58,7 @@ type NavItem = {
 const SUPER_ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
+  { href: "/admin/batch-tracker", label: "Batch Tracker", icon: BarChart3 },
   { href: "/admin/usage", label: "App Usage", icon: Clock3 },
   {
     href: "/admin/users",
@@ -81,6 +83,7 @@ const SUPER_ADMIN_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/courses", label: "Programs", icon: BookOpen },
+  { href: "/admin/batch-tracker", label: "Batch Tracker", icon: BarChart3 },
   { href: "/admin/usage", label: "App Usage", icon: Clock3 },
   { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },

@@ -3,12 +3,17 @@
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpenCheck,
+  Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Keyboard,
   ListChecks,
+  Maximize2,
+  MessageSquarePlus,
   PenLine,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -66,15 +71,11 @@ function matchesFilter(row: TrainerAssessmentRosterRow, filter: RosterFilter): b
   return true;
 }
 
-function SummaryChip({ label, value, tone = "slate" }: { label: string; value: string | number; tone?: "slate" | "amber" }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div
-      className={`rounded-xl px-3 py-2 ring-1 ${
-        tone === "amber" ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-slate-50 text-slate-800 ring-slate-950/5"
-      }`}
-    >
-      <p className="text-[11px] font-medium uppercase tracking-wide opacity-70">{label}</p>
-      <p className="mt-0.5 text-base font-semibold">{value}</p>
+    <div>
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dd className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900">{value}</dd>
     </div>
   );
 }
@@ -307,45 +308,47 @@ export default function TrainerAssessmentDetailPage() {
       {payload ? (
         <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5">
           <div className="border-b border-slate-100 px-5 py-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="text-sm text-slate-600">
-                {payload.assessment.programTitle} · {selectedBatch?.name} · {payload.assessment.location} ·{" "}
-                {payload.assessment.questionBankCount > payload.assessment.questionCount
-                  ? `${payload.assessment.questionCount} of ${payload.assessment.questionBankCount} questions`
-                  : `${payload.assessment.questionCount} questions`}{" "}
-                · pass {payload.assessment.passingScore}%
-                {writtenCount > 0 ? ` · ${writtenCount} written` : ""}
+            <p className="text-sm text-slate-600">
+              {payload.assessment.programTitle} · {selectedBatch?.name} · {payload.assessment.location}
+            </p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {payload.assessment.questionBankCount > payload.assessment.questionCount
+                ? `${payload.assessment.questionCount} of ${payload.assessment.questionBankCount} questions`
+                : `${payload.assessment.questionCount} questions`}
+              {writtenCount > 0 ? ` · ${writtenCount} written` : ""} · pass mark {payload.assessment.passingScore}%
+            </p>
+
+            {counts.needs > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 ring-1 ring-amber-200">
+                <p className="text-sm font-medium text-amber-900">
+                  {counts.needs} trainee{counts.needs === 1 ? "" : "s"} waiting for your grade
+                </p>
+                {firstInQueue && !openId ? (
+                  <button
+                    type="button"
+                    className={primaryButtonClass}
+                    onClick={() => {
+                      setFilter("needs");
+                      setOpenId(firstInQueue.enrollmentId);
+                    }}
+                  >
+                    <PenLine className="h-4 w-4" />
+                    Start grading
+                  </button>
+                ) : null}
+              </div>
+            ) : writtenCount > 0 && counts.graded > 0 ? (
+              <p className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Every written answer is graded
               </p>
-              {firstInQueue && !openId ? (
-                <button
-                  type="button"
-                  className={primaryButtonClass}
-                  onClick={() => {
-                    setFilter("needs");
-                    setOpenId(firstInQueue.enrollmentId);
-                  }}
-                >
-                  <PenLine className="h-4 w-4" />
-                  Start grading ({counts.needs})
-                </button>
-              ) : null}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-              <SummaryChip label="Trainees" value={payload.summary.rosterCount} />
-              <SummaryChip label="Submitted" value={payload.summary.submittedCount} />
-              {writtenCount > 0 ? (
-                <SummaryChip
-                  label="Needs grading"
-                  value={payload.summary.needsReviewCount ?? 0}
-                  tone={(payload.summary.needsReviewCount ?? 0) > 0 ? "amber" : "slate"}
-                />
-              ) : (
-                <SummaryChip label="In progress" value={payload.summary.inProgressCount} />
-              )}
-              <SummaryChip label="Not started" value={payload.summary.notStartedCount} />
-              <SummaryChip label="Avg score" value={formatScore(payload.summary.averageScore)} />
-              <SummaryChip label="Pass rate" value={formatScore(payload.summary.passRate)} />
-            </div>
+            ) : null}
+
+            <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
+              <Stat label="Submitted" value={`${payload.summary.submittedCount}/${payload.summary.rosterCount}`} />
+              <Stat label="Avg score" value={formatScore(payload.summary.averageScore)} />
+              <Stat label="Pass rate" value={formatScore(payload.summary.passRate)} />
+            </dl>
             <div role="tablist" aria-label="Filter trainees" className="mt-4 flex flex-wrap gap-1.5">
               {tabs.map((tab) => {
                 const active = activeFilter === tab.id;
@@ -501,13 +504,268 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
+const LONG_ANSWER_CHARS = 600;
+const LONG_ANSWER_LINES = 10;
+/** Short answers read fine in place, so focus mode is only offered once there is enough text. */
+const FOCUS_MODE_CHARS = 240;
+const GUIDE_TERM_LIMIT = 8;
+const READER_SIZES = [
+  "text-sm leading-6",
+  "text-[15px] leading-7",
+  "text-base leading-7",
+  "text-lg leading-8",
+] as const;
+const READER_SIZE_KEY = "lms.grading.readerSize";
+const iconButtonClass =
+  "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40";
+const linkButtonClass =
+  "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-50";
+
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+function initialReaderSize(): number {
+  if (typeof window === "undefined") {
+    return 1;
+  }
+  const saved = Number(window.localStorage.getItem(READER_SIZE_KEY));
+  return Number.isInteger(saved) && saved >= 0 && saved < READER_SIZES.length ? saved : 1;
+}
+
+function HighlightedText({ text, terms, className }: { text: string; terms: string[]; className?: string }) {
+  return (
+    <div className={`whitespace-pre-wrap break-words ${className ?? ""}`}>
+      {highlightSegments(text, terms).map((segment, index) =>
+        segment.hit ? (
+          <mark key={index} className="rounded bg-emerald-100 px-0.5 text-emerald-900">
+            {segment.text}
+          </mark>
+        ) : (
+          <span key={index}>{segment.text}</span>
+        ),
+      )}
+    </div>
+  );
+}
+
+function MarkingGuide({ modelAnswer, terms, covered }: { modelAnswer: string; terms: string[]; covered: Set<string> }) {
+  return (
+    <aside className="min-w-0 rounded-lg bg-emerald-50/50 px-3.5 py-3 ring-1 ring-emerald-100">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Model answer</p>
+      <p className="mt-1.5 max-h-52 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-slate-700">
+        {modelAnswer}
+      </p>
+      {terms.length > 0 ? (
+        <div className="mt-3 border-t border-emerald-100 pt-2.5">
+          <p className="text-[11px] font-medium text-emerald-900">
+            Key terms used: {covered.size} of {terms.length}
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {terms.slice(0, GUIDE_TERM_LIMIT).map((term) => (
+              <span
+                key={term}
+                className={`rounded-full px-2 py-0.5 text-[11px] ${
+                  covered.has(term) ? "bg-emerald-100 text-emerald-800" : "bg-white text-slate-400 ring-1 ring-slate-200"
+                }`}
+              >
+                {term}
+              </span>
+            ))}
+            {terms.length > GUIDE_TERM_LIMIT ? (
+              <span className="px-1 py-0.5 text-[11px] text-slate-400">+{terms.length - GUIDE_TERM_LIMIT} more</span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </aside>
+  );
+}
+
+/** Whole-number scores are picked in one click; only unusually large questions fall back to typing. */
+function ScorePicker({
+  question,
+  value,
+  disabled,
+  onChange,
+  onFocus,
+}: {
+  question: TrainerAssessmentQuestion;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onFocus: () => void;
+}) {
+  const max = question.points;
+  const raw = value.trim();
+  const parsed = Number(raw);
+  const valid = raw === "" || (Number.isInteger(parsed) && parsed >= 0 && parsed <= max);
+
+  if (max > 10) {
+    const half = Math.floor(max / 2);
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Score</span>
+        <input
+          type="number"
+          min={0}
+          max={max}
+          inputMode="numeric"
+          value={value}
+          placeholder="–"
+          disabled={disabled}
+          aria-label={`Score out of ${max}`}
+          aria-invalid={!valid}
+          onFocus={onFocus}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-9 w-16 rounded-lg bg-white px-2 text-center text-sm font-semibold outline-none ring-1 focus:ring-2 ${
+            valid ? "ring-slate-200 focus:ring-violet-400" : "ring-red-300 focus:ring-red-400"
+          }`}
+        />
+        <span className="text-xs text-slate-400">out of {max}</span>
+        {[
+          { label: "None", points: 0 },
+          { label: "Half", points: half },
+          { label: "Full", points: max },
+        ].map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              onFocus();
+              onChange(String(preset.points));
+            }}
+            className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition ${
+              raw === String(preset.points)
+                ? "bg-violet-600 text-white ring-violet-600"
+                : "bg-white text-slate-600 ring-slate-200 hover:bg-violet-50"
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+        {!valid ? <span className="text-xs text-red-600">Enter 0 – {max}</span> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Score</span>
+      <div role="group" aria-label={`Score out of ${max}`} className="flex flex-wrap gap-1">
+        {Array.from({ length: max + 1 }, (_, points) => {
+          const active = raw === String(points);
+          return (
+            <button
+              key={points}
+              type="button"
+              disabled={disabled}
+              aria-pressed={active}
+              onClick={() => {
+                onFocus();
+                onChange(active ? "" : String(points));
+              }}
+              className={`h-9 min-w-9 rounded-lg px-2.5 text-sm font-semibold tabular-nums transition ${
+                active
+                  ? "bg-violet-600 text-white shadow-sm"
+                  : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-violet-50 hover:text-violet-700"
+              }`}
+            >
+              {points}
+            </button>
+          );
+        })}
+      </div>
+      <span className="text-xs text-slate-400">out of {max}</span>
+    </div>
+  );
+}
+
+/** Notes are optional, so the editor stays folded away until the trainer wants it. */
+function NoteField({
+  id,
+  value,
+  disabled,
+  rows = 2,
+  alwaysOpen,
+  onChange,
+  onFocus,
+  onQuickNote,
+}: {
+  id: string;
+  value: string;
+  disabled: boolean;
+  rows?: number;
+  alwaysOpen?: boolean;
+  onChange: (value: string) => void;
+  onFocus: () => void;
+  onQuickNote: (note: string) => void;
+}) {
+  const [open, setOpen] = useState(() => Boolean(alwaysOpen) || value.trim().length > 0);
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          setOpen(true);
+          onFocus();
+          window.setTimeout(() => fieldRef.current?.focus(), 0);
+        }}
+        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-white hover:text-violet-700"
+      >
+        <MessageSquarePlus className="h-3.5 w-3.5" />
+        Add a note for the trainee
+      </button>
+    );
+  }
+
+  return (
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        Note to trainee <span className="font-normal normal-case text-slate-400">(optional)</span>
+      </label>
+      <textarea
+        id={id}
+        ref={fieldRef}
+        value={value}
+        disabled={disabled}
+        maxLength={2000}
+        rows={rows}
+        placeholder="What was good, what was missing…"
+        onFocus={onFocus}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-[38px] resize-y rounded-lg bg-white px-3 py-2 text-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-violet-400"
+      />
+      <div className="flex flex-wrap gap-1">
+        {QUICK_NOTES.map((note) => (
+          <button
+            key={note}
+            type="button"
+            disabled={disabled}
+            onClick={() => onQuickNote(note)}
+            className="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200 transition hover:bg-violet-50 hover:text-violet-800"
+          >
+            {note}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ShortcutHelp() {
   const rows: Array<[string, string]> = [
     ["0 – 9", "Set points for the highlighted answer"],
     ["F / H", "Full marks / half marks"],
     ["J / K", "Next / previous written answer"],
+    ["R", "Read the highlighted answer in focus mode"],
     ["Ctrl + Enter", "Save (and open the next trainee)"],
-    ["Esc", "Leave a text box"],
+    ["Esc", "Close focus mode / leave a text box"],
   ];
   return (
     <div className="rounded-xl bg-slate-900 px-4 py-3 text-xs text-slate-100">
@@ -575,6 +833,9 @@ function AttemptPaper({
   });
   const [showChoice, setShowChoice] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [readerOpen, setReaderOpen] = useState(false);
+  const [readerSize, setReaderSize] = useState(initialReaderSize);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cardRefs = useRef<Record<string, HTMLLIElement | null>>({});
@@ -600,6 +861,40 @@ function AttemptPaper({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+
+  useEffect(() => {
+    if (!readerOpen) {
+      return;
+    }
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [readerOpen]);
+
+  function openReader(index: number) {
+    setFocusIndex(index);
+    setReaderOpen(true);
+  }
+
+  function changeReaderSize(delta: number) {
+    const next = Math.min(Math.max(readerSize + delta, 0), READER_SIZES.length - 1);
+    setReaderSize(next);
+    window.localStorage.setItem(READER_SIZE_KEY, String(next));
+  }
+
+  function toggleExpanded(questionId: string) {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (next.has(questionId)) {
+        next.delete(questionId);
+      } else {
+        next.add(questionId);
+      }
+      return next;
+    });
+  }
 
   function setDraft(questionId: string, next: Partial<GradeDraft>) {
     setDrafts((current) => ({ ...current, [questionId]: { ...current[questionId], ...next } }));
@@ -648,6 +943,74 @@ function AttemptPaper({
   const previewScore = total > 0 ? Math.round((earned / total) * 10000) / 100 : 0;
   const previewPassed = previewScore >= passingScore;
   const canAdvance = Boolean(nextTraineeName) || returnToQueue;
+
+  const readerQuestion = readerOpen ? writtenQuestions[focusIndex] : undefined;
+  const readerDraft = readerQuestion ? (drafts[readerQuestion.id] ?? { points: "", comment: "" }) : undefined;
+  const readerText = readerQuestion ? (answerMap.get(readerQuestion.id)?.textAnswer ?? "") : "";
+  const readerTerms = readerQuestion ? keyTerms(readerQuestion.modelAnswer?.trim() ?? "") : [];
+
+  const saveBar = (
+    <>
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          className={`shrink-0 rounded-xl px-3 py-1.5 text-center ${
+            ungraded > 0
+              ? "bg-slate-100 text-slate-700"
+              : previewPassed
+                ? "bg-emerald-50 text-emerald-800"
+                : "bg-red-50 text-red-700"
+          }`}
+        >
+          <p className="text-lg font-bold leading-none tabular-nums">{previewScore}%</p>
+          <p className="mt-1 text-[10px] font-medium uppercase tracking-wide opacity-70">
+            {ungraded > 0 ? "So far" : previewPassed ? "Passes" : "Below"}
+          </p>
+        </div>
+        <div className="min-w-0 text-sm">
+          <p className="font-medium text-slate-900">
+            {earned}/{total} pts
+            <span className="font-normal text-slate-500"> · pass mark {passingScore}%</span>
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {ungraded > 0
+              ? `${ungraded} answer${ungraded === 1 ? "" : "s"} still to score — you can save and finish later.`
+              : "Saving sends the result to the trainee."}
+            {dirty ? <span className="ml-1 font-medium text-amber-700">Unsaved changes.</span> : null}
+          </p>
+          {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {canAdvance ? (
+          <>
+            <button type="button" className={secondaryButtonClass} disabled={saving} onClick={() => void save(false)}>
+              {alreadyGraded ? "Update" : "Save"}
+            </button>
+            <button
+              type="button"
+              className={primaryButtonClass}
+              disabled={saving}
+              onClick={() => void save(true)}
+              title="Ctrl + Enter"
+            >
+              {saving ? "Saving…" : nextTraineeName ? `Save & next: ${nextTraineeName}` : "Save & back to queue"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className={primaryButtonClass}
+            disabled={saving}
+            onClick={() => void save(false)}
+            title="Ctrl + Enter"
+          >
+            {saving ? "Saving…" : alreadyGraded ? "Update grades" : "Save grades"}
+          </button>
+        )}
+      </div>
+    </>
+  );
 
   async function save(advance: boolean) {
     const grades = [];
@@ -703,11 +1066,26 @@ function AttemptPaper({
       if (event.ctrlKey || event.metaKey || event.altKey) {
         return;
       }
+      if (readerOpen && event.key === "Escape") {
+        event.preventDefault();
+        setReaderOpen(false);
+        return;
+      }
+      if (readerOpen && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
+        event.preventDefault();
+        focusQuestion(focusIndex + (event.key === "ArrowRight" ? 1 : -1));
+        return;
+      }
       const question = writtenQuestions[focusIndex];
       if (!question) {
         return;
       }
       const key = event.key.toLowerCase();
+      if (key === "r") {
+        event.preventDefault();
+        setReaderOpen(true);
+        return;
+      }
       if (/^[0-9]$/.test(key)) {
         const value = Number(key);
         if (value <= question.points) {
@@ -737,11 +1115,30 @@ function AttemptPaper({
   return (
     <div className="grid gap-3">
       {writtenQuestions.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-slate-500">
-            {writtenQuestions.length} written answer{writtenQuestions.length === 1 ? "" : "s"} to check
-            {queueLeft > 0 ? ` · ${queueLeft} more trainee${queueLeft === 1 ? "" : "s"} waiting after this` : ""}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-200"
+              role="progressbar"
+              aria-valuenow={writtenQuestions.length - ungraded}
+              aria-valuemin={0}
+              aria-valuemax={writtenQuestions.length}
+            >
+              <div
+                className="h-full rounded-full bg-violet-500 transition-all"
+                style={{ width: `${((writtenQuestions.length - ungraded) / writtenQuestions.length) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs font-medium text-slate-600">
+              {writtenQuestions.length - ungraded} of {writtenQuestions.length} answer
+              {writtenQuestions.length === 1 ? "" : "s"} scored
+            </p>
+            {queueLeft > 0 ? (
+              <p className="text-xs text-slate-400">
+                {queueLeft} more trainee{queueLeft === 1 ? "" : "s"} after this
+              </p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={() => setShowHelp((value) => !value)}
@@ -755,19 +1152,21 @@ function AttemptPaper({
       ) : null}
       {showHelp ? <ShortcutHelp /> : null}
 
-      <ol className="grid gap-3">
+      <ol className="grid gap-4">
         {writtenQuestions.map((question, index) => {
           const answer = answerMap.get(question.id);
           const draft = drafts[question.id] ?? { points: "", comment: "" };
-          const pointsValid = draft.points.trim() === "" || draftPoints(question) !== null;
           const text = answer?.textAnswer ?? "";
           const hasText = text.trim().length > 0;
-          const half = Math.floor(question.points / 2);
-          const terms = keyTerms(question.modelAnswer ?? "");
+          const guide = question.modelAnswer?.trim() ?? "";
+          const terms = keyTerms(guide);
           const covered = coveredTerms(text, terms);
           const focused = index === focusIndex;
           const graded = draftPoints(question) !== null;
-          const words = hasText ? text.trim().split(/\s+/).length : 0;
+          const words = countWords(text);
+          const long = text.length > LONG_ANSWER_CHARS || text.split("\n").length > LONG_ANSWER_LINES;
+          const collapsed = long && !expanded.has(question.id);
+          const roomy = text.length > FOCUS_MODE_CHARS;
           return (
             <li
               key={question.id}
@@ -775,168 +1174,91 @@ function AttemptPaper({
                 cardRefs.current[question.id] = node;
               }}
               onClick={() => setFocusIndex(index)}
-              className={`scroll-mt-24 rounded-xl px-4 py-3 text-sm ring-1 transition ${
-                focused ? "bg-white ring-2 ring-violet-400" : graded ? "bg-white ring-slate-200" : "bg-amber-50/60 ring-amber-200"
+              className={`scroll-mt-24 overflow-hidden rounded-xl bg-white transition ${
+                focused ? "ring-2 ring-violet-400" : "ring-1 ring-slate-200"
               }`}
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="whitespace-pre-line font-medium text-slate-900">
-                  <span className="mr-1 text-slate-400">Written {index + 1}.</span>
+              <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3">
+                <span
+                  className={`mt-px inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    graded ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"
+                  }`}
+                  aria-hidden
+                >
+                  {graded ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                </span>
+                <p className="min-w-0 flex-1 whitespace-pre-line text-sm font-medium text-slate-900">
                   {question.prompt}
                 </p>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    graded ? "bg-emerald-50 text-emerald-700" : "bg-violet-50 text-violet-700"
+                  className={`shrink-0 text-xs font-semibold tabular-nums ${
+                    graded ? "text-emerald-700" : "text-slate-400"
                   }`}
                 >
-                  {graded ? `${draft.points}/${question.points} pts` : `${question.points} pt${question.points === 1 ? "" : "s"}`}
+                  {graded ? `${draft.points} / ${question.points}` : `${question.points} pt${question.points === 1 ? "" : "s"}`}
                 </span>
               </div>
-              <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                <div>
-                  <p className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    <span>{traineeName}&apos;s answer</span>
-                    {hasText ? <span className="font-normal normal-case">{words} words</span> : null}
+
+              <div className={`grid gap-4 px-4 py-4 ${guide ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)]" : ""}`}>
+                <div className="min-w-0">
+                  <p className="flex items-baseline gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Answer
+                    {hasText ? (
+                      <span className="font-normal normal-case tracking-normal text-slate-400">
+                        {words} word{words === 1 ? "" : "s"}
+                      </span>
+                    ) : null}
                   </p>
                   {hasText ? (
-                    <p className="mt-1 max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white px-3 py-2 text-[15px] leading-7 text-slate-800 ring-1 ring-slate-200">
-                      {highlightSegments(text, terms).map((segment, segmentIndex) =>
-                        segment.hit ? (
-                          <mark key={segmentIndex} className="rounded bg-emerald-100 px-0.5 text-emerald-900">
-                            {segment.text}
-                          </mark>
-                        ) : (
-                          <span key={segmentIndex}>{segment.text}</span>
-                        ),
-                      )}
-                    </p>
-                  ) : (
-                    <p className="mt-1 rounded-lg bg-white px-3 py-2 italic text-slate-400 ring-1 ring-slate-200">
-                      No answer written (scored 0 automatically)
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    <BookOpenCheck className="h-3.5 w-3.5" />
-                    Marking guide
-                  </p>
-                  {question.modelAnswer?.trim() ? (
                     <>
-                      <p className="mt-1 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-lg bg-emerald-50/60 px-3 py-2 leading-6 text-slate-700 ring-1 ring-emerald-100">
-                        {question.modelAnswer}
-                      </p>
-                      {terms.length > 0 ? (
-                        <div className="mt-2">
-                          <p className="text-[11px] text-slate-500">
-                            Key terms found: {covered.size}/{terms.length}
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {terms.map((term) => (
-                              <span
-                                key={term}
-                                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                                  covered.has(term)
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : "bg-slate-100 text-slate-400 line-through"
-                                }`}
-                              >
-                                {term}
-                              </span>
-                            ))}
-                          </div>
+                      <div className={`relative mt-1.5 ${collapsed ? "max-h-56 overflow-hidden" : ""}`}>
+                        <HighlightedText
+                          text={text}
+                          terms={terms}
+                          className="max-w-prose text-sm leading-6 text-slate-800"
+                        />
+                        {collapsed ? (
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white via-white/85 to-transparent" />
+                        ) : null}
+                      </div>
+                      {long || roomy ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-1">
+                          {long ? (
+                            <button type="button" className={linkButtonClass} onClick={() => toggleExpanded(question.id)}>
+                              <ChevronDown className={`h-3.5 w-3.5 transition ${collapsed ? "" : "rotate-180"}`} />
+                              {collapsed ? "Show full answer" : "Show less"}
+                            </button>
+                          ) : null}
+                          <button type="button" className={linkButtonClass} onClick={() => openReader(index)}>
+                            <Maximize2 className="h-3.5 w-3.5" />
+                            Read in focus mode
+                          </button>
                         </div>
                       ) : null}
                     </>
                   ) : (
-                    <p className="mt-1 rounded-lg bg-white px-3 py-2 italic text-slate-400 ring-1 ring-slate-200">
-                      No marking guide yet. Add one when editing the quiz to get key-term hints here.
-                    </p>
+                    <p className="mt-1.5 text-sm italic text-slate-400">No answer written — scored 0 automatically</p>
                   )}
                 </div>
+                {guide ? <MarkingGuide modelAnswer={guide} terms={terms} covered={covered} /> : null}
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Points</p>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      min={0}
-                      max={question.points}
-                      inputMode="numeric"
-                      value={draft.points}
-                      placeholder="–"
-                      disabled={saving}
-                      aria-label={`Points for written question ${index + 1}`}
-                      aria-invalid={!pointsValid}
-                      onFocus={() => setFocusIndex(index)}
-                      onChange={(event) => setDraft(question.id, { points: event.target.value })}
-                      className={`h-9 w-16 rounded-lg bg-white px-2 text-center text-sm font-semibold outline-none ring-1 focus:ring-2 ${
-                        pointsValid ? "ring-slate-200 focus:ring-violet-400" : "ring-red-300 focus:ring-red-400"
-                      }`}
-                    />
-                    <span className="text-slate-500">/ {question.points}</span>
-                    <div className="ml-1 flex gap-1">
-                      {[
-                        { label: "0", value: 0 },
-                        ...(half > 0 && half < question.points ? [{ label: "Half", value: half }] : []),
-                        { label: "Full", value: question.points },
-                      ].map((preset) => (
-                        <button
-                          key={preset.label}
-                          type="button"
-                          disabled={saving}
-                          onClick={() => {
-                            setFocusIndex(index);
-                            setDraft(question.id, { points: String(preset.value) });
-                          }}
-                          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition ${
-                            draft.points === String(preset.value)
-                              ? "bg-violet-600 text-white ring-violet-600"
-                              : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-100"
-                          }`}
-                        >
-                          {preset.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {!pointsValid ? (
-                    <p className="mt-1 text-xs text-red-600">Enter 0 – {question.points}</p>
-                  ) : null}
-                </div>
-                <div className="grid gap-1">
-                  <label
-                    htmlFor={`note-${attempt.id}-${question.id}`}
-                    className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"
-                  >
-                    Note to trainee (optional)
-                  </label>
-                  <textarea
-                    id={`note-${attempt.id}-${question.id}`}
-                    value={draft.comment}
-                    disabled={saving}
-                    maxLength={2000}
-                    rows={2}
-                    placeholder="What was good, what was missing…"
-                    onFocus={() => setFocusIndex(index)}
-                    onChange={(event) => setDraft(question.id, { comment: event.target.value })}
-                    className="min-h-[38px] resize-y rounded-lg bg-white px-3 py-2 text-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-violet-400"
-                  />
-                  <div className="flex flex-wrap gap-1">
-                    {QUICK_NOTES.map((note) => (
-                      <button
-                        key={note}
-                        type="button"
-                        disabled={saving}
-                        onClick={() => addQuickNote(question.id, note)}
-                        className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 transition hover:bg-violet-100 hover:text-violet-800"
-                      >
-                        + {note}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
+              <div className="grid gap-3 border-t border-slate-100 bg-slate-50/70 px-4 py-3">
+                <ScorePicker
+                  question={question}
+                  value={draft.points}
+                  disabled={saving}
+                  onFocus={() => setFocusIndex(index)}
+                  onChange={(value) => setDraft(question.id, { points: value })}
+                />
+                <NoteField
+                  id={`note-${attempt.id}-${question.id}`}
+                  value={draft.comment}
+                  disabled={saving}
+                  onFocus={() => setFocusIndex(index)}
+                  onChange={(value) => setDraft(question.id, { comment: value })}
+                  onQuickNote={(note) => addQuickNote(question.id, note)}
+                />
               </div>
             </li>
           );
@@ -991,65 +1313,145 @@ function AttemptPaper({
 
       {writtenQuestions.length > 0 ? (
         <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
-          <div className="min-w-0 text-sm">
-            <p className="font-medium text-slate-900">
-              {ungraded > 0 ? (
-                <>
-                  Score so far: {earned}/{total} pts ·{" "}
-                  <span className="text-amber-700">
-                    {ungraded} written answer{ungraded === 1 ? "" : "s"} left
-                  </span>
-                </>
-              ) : (
-                <>
-                  Final score: {previewScore}% ({earned}/{total} pts) ·{" "}
-                  <span className={previewPassed ? "text-emerald-700" : "text-red-600"}>
-                    {previewPassed ? "Passes" : "Below pass mark"} ({passingScore}%)
-                  </span>
-                </>
-              )}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {ungraded > 0
-                ? "You can save now and finish later. The trainee sees their result once everything is graded."
-                : "Saving publishes the score to the trainee and notifies them."}
-              {dirty ? <span className="ml-1 font-medium text-amber-700">Unsaved changes.</span> : null}
-            </p>
-            {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {canAdvance ? (
-              <>
+          {saveBar}
+        </div>
+      ) : null}
+
+      {readerQuestion && readerDraft ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${traineeName}'s answer to written question ${focusIndex + 1}`}
+          className="fixed inset-0 z-50 flex bg-slate-950/50 p-2 sm:p-4"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setReaderOpen(false);
+            }
+          }}
+        >
+          <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">
+                  {traineeName} · Written {focusIndex + 1} of {writtenQuestions.length} · {readerQuestion.points} pt
+                  {readerQuestion.points === 1 ? "" : "s"}
+                </p>
+                <p className="truncate text-sm font-semibold text-slate-900">{readerQuestion.prompt}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <div role="group" aria-label="Text size" className="mr-1 flex overflow-hidden rounded-lg ring-1 ring-slate-200">
+                  <button
+                    type="button"
+                    aria-label="Smaller text"
+                    disabled={readerSize === 0}
+                    onClick={() => changeReaderSize(-1)}
+                    className="px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    A−
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Larger text"
+                    disabled={readerSize === READER_SIZES.length - 1}
+                    onClick={() => changeReaderSize(1)}
+                    className="border-l border-slate-200 px-2.5 py-1 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    A+
+                  </button>
+                </div>
                 <button
                   type="button"
-                  className={secondaryButtonClass}
-                  disabled={saving}
-                  onClick={() => void save(false)}
+                  aria-label="Previous answer"
+                  title="Previous answer (←)"
+                  disabled={focusIndex === 0}
+                  onClick={() => focusQuestion(focusIndex - 1)}
+                  className={iconButtonClass}
                 >
-                  {alreadyGraded ? "Update" : "Save"}
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className={primaryButtonClass}
-                  disabled={saving}
-                  onClick={() => void save(true)}
-                  title="Ctrl + Enter"
+                  aria-label="Next answer"
+                  title="Next answer (→)"
+                  disabled={focusIndex === writtenQuestions.length - 1}
+                  onClick={() => focusQuestion(focusIndex + 1)}
+                  className={iconButtonClass}
                 >
-                  {saving ? "Saving…" : nextTraineeName ? `Save & next: ${nextTraineeName}` : "Save & back to queue"}
-                  <ArrowRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4" />
                 </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                className={primaryButtonClass}
-                disabled={saving}
-                onClick={() => void save(false)}
-                title="Ctrl + Enter"
-              >
-                {saving ? "Saving…" : alreadyGraded ? "Update grades" : "Save grades"}
-              </button>
-            )}
+                <button
+                  type="button"
+                  aria-label="Close focus mode"
+                  title="Close (Esc)"
+                  onClick={() => setReaderOpen(false)}
+                  className={iconButtonClass}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden">
+              <div key={readerQuestion.id} className="px-5 py-6 sm:px-10 lg:min-h-0 lg:overflow-y-auto">
+                <div className="mx-auto max-w-prose">
+                  <p className="whitespace-pre-line text-sm font-medium leading-6 text-slate-500">
+                    {readerQuestion.prompt}
+                  </p>
+                  <p className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    {traineeName}&apos;s answer · {countWords(readerText)} word{countWords(readerText) === 1 ? "" : "s"}
+                  </p>
+                  {readerText.trim() ? (
+                    <HighlightedText
+                      text={readerText}
+                      terms={readerTerms}
+                      className={`mt-2 text-slate-800 ${READER_SIZES[readerSize]}`}
+                    />
+                  ) : (
+                    <p className="mt-2 italic text-slate-400">No answer written (scored 0 automatically)</p>
+                  )}
+                </div>
+              </div>
+              <aside className="grid content-start gap-4 border-t border-slate-200 bg-slate-50 p-4 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+                {readerQuestion.modelAnswer?.trim() ? (
+                  <MarkingGuide
+                    modelAnswer={readerQuestion.modelAnswer.trim()}
+                    terms={readerTerms}
+                    covered={coveredTerms(readerText, readerTerms)}
+                  />
+                ) : (
+                  <p className="text-xs text-slate-400">No marking guide for this question.</p>
+                )}
+                <ScorePicker
+                  question={readerQuestion}
+                  value={readerDraft.points}
+                  disabled={saving}
+                  onFocus={() => undefined}
+                  onChange={(value) => setDraft(readerQuestion.id, { points: value })}
+                />
+                <NoteField
+                  id={`reader-note-${attempt.id}-${readerQuestion.id}`}
+                  value={readerDraft.comment}
+                  disabled={saving}
+                  rows={4}
+                  alwaysOpen
+                  onFocus={() => undefined}
+                  onChange={(value) => setDraft(readerQuestion.id, { comment: value })}
+                  onQuickNote={(note) => addQuickNote(readerQuestion.id, note)}
+                />
+                {focusIndex < writtenQuestions.length - 1 ? (
+                  <button type="button" className={secondaryButtonClass} onClick={() => focusQuestion(focusIndex + 1)}>
+                    Next written answer
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button type="button" className={secondaryButtonClass} onClick={() => setReaderOpen(false)}>
+                    Done reading
+                  </button>
+                )}
+              </aside>
+            </div>
+            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3">
+              {saveBar}
+            </footer>
           </div>
         </div>
       ) : null}

@@ -5,14 +5,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { CourseOutcomeBadge } from "@/components/course-outcome";
 import { TrainerShell } from "@/components/trainer-shell";
-import { Dialog } from "@/components/ui/dialog";
-import { RequiredMark } from "@/components/ui/required-mark";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
+import { LobChip } from "@/features/batch-tracker/badges";
+import { CreateBatchDialog } from "@/features/batch-tracker/create-batch-dialog";
+import { formatDay } from "@/features/batch-tracker/format";
+import { RemoveEnrollmentDialog } from "@/features/batch-tracker/trainee-actions";
 import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
 import { getTrainerProgram } from "@/lib/api/programs";
 import { listProgramTrainees, type ProgramTraineeRow, type TraineeRosterCounts } from "@/lib/api/enrollments";
 import {
-  createProgramBatch,
   deleteProgramBatch,
   listProgramBatches,
   type ProgramBatch,
@@ -20,7 +21,7 @@ import {
 } from "@/lib/api/batches";
 import { ApiClientError } from "@/lib/api/client";
 import { programAllowsEnrollment } from "@/lib/programs/enrollment";
-import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 import type { ProgramTree } from "@/types/program";
 
@@ -36,6 +37,8 @@ export default function ProgramTraineesPage() {
   const [enrollBatch, setEnrollBatch] = useState<ProgramBatch | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ enrollmentId: string; name: string } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [openBatchId, setOpenBatchId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -80,36 +83,6 @@ export default function ProgramTraineesPage() {
     };
   }, [params.id]);
 
-  async function onCreateBatch(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!params.id) {
-      return;
-    }
-    const data = new FormData(event.currentTarget);
-    const name = String(data.get("name") ?? "").trim();
-    if (!name) {
-      return;
-    }
-    const capacityRaw = Number(data.get("capacity"));
-    setBusyId("create");
-    setError(null);
-    try {
-      await createProgramBatch(params.id, {
-        name,
-        description: String(data.get("description") ?? "").trim() || undefined,
-        capacity: Number.isFinite(capacityRaw) && capacityRaw > 0 ? capacityRaw : 25,
-        startDate: String(data.get("startDate") ?? "") || undefined,
-        endDate: String(data.get("endDate") ?? "") || undefined,
-      });
-      setCreateOpen(false);
-      await load();
-    } catch (err: unknown) {
-      setError(err instanceof ApiClientError ? err.message : "Unable to create batch.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   async function onDeleteBatch(batch: ProgramBatch) {
     if (batch.memberCount > 0) {
       setError("Cannot delete a batch that has enrollments.");
@@ -152,6 +125,7 @@ export default function ProgramTraineesPage() {
       }
     >
       {error ? <ErrorState message={error} /> : null}
+      {notice ? <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{notice}</p> : null}
       {trainees === null && !error ? <LoadingState label="Loading batches..." /> : null}
       {program ? (
         <p className="mb-4 text-sm text-slate-600">
@@ -185,15 +159,33 @@ export default function ProgramTraineesPage() {
               <article key={batch.id} className="rounded-2xl bg-white p-5 ring-1 ring-slate-950/5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <button type="button" className="text-left" onClick={() => setOpenBatchId(open ? null : batch.id)}>
-                    <p className="font-medium text-slate-900">
-                      {program?.title ? `${program.title} — ${batch.name}` : batch.name}
+                    <p className="flex flex-wrap items-center gap-2 font-medium text-slate-900">
+                      {batch.code ? (
+                        <>
+                          <span>{batch.name === batch.code ? batch.code : `${batch.code} · ${batch.name}`}</span>
+                          <LobChip value={batch.lineOfBusiness} />
+                        </>
+                      ) : program?.title ? (
+                        `${program.title} — ${batch.name}`
+                      ) : (
+                        batch.name
+                      )}
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {batch.memberCount} / {batch.capacity} enrolled · {batch.remaining} remaining
+                      {batch.startDate ? ` · Starts ${formatDay(batch.startDate.slice(0, 10), true)}` : ""}
+                      {batch.salesTrainer || batch.supportTrainer
+                        ? ` · ${[batch.salesTrainer?.name, batch.supportTrainer?.name].filter(Boolean).join(" & ")}`
+                        : ""}
                       {batch.description ? ` · ${batch.description}` : ""}
                     </p>
                   </button>
                   <div className="flex flex-wrap gap-2">
+                    {batch.code ? (
+                      <Link href={`/trainer/batch-tracker/${batch.id}`} className={secondaryButtonClass}>
+                        Track
+                      </Link>
+                    ) : null}
                     {canEnroll ? (
                       <button
                         type="button"
@@ -221,7 +213,11 @@ export default function ProgramTraineesPage() {
                     {members.length === 0 ? (
                       <p className="text-sm text-slate-500">No trainees in this batch yet.</p>
                     ) : (
-                      <TraineeList rows={members} programId={program?.id ?? params.id} />
+                      <TraineeList
+                        rows={members}
+                        programId={program?.id ?? params.id}
+                        onRemove={(row) => setRemoveTarget({ enrollmentId: row.enrollmentId, name: row.trainee.name })}
+                      />
                     )}
                   </div>
                 ) : null}
@@ -246,44 +242,31 @@ export default function ProgramTraineesPage() {
         />
       ) : null}
 
-      <Dialog open={createOpen} title="Create batch" onClose={() => setCreateOpen(false)}>
-        <form className="grid gap-3" onSubmit={(event) => void onCreateBatch(event)}>
-          <p className="text-sm text-slate-600">{program?.title ?? "Course"}</p>
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium text-slate-800">
-              Batch name
-              <RequiredMark />
-            </span>
-            <input name="name" required className={fieldClass} placeholder="September 2026" disabled={busyId === "create"} />
-          </label>
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium text-slate-800">Capacity</span>
-            <input name="capacity" type="number" min={1} max={200} defaultValue={25} className={fieldClass} disabled={busyId === "create"} />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-1 text-sm">
-              <span className="font-medium text-slate-800">Start date</span>
-              <input name="startDate" type="date" className={fieldClass} disabled={busyId === "create"} />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-medium text-slate-800">End date</span>
-              <input name="endDate" type="date" className={fieldClass} disabled={busyId === "create"} />
-            </label>
-          </div>
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium text-slate-800">Description</span>
-            <textarea name="description" rows={3} className={fieldClass} disabled={busyId === "create"} />
-          </label>
-          <div className="mt-2 flex justify-end gap-2">
-            <button type="button" className={secondaryButtonClass} onClick={() => setCreateOpen(false)}>
-              Cancel
-            </button>
-            <button type="submit" className={primaryButtonClass} disabled={busyId === "create"}>
-              {busyId === "create" ? "Saving…" : "Create batch"}
-            </button>
-          </div>
-        </form>
-      </Dialog>
+      <RemoveEnrollmentDialog
+        role="trainer"
+        target={removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        onDone={() => {
+          setNotice(`${removeTarget?.name ?? "Trainee"} was removed from the batch.`);
+          setRemoveTarget(null);
+          void load();
+        }}
+      />
+
+      {program ? (
+        <CreateBatchDialog
+          open={createOpen}
+          programId={program.id}
+          programTitle={program.title}
+          trainers={program.trainers ?? []}
+          currentUserId={user.id}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => {
+            setCreateOpen(false);
+            void load();
+          }}
+        />
+      ) : null}
     </TrainerShell>
   );
 }
@@ -297,7 +280,15 @@ function OutcomeStat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function TraineeList({ rows, programId }: { rows: ProgramTraineeRow[]; programId: string }) {
+function TraineeList({
+  rows,
+  programId,
+  onRemove,
+}: {
+  rows: ProgramTraineeRow[];
+  programId: string;
+  onRemove: (row: ProgramTraineeRow) => void;
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-left text-sm">
@@ -306,6 +297,9 @@ function TraineeList({ rows, programId }: { rows: ProgramTraineeRow[]; programId
             <th className="pb-2 font-medium">Trainee</th>
             <th className="pb-2 font-medium">Progress</th>
             <th className="pb-2 font-medium">Outcome</th>
+            <th className="pb-2">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -330,6 +324,18 @@ function TraineeList({ rows, programId }: { rows: ProgramTraineeRow[]; programId
                   }}
                   progress={row.progress}
                 />
+              </td>
+              <td className="py-3 text-right">
+                {row.canRemove ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(row)}
+                    title="Enrolled by mistake? Remove before they start."
+                    className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition duration-150 hover:bg-rose-50 hover:text-rose-700"
+                  >
+                    Remove
+                  </button>
+                ) : null}
               </td>
             </tr>
           ))}
