@@ -1,9 +1,19 @@
 import Image from "next/image";
-import { Cormorant_Garamond, Pinyon_Script } from "next/font/google";
+import localFont from "next/font/local";
 import type { CertificateStatus, OwnedCertificate } from "@/types/certificate";
 
-const headingFont = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600"], display: "swap" });
-const scriptFont = Pinyon_Script({ subsets: ["latin"], weight: "400", display: "swap" });
+const headingFont = localFont({
+  src: [
+    { path: "./fonts/CormorantGaramond-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/CormorantGaramond-SemiBold.woff2", weight: "600", style: "normal" },
+  ],
+  display: "swap",
+});
+const scriptFont = localFont({
+  src: "./fonts/PinyonScript-Regular.woff2",
+  weight: "400",
+  display: "swap",
+});
 
 const MAROON = "#7a1f24";
 const GOLD = "#e3cb8f";
