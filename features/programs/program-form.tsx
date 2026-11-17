@@ -37,7 +37,6 @@ export function ProgramForm({ defaultValues, submitLabel, disabled, onSubmit }: 
     defaultValues: {
       title: "",
       description: "",
-      category: "Other",
       difficulty: "BEGINNER",
       trainingMode: "PROGRESSION",
       examScoreThreshold: 60,

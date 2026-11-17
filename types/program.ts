@@ -203,6 +203,7 @@ export type CreateProgramInput = {
   difficulty?: Difficulty;
   durationWeeks?: number;
   trainingMode?: TrainingMode;
+  examScoreThreshold?: number;
   startDate?: string | null;
   endDate?: string | null;
   learningObjectives?: string[];
