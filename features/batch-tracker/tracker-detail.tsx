@@ -791,7 +791,7 @@ export function BatchTrackerDetail({
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-slate-900">{course.title}</span>
                   <span className="text-[11px] font-medium text-slate-400">
-                    {"label" in course && course.label ? course.label : index === 0 ? "First" : `Course ${index + 1}`}
+                    {course.label ?? (index === 0 ? "First" : `Course ${index + 1}`)}
                   </span>
                 </span>
               </li>

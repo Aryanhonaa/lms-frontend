@@ -41,7 +41,7 @@ export type TrackerBatch = {
   id: string;
   code: string | null;
   name: string;
-  program: { id: string; title: string };
+  program: { id: string; title: string; label?: string };
   courses?: Array<{
     id: string;
     title: string;
