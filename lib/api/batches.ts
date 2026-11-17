@@ -18,6 +18,16 @@ export type ProgramBatch = {
   actualCompletionDate: string | null;
   salesTrainer: { id: string; name: string; email: string } | null;
   supportTrainer: { id: string; name: string; email: string } | null;
+  collaborators?: Array<{ id: string; name: string; email: string }>;
+  courses?: Array<{
+    id: string;
+    title: string;
+    batchId?: string;
+    sortOrder?: number;
+    sequence?: number;
+    label?: string;
+    isPrimary?: boolean;
+  }>;
   createdAt: string;
   memberCount: number;
   remaining: number;
@@ -33,7 +43,24 @@ export type CreateBatchInput = {
   batchNumber?: number;
   salesTrainerId?: string;
   supportTrainerId?: string;
+  collaboratorIds?: string[];
+  programIds?: string[];
 };
+
+export type BatchCatalog = {
+  programs: Array<{
+    id: string;
+    title: string;
+    category: string;
+    durationWeeks: number;
+    status: string;
+  }>;
+  trainers: Array<{ id: string; name: string; email: string }>;
+};
+
+export async function getBatchCatalog(role: "trainer" | "admin" = "trainer"): Promise<BatchCatalog> {
+  return apiClient(`/${role}/batch-catalog`);
+}
 
 export type ProgramBatchesResponse = {
   batches: ProgramBatch[];
@@ -55,7 +82,14 @@ export async function createProgramBatch(
 
 export async function updateProgramBatch(
   batchId: string,
-  input: { name?: string; description?: string; capacity?: number },
+  input: {
+    name?: string;
+    description?: string;
+    capacity?: number;
+    programIds?: string[];
+    collaboratorIds?: string[];
+    salesTrainerId?: string;
+  },
 ): Promise<{ batch: ProgramBatch }> {
   return apiClient(`/trainer/batches/${batchId}`, { method: "PATCH", body: input });
 }

@@ -34,8 +34,40 @@ function accessErrorMessage(error: unknown): string {
   return "This file is currently unavailable.";
 }
 
+function mimeFromName(fileName: string, mimeType: string): string {
+  if (mimeType && mimeType !== "application/octet-stream") {
+    return mimeType;
+  }
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") {
+    return "application/pdf";
+  }
+  if (ext === "png") {
+    return "image/png";
+  }
+  if (ext === "jpg" || ext === "jpeg") {
+    return "image/jpeg";
+  }
+  if (ext === "gif") {
+    return "image/gif";
+  }
+  if (ext === "webp") {
+    return "image/webp";
+  }
+  if (ext === "mp4") {
+    return "video/mp4";
+  }
+  if (ext === "webm") {
+    return "video/webm";
+  }
+  if (ext === "mp3") {
+    return "audio/mpeg";
+  }
+  return mimeType;
+}
+
 /** Loads a short-lived authorized URL and refreshes it on demand or after expiry. */
-export function useFileAccess(loader: AccessLoader, enabled = true) {
+export function useFileAccess(loader: AccessLoader, enabled = true, resourceKey?: string) {
   const loaderRef = useRef(loader);
   const [state, setState] = useState<{ access: FileAccess | null; loading: boolean; error: string | null }>({
     access: null,
@@ -62,10 +94,12 @@ export function useFileAccess(loader: AccessLoader, enabled = true) {
   }, [fetchAccess]);
 
   useEffect(() => {
-    if (enabled) {
-      void fetchAccess();
+    if (!enabled) {
+      return;
     }
-  }, [enabled, fetchAccess]);
+    setState({ access: null, loading: true, error: null });
+    void fetchAccess();
+  }, [enabled, fetchAccess, resourceKey]);
 
   return { access: state.access, loading: state.loading, error: state.error, reload };
 }
@@ -83,6 +117,7 @@ export function FileViewer({
   fileSize,
   title,
   autoLoad = true,
+  resourceKey,
 }: {
   loader: AccessLoader;
   fileName: string;
@@ -90,8 +125,14 @@ export function FileViewer({
   fileSize?: number;
   title?: string;
   autoLoad?: boolean;
+  resourceKey?: string;
 }) {
-  const { access, loading, error, reload } = useFileAccess(loader, autoLoad);
+  const resolvedMime = mimeFromName(fileName, mimeType);
+  const { access, loading, error, reload } = useFileAccess(
+    loader,
+    autoLoad,
+    resourceKey ?? `${fileName}:${resolvedMime}:${fileSize ?? 0}`,
+  );
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [blob, setBlob] = useState<{ for: FileAccess; url: string } | null>(null);
@@ -148,7 +189,7 @@ export function FileViewer({
     return (
       <div className="rounded-2xl bg-white px-4 py-6 text-sm text-slate-500 ring-1 ring-slate-950/5">
         <p className="animate-pulse">
-          {isVideo(mimeType) ? "Preparing video…" : isAudio(mimeType) ? "Preparing audio…" : "Loading document…"}
+          {isVideo(resolvedMime) ? "Preparing video…" : isAudio(resolvedMime) ? "Preparing audio…" : "Loading document…"}
         </p>
         <div className="mt-3 h-2 w-40 animate-pulse rounded-full bg-slate-200" />
       </div>
@@ -173,29 +214,29 @@ export function FileViewer({
 
   return (
     <div className="space-y-3">
-      {isPdf(mimeType) ? (
+      {isPdf(resolvedMime) ? (
         <ViewerFrame tall>
           <object data={url} type="application/pdf" className="h-full w-full">
             <iframe title={title ?? fileName} src={url} className="h-full w-full bg-white" />
           </object>
         </ViewerFrame>
-      ) : isVideo(mimeType) ? (
+      ) : isVideo(resolvedMime) ? (
         <ViewerFrame>
-          <video className="w-full" src={url} controls controlsList="nodownload" preload="metadata" playsInline>
+          <video key={url} className="w-full" src={url} controls controlsList="nodownload" preload="metadata" playsInline>
             <a href={url} className="text-sm text-white underline">
               Open video
             </a>
           </video>
         </ViewerFrame>
-      ) : isImage(mimeType) ? (
+      ) : isImage(resolvedMime) ? (
         <div className="overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-950/5">
           {/* Signed storage URLs are short-lived, so the native img tag is used instead of next/image. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt={title ?? fileName} className="mx-auto max-h-[70vh] w-auto max-w-full" />
         </div>
-      ) : isAudio(mimeType) ? (
+      ) : isAudio(resolvedMime) ? (
         <div className="rounded-2xl bg-white px-4 py-4 ring-1 ring-slate-950/5">
-          <audio className="w-full" src={url} controls preload="metadata" />
+          <audio key={url} className="w-full" src={url} controls preload="metadata" />
         </div>
       ) : (
         <div className="rounded-2xl bg-white px-4 py-5 text-sm text-slate-600 ring-1 ring-slate-950/5">
@@ -209,7 +250,7 @@ export function FileViewer({
           {fileName}
           {sizeLabel ? ` · ${sizeLabel}` : ""}
         </p>
-        {isPdf(mimeType) || isImage(mimeType) ? (
+        {isPdf(resolvedMime) || isImage(resolvedMime) ? (
           <a
             href={url}
             target="_blank"

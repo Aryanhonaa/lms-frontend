@@ -88,6 +88,7 @@ export type AssessmentAttemptView = {
   passed: boolean | null;
   needsReview?: boolean;
   gradedAt?: string | null;
+  gradedBy?: { id: string; name: string; email: string } | null;
   passingScore: number;
   answersVisible?: boolean;
   questions: SafeQuestion[];
@@ -161,6 +162,7 @@ export type TrainerAssessmentRosterRow = {
     passed: boolean | null;
     needsReview?: boolean;
     gradedAt?: string | null;
+    gradedBy?: { id: string; name: string; email: string } | null;
     startedAt: string;
     submittedAt: string | null;
     answers: TrainerAssessmentAnswer[];
@@ -191,6 +193,9 @@ export type TrainerAssessmentDetail = {
     notStartedCount: number;
     averageScore: number | null;
     passRate: number | null;
+    answersVisible?: boolean;
+    canRevealAnswers?: boolean;
+    pendingSubmitCount?: number;
   };
   attempts: TrainerAssessmentAttempt[];
   roster: TrainerAssessmentRosterRow[];
@@ -213,6 +218,7 @@ export type GradingQueueItem = {
   needsReview: boolean;
   submittedAt: string | null;
   gradedAt: string | null;
+  gradedBy?: { id: string; name: string; email: string } | null;
   enrollmentId: string;
   pendingAnswerCount: number;
   writtenAnswerCount: number;

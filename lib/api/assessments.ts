@@ -52,10 +52,15 @@ export async function listTrainerAssessments(scope?: TrainerWorkScope): Promise<
   return apiClient<{ assessments: TrainerAssessmentSummary[] }>(`/trainer/assessments${trainerScopeQuery(scope)}`);
 }
 
-export async function getGradingQueue(params: { view?: GradingQueueView; programId?: string } = {}): Promise<GradingQueue> {
+export async function getGradingQueue(
+  params: { view?: GradingQueueView; batchId?: string; programId?: string } = {},
+): Promise<GradingQueue> {
   const query = new URLSearchParams();
   if (params.view) {
     query.set("view", params.view);
+  }
+  if (params.batchId) {
+    query.set("batchId", params.batchId);
   }
   if (params.programId) {
     query.set("programId", params.programId);
@@ -76,4 +81,14 @@ export function notifyGradingChanged() {
 
 export async function getTrainerAssessment(id: string, scope?: TrainerWorkScope): Promise<TrainerAssessmentDetail> {
   return apiClient(`/trainer/assessments/${id}${trainerScopeQuery(scope)}`);
+}
+
+export async function setAssessmentAnswerVisibility(
+  id: string,
+  input: { batchId: string; answersVisible: boolean },
+): Promise<{ quizId: string; batchId: string; answersVisible: boolean; revealedAt: string | null }> {
+  return apiClient(`/trainer/assessments/${id}/answer-visibility`, {
+    method: "POST",
+    body: input,
+  });
 }

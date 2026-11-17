@@ -151,7 +151,10 @@ export function CalendarBoard({
             </h2>
             <ul className="mt-4 space-y-3">
               {selectedDayEvents.length === 0 ? (
-                <li className="text-sm text-slate-500">No activities scheduled for this day.</li>
+                <li className="text-sm text-slate-500">
+                  Nothing on this day yet. Batch start and complete-by dates, exams, and activities you add will show
+                  here.
+                </li>
               ) : (
                 selectedDayEvents.map((event) => {
               const relatedBatchNames = event.batch
@@ -190,7 +193,10 @@ export function CalendarBoard({
             <h2 className="text-base font-semibold text-slate-900">This month</h2>
             <ul className="mt-4 space-y-3">
               {monthEvents.length === 0 ? (
-                <li className="text-sm text-slate-500">No scheduled items this month.</li>
+                <li className="text-sm text-slate-500">
+                  The calendar fills from batch dates, exams, holidays, and activities you add — it is not limited to
+                  scheduled courses.
+                </li>
               ) : (
                 monthEvents.map((event) => (
                   <li key={event.id} className="rounded-xl bg-slate-50 px-3 py-3">

@@ -35,19 +35,29 @@ export type BatchFunnel = {
   throughputPct: number | null;
 };
 
-export type PersonName = { id: string; name: string };
+export type PersonName = { id: string; name: string; email?: string };
 
 export type TrackerBatch = {
   id: string;
   code: string | null;
   name: string;
   program: { id: string; title: string };
+  courses?: Array<{
+    id: string;
+    title: string;
+    batchId?: string;
+    sortOrder?: number;
+    sequence?: number;
+    label?: string;
+    isPrimary?: boolean;
+  }>;
   lineOfBusiness: LineOfBusiness | null;
   month: number | null;
   year: number | null;
   batchNumber: number | null;
   salesTrainer: PersonName | null;
   supportTrainer: PersonName | null;
+  collaborators?: PersonName[];
   startDate: string | null;
   targetCompletionDate: string | null;
   actualCompletionDate: string | null;
@@ -79,6 +89,16 @@ export type TrackerOverview = {
   };
 };
 
+export type TrackerCourseProgress = {
+  programId: string;
+  title: string;
+  enrollmentId: string | null;
+  progress: number;
+  courseOutcome: "PENDING" | "PASSED" | "FAILED";
+  exam: { score: number | null; passed: boolean | null; needsReview: boolean; submittedAt: string | null } | null;
+  certified: boolean;
+};
+
 export type TrackerTrainee = {
   enrollmentId: string;
   trainee: { id: string; name: string; email: string };
@@ -89,6 +109,8 @@ export type TrackerTrainee = {
   joinDay: number;
   joinedLate: boolean;
   progress: number;
+  averageProgress?: number;
+  courses?: TrackerCourseProgress[];
   courseOutcome: "PENDING" | "PASSED" | "FAILED";
   exam: { score: number | null; passed: boolean | null; needsReview: boolean; submittedAt: string | null } | null;
   appeared: boolean;
@@ -106,6 +128,7 @@ export type TrackerTrainee = {
 export type TrackerDetail = {
   today: string;
   canManage: boolean;
+  canEditTeam?: boolean;
   batch: TrackerBatch & { capacity: number };
   trainees: TrackerTrainee[];
 };

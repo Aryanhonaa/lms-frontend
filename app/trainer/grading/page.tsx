@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Clock3, Inbox, PenLine, Search, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock3, Eye, Inbox, PenLine, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -60,6 +60,14 @@ function gradeHref(item: GradingQueueItem): string {
     query.set("batchId", item.batch.id);
   }
   return `/trainer/assessments/${item.quiz.id}?${query.toString()}`;
+}
+
+function answerReviewHref(item: GradingQueueItem): string {
+  const query = new URLSearchParams({ programId: item.programId, from: "grading", focus: "answers" });
+  if (item.batch) {
+    query.set("batchId", item.batch.id);
+  }
+  return `/trainer/assessments/${item.quiz.id}?${query.toString()}#answer-release`;
 }
 
 type QueueGroup = {
@@ -126,34 +134,36 @@ export default function TrainerGradingPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const view: GradingQueueView = searchParams.get("view") === "graded" ? "graded" : "pending";
-  const programId = searchParams.get("programId") ?? "";
-  const queryKey = `${view}:${programId}`;
+  const batchId = searchParams.get("batchId") ?? "";
+  const queryKey = `${view}:${batchId}`;
   const [loaded, setLoaded] = useState<{ key: string; queue: GradingQueue } | null>(null);
   const data = loaded?.key === queryKey ? loaded.queue : null;
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [courses, setCourses] = useState<Array<{ id: string; title: string }>>([]);
+  const [batches, setBatches] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     let cancelled = false;
-    getGradingQueue({ view, programId: programId || undefined })
+    getGradingQueue({ view, batchId: batchId || undefined })
       .then((next) => {
         if (cancelled) {
           return;
         }
-        setLoaded({ key: `${view}:${programId}`, queue: next });
+        setLoaded({ key: `${view}:${batchId}`, queue: next });
         setError(null);
-        if (!programId) {
-          const seen = new Map<string, string>();
-          for (const item of next.items) {
-            seen.set(item.programId, item.programTitle);
+        const seen = new Map<string, string>();
+        for (const item of next.items) {
+          if (item.batch) {
+            seen.set(item.batch.id, item.batch.name);
           }
-          setCourses((current) => {
-            const merged = new Map(current.map((course) => [course.id, course.title]));
-            for (const [id, title] of seen) {
-              merged.set(id, title);
+        }
+        if (seen.size > 0) {
+          setBatches((current) => {
+            const merged = new Map(current.map((batch) => [batch.id, batch.name]));
+            for (const [id, name] of seen) {
+              merged.set(id, name);
             }
-            return [...merged].map(([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
+            return [...merged].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
           });
         }
       })
@@ -165,21 +175,22 @@ export default function TrainerGradingPage() {
     return () => {
       cancelled = true;
     };
-  }, [view, programId]);
+  }, [view, batchId]);
 
-  function updateQuery(next: { view?: GradingQueueView; programId?: string }) {
+  function updateQuery(next: { view?: GradingQueueView; batchId?: string }) {
     const query = new URLSearchParams(searchParams.toString());
     const nextView = next.view ?? view;
-    const nextProgram = next.programId ?? programId;
+    const nextBatch = next.batchId ?? batchId;
     if (nextView === "graded") {
       query.set("view", "graded");
     } else {
       query.delete("view");
     }
-    if (nextProgram) {
-      query.set("programId", nextProgram);
+    query.delete("programId");
+    if (nextBatch) {
+      query.set("batchId", nextBatch);
     } else {
-      query.delete("programId");
+      query.delete("batchId");
     }
     const suffix = query.toString();
     router.replace(suffix ? `${pathname}?${suffix}` : pathname);
@@ -248,6 +259,24 @@ export default function TrainerGradingPage() {
             />
           </div>
 
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-violet-50 px-4 py-3.5 ring-1 ring-violet-200">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                <Eye className="h-5 w-5" strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-violet-950">Make answers visible to trainees</p>
+                <p className="mt-0.5 text-sm text-violet-900/75">
+                  Choose a batch, course, and quiz to check completion and marks before releasing answers.
+                </p>
+              </div>
+            </div>
+            <Link href="/trainer/answer-visibility" className={primaryButtonClass}>
+              Manage answer visibility
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
           <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 lg:flex-row lg:items-center lg:justify-between">
             <div role="tablist" aria-label="Queue view" className="inline-flex rounded-xl bg-slate-100 p-1">
               {(
@@ -286,15 +315,15 @@ export default function TrainerGradingPage() {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <select
-                aria-label="Course"
+                aria-label="Batch"
                 className={`${fieldClass} sm:w-56`}
-                value={programId}
-                onChange={(event) => updateQuery({ programId: event.target.value })}
+                value={batchId}
+                onChange={(event) => updateQuery({ batchId: event.target.value })}
               >
-                <option value="">All courses</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
+                <option value="">All batches</option>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.name}
                   </option>
                 ))}
               </select>
@@ -304,7 +333,7 @@ export default function TrainerGradingPage() {
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search trainee, quiz or batch"
+                  placeholder="Search trainee, quiz or course"
                   aria-label="Search the queue"
                   className={`${fieldClass} pl-9`}
                 />
@@ -355,11 +384,19 @@ export default function TrainerGradingPage() {
                     <Link href={gradeHref(group.items[0])} className={secondaryButtonClass}>
                       Grade this quiz
                     </Link>
+                    <Link href={answerReviewHref(group.items[0])} className={secondaryButtonClass}>
+                      Answer review
+                    </Link>
                   </>
                 ) : (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                    {group.items.length} graded
-                  </span>
+                  <>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      {group.items.length} graded
+                    </span>
+                    <Link href={answerReviewHref(group.items[0])} className={secondaryButtonClass}>
+                      Answer review
+                    </Link>
+                  </>
                 )}
               </div>
             </header>
@@ -395,7 +432,9 @@ export default function TrainerGradingPage() {
                           <span className={stale ? "font-medium text-amber-700" : ""}>
                             {view === "pending"
                               ? `submitted ${timeAgo(item.submittedAt)}`
-                              : `graded ${timeAgo(item.gradedAt)}`}
+                              : item.gradedBy
+                                ? `graded by ${item.gradedBy.name} · ${timeAgo(item.gradedAt)}`
+                                : `graded ${timeAgo(item.gradedAt)}`}
                           </span>
                         </p>
                       </div>

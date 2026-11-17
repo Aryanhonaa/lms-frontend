@@ -261,8 +261,10 @@ export default function ProgramTraineesPage() {
           trainers={program.trainers ?? []}
           currentUserId={user.id}
           onClose={() => setCreateOpen(false)}
-          onCreated={() => {
+          onCreated={(batch) => {
             setCreateOpen(false);
+            setEnrollBatch(batch);
+            setEnrollOpen(true);
             void load();
           }}
         />

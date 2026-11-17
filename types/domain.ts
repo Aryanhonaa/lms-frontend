@@ -19,4 +19,4 @@ export type VideoSource = "YOUTUBE" | "UPLOADED" | "EXTERNAL";
 
 export type ResourceKind = "DOCUMENT" | "ARTICLE" | "GITHUB" | "YOUTUBE" | "WEBSITE" | "TUTORIAL" | "CALL_RECORDING";
 
-export type QuizKind = "PRACTICE_QUIZ" | "WEEKLY_QUIZ" | "WEEKLY_EXAM" | "MILESTONE_EXAM" | "FINAL_EXAM";
+export type QuizKind = "PRACTICE_QUIZ" | "WEEKLY_QUIZ" | "WEEKLY_EXAM" | "FINAL_EXAM";

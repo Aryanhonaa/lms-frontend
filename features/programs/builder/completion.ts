@@ -5,10 +5,10 @@ export type BuilderSection = "overview" | "curriculum" | "content" | "assessment
 export type SectionStatus = "complete" | "attention" | "optional" | "incomplete";
 
 export const BUILDER_SECTIONS: Array<{ id: BuilderSection; label: string; hint: string }> = [
-  { id: "overview", label: "Overview", hint: "What is this program?" },
-  { id: "curriculum", label: "Curriculum", hint: "Weeks and days" },
-  { id: "content", label: "Content", hint: "Lessons and materials" },
-  { id: "assessments", label: "Assessments", hint: "Quizzes, exams, assignments" },
+  { id: "overview", label: "Overview", hint: "Title and format" },
+  { id: "curriculum", label: "Days", hint: "Order of the program" },
+  { id: "content", label: "Content", hint: "Lessons and files" },
+  { id: "assessments", label: "Assessments", hint: "Quizzes and exams" },
   { id: "review", label: "Review", hint: "Check and send" },
 ];
 
@@ -21,7 +21,7 @@ export const NEXT_SECTION: Record<BuilderSection, BuilderSection | null> = {
 };
 
 export function isExamKind(kind: Quiz["kind"]): boolean {
-  return kind === "WEEKLY_EXAM" || kind === "MILESTONE_EXAM" || kind === "FINAL_EXAM";
+  return kind === "WEEKLY_EXAM" || kind === "FINAL_EXAM";
 }
 
 export function dayLearningCount(day: Day): number {
@@ -73,7 +73,7 @@ export function collectAssignments(program: ProgramTree) {
     week.days.flatMap((day) =>
       day.assignments.map((item) => ({
         ...item,
-        weekTitle: week.title,
+        weekTitle: week.title === "Plan" ? "" : week.title,
         dayTitle: day.title,
         dayId: day.id,
       })),
@@ -89,9 +89,6 @@ export function collectQuizzes(program: ProgramTree): Array<Quiz & { scope: stri
       ),
     ),
     ...program.weeks.flatMap((week) => week.quizzes.map((quiz) => ({ ...quiz, scope: week.title }))),
-    ...program.milestones.flatMap((milestone) =>
-      milestone.exam ? [{ ...milestone.exam, scope: milestone.title }] : [],
-    ),
     ...program.quizzes.map((quiz) => ({ ...quiz, scope: "Program" })),
   ];
 }
@@ -111,7 +108,7 @@ export function analyzeBuilder(program: ProgramTree) {
   const canSubmit = weekCount >= 1;
 
   const overview: SectionStatus = !hasTitle ? "incomplete" : hasDescription ? "complete" : "attention";
-  const curriculum: SectionStatus = weekCount === 0 ? "incomplete" : dayCount === 0 ? "attention" : "complete";
+  const curriculum: SectionStatus = dayCount === 0 ? "incomplete" : "complete";
   const content: SectionStatus = learningCount > 0 ? "complete" : dayCount > 0 ? "attention" : "incomplete";
   const assessments: SectionStatus = assignments.length + quizzes.length > 0 ? "complete" : "optional";
   const review: SectionStatus = canSubmit ? "complete" : "incomplete";
@@ -125,7 +122,6 @@ export function analyzeBuilder(program: ProgramTree) {
     assignmentCount: assignments.length,
     quizCount: quizzes.length,
     examCount: exams.length,
-    milestoneCount: program.milestones.length,
     canSubmit,
     submitHint: canSubmit ? null : "Add at least one week before sending for review.",
     overview,

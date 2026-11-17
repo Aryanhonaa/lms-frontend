@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { TraineeShell } from "@/components/trainee-shell";
 import { LearnReturnLink } from "@/components/learn-return-link";
 import { AssessmentTaker } from "@/features/assessments/assessment-taker";
@@ -13,6 +13,8 @@ import type { AssessmentCatalog } from "@/types/assessment";
 export default function TraineeAssessmentDetailPage() {
   const { user } = useAuth();
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const openAnswerReview = searchParams.get("review") === "answers";
   const [catalog, setCatalog] = useState<AssessmentCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +36,9 @@ export default function TraineeAssessmentDetailPage() {
     <TraineeShell title={catalog?.assessment.title ?? "Quiz"} user={user} dense crumbLabel={catalog?.assessment.title}>
       <LearnReturnLink />
       {error ? <p className="px-8 py-6 text-sm text-red-600">{error}</p> : null}
-      {catalog ? <AssessmentTaker catalog={catalog} onCatalogChange={setCatalog} /> : null}
+      {catalog ? (
+        <AssessmentTaker catalog={catalog} onCatalogChange={setCatalog} autoOpenReview={openAnswerReview} />
+      ) : null}
     </TraineeShell>
   );
 }

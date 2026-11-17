@@ -75,8 +75,14 @@ export function batchTitle(batch: Pick<TrackerBatch, "code" | "name">): string {
   return batch.code ?? batch.name;
 }
 
-export function trainerNames(batch: Pick<TrackerBatch, "salesTrainer" | "supportTrainer">): string {
-  const names = [batch.salesTrainer?.name, batch.supportTrainer?.name].filter(Boolean);
+export function trainerNames(
+  batch: Pick<TrackerBatch, "salesTrainer" | "supportTrainer" | "collaborators">,
+): string {
+  const names = [
+    batch.salesTrainer?.name,
+    ...(batch.collaborators?.map((row) => row.name) ??
+      (batch.supportTrainer?.name ? [batch.supportTrainer.name] : [])),
+  ].filter(Boolean);
   return names.length > 0 ? names.join(" · ") : "No trainers assigned";
 }
 

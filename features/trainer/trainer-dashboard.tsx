@@ -7,9 +7,8 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardCheck,
-  FileText,
-  GraduationCap,
   ListChecks,
+  Layers,
   Users,
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
@@ -20,8 +19,8 @@ import type { AuthUser } from "@/types/api";
 import type { CalendarEventType } from "@/types/calendar";
 import type {
   DashboardRange,
-  TrainerAttentionItem,
   TrainerDashboard,
+  TrainerDashboardBatch,
   TrainerDashboardProgram,
   TrainerRecentSubmission,
   TrainerUpcomingEvent,
@@ -37,10 +36,10 @@ const EVENT_STYLE: Record<CalendarEventType, { wrap: string; icon: typeof Calend
   ASSIGNMENT: { wrap: "bg-amber-50 text-amber-700", icon: ListChecks },
   TASK: { wrap: "bg-rose-50 text-rose-700", icon: AlertTriangle },
   NOTIFICATION: { wrap: "bg-fuchsia-50 text-fuchsia-700", icon: CalendarDays },
-  MILESTONE: { wrap: "bg-fuchsia-50 text-fuchsia-700", icon: GraduationCap },
   DEADLINE: { wrap: "bg-rose-50 text-rose-700", icon: AlertTriangle },
   PROGRAM: { wrap: "bg-emerald-50 text-emerald-700", icon: BookOpen },
   HOLIDAY: { wrap: "bg-slate-100 text-slate-600", icon: CalendarDays },
+  ACTIVITY: { wrap: "bg-violet-50 text-violet-700", icon: CalendarDays },
 };
 
 function formatNumber(value: number): string {
@@ -103,10 +102,6 @@ function submissionStatus(row: TrainerRecentSubmission): { label: string; classN
     return { label: "Changes requested", className: "bg-sky-50 text-sky-800" };
   }
   return { label: row.status.replaceAll("_", " ").toLowerCase(), className: "bg-slate-100 text-slate-700" };
-}
-
-function attentionLabel(trigger: string): string {
-  return trigger === "PROGRESS_BELOW_THRESHOLD" ? "Low progress" : "Low exam score";
 }
 
 export function TrainerDashboard({ user }: { user: AuthUser }) {
@@ -227,31 +222,31 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TrainerDashboard; on
         ) : (
           <>
             <StatCard
-              href="/trainer/programs"
-              label="Programs"
-              value={statistics.programs.total}
-              hint={`${formatNumber(statistics.programs.active)} active`}
-              hintClass="text-slate-500"
-              icon={BookOpen}
+              href="/trainer/batch-tracker"
+              label="Batches"
+              value={statistics.batches?.ongoing ?? 0}
+              hint={`${formatNumber(statistics.batches?.total ?? 0)} total`}
+              hintClass="text-violet-700"
+              icon={Layers}
               iconClass="bg-violet-100 text-violet-700"
             />
             <StatCard
               href="/trainer/trainees"
               label="Trainees"
               value={statistics.trainees.total}
-              hint="Across your programs"
+              hint="People in your batches"
               hintClass="text-emerald-600"
               icon={Users}
               iconClass="bg-emerald-100 text-emerald-700"
             />
             <StatCard
-              href="/trainer/interventions"
-              label="Need help"
-              value={statistics.pendingReviews.total}
-              hint="Trainees below your alert line"
-              hintClass="text-amber-600"
-              icon={AlertTriangle}
-              iconClass="bg-amber-100 text-amber-700"
+              href="/trainer/programs"
+              label="Courses"
+              value={statistics.programs.total}
+              hint={`${formatNumber(statistics.programs.active)} live`}
+              hintClass="text-slate-500"
+              icon={BookOpen}
+              iconClass="bg-slate-100 text-slate-700"
             />
             <StatCard
               href="/trainer/calendar"
@@ -277,24 +272,59 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TrainerDashboard; on
 
       <div className="grid gap-6 xl:grid-cols-5">
         <section className={`${CARD} overflow-hidden xl:col-span-3`}>
-          <SectionHeader title="My Programs" href="/trainer/programs" linkLabel="View all" />
+          <SectionHeader title="Active batches" href="/trainer/batch-tracker" linkLabel="View all" />
+          {dashboard.batches && dashboard.batches.length > 0 ? (
+            <ul className="divide-y divide-slate-100">
+              {dashboard.batches.map((batch) => (
+                <BatchRow key={batch.id} batch={batch} />
+              ))}
+            </ul>
+          ) : (
+            <EmptyCopy
+              title="No batches yet"
+              description="Create a batch, add courses in order, then enroll trainees."
+              href="/trainer/batch-tracker"
+              action="Open batches"
+            />
+          )}
+        </section>
+        <section className={`${CARD} flex flex-col xl:col-span-2`}>
+          <SectionHeader title="Coming up" href="/trainer/calendar" linkLabel="View calendar" />
+          {errors.upcoming ? (
+            <div className="px-5 pb-5">
+              <SectionError message="Unable to load upcoming events." onRetry={onRetry} />
+            </div>
+          ) : dashboard.upcoming.length === 0 ? (
+            <EmptyCopy title="Nothing scheduled" description="Sessions, quizzes, and deadlines in this range show up here." />
+          ) : (
+            <ul className="flex-1 space-y-1 px-2 pb-3">
+              {dashboard.upcoming.map((event) => (
+                <UpcomingRow key={event.id} event={event} />
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <section className={`${CARD} overflow-hidden`}>
+          <SectionHeader title="Your courses" href="/trainer/programs" linkLabel="View all" />
           {errors.programs ? (
             <div className="px-5 pb-5">
-              <SectionError message="Unable to load programs." onRetry={onRetry} />
+              <SectionError message="Unable to load courses." onRetry={onRetry} />
             </div>
           ) : dashboard.programs.length === 0 ? (
             <EmptyCopy
-              title="No programs yet"
-              description="Create a program to start enrolling trainees and tracking progress."
+              title="No courses yet"
+              description="Create a course, wait for approval, then add it to a batch."
               href="/trainer/programs/new"
-              action="Create program"
+              action="Create course"
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="border-y border-slate-100 text-xs tracking-wide text-slate-400 uppercase">
                   <tr>
-                    <th className="px-5 py-2.5 font-medium">Program</th>
+                    <th className="px-5 py-2.5 font-medium">Course</th>
                     <th className="px-3 py-2.5 font-medium">Trainees</th>
                     <th className="min-w-[140px] px-3 py-2.5 font-medium">Progress</th>
                     <th className="px-5 py-2.5 font-medium">Status</th>
@@ -308,81 +338,44 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TrainerDashboard; on
               </table>
             </div>
           )}
-        </section>
+      </section>
 
-        <section className={`${CARD} flex flex-col xl:col-span-2`}>
-          <SectionHeader title="Upcoming" href="/trainer/calendar" linkLabel="View calendar" />
-          {errors.upcoming ? (
-            <div className="px-5 pb-5">
-              <SectionError message="Unable to load upcoming events." onRetry={onRetry} />
+      <section className={`${CARD} overflow-hidden`}>
+        <SectionHeader title="Recent Submissions" href="/trainer/assignments" linkLabel="View all" />
+        {errors.submissions ? (
+          <div className="px-5 pb-5">
+            <SectionError message="Unable to load submissions." onRetry={onRetry} />
+          </div>
+        ) : dashboard.recentSubmissions.length === 0 ? (
+          <EmptyCopy title="No recent submissions" description="When trainees submit assignments in this range, they will appear here for review." />
+        ) : (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-y border-slate-100 text-xs tracking-wide text-slate-400 uppercase">
+                  <tr>
+                    <th className="px-5 py-2.5 font-medium">Trainee</th>
+                    <th className="px-3 py-2.5 font-medium">Program</th>
+                    <th className="px-3 py-2.5 font-medium">Assignment</th>
+                    <th className="px-3 py-2.5 font-medium">Submitted</th>
+                    <th className="px-5 py-2.5 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {dashboard.recentSubmissions.map((row) => (
+                    <SubmissionRow key={row.id} row={row} />
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ) : dashboard.upcoming.length === 0 ? (
-            <EmptyCopy title="No upcoming events" description="Quizzes, exams, sessions, and deadlines in this range will show up here." />
-          ) : (
-            <ul className="flex-1 space-y-1 px-2 pb-3">
-              {dashboard.upcoming.map((event) => (
-                <UpcomingRow key={event.id} event={event} />
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {dashboard.recentSubmissions.map((row) => (
+                <SubmissionCard key={row.id} row={row} />
               ))}
             </ul>
-          )}
-        </section>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-5">
-        <section className={`${CARD} overflow-hidden xl:col-span-3`}>
-          <SectionHeader title="Recent Submissions" href="/trainer/assignments" linkLabel="View all" />
-          {errors.submissions ? (
-            <div className="px-5 pb-5">
-              <SectionError message="Unable to load submissions." onRetry={onRetry} />
-            </div>
-          ) : dashboard.recentSubmissions.length === 0 ? (
-            <EmptyCopy title="No recent submissions" description="When trainees submit assignments in this range, they will appear here for review." />
-          ) : (
-            <>
-              <div className="hidden overflow-x-auto md:block">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="border-y border-slate-100 text-xs tracking-wide text-slate-400 uppercase">
-                    <tr>
-                      <th className="px-5 py-2.5 font-medium">Trainee</th>
-                      <th className="px-3 py-2.5 font-medium">Program</th>
-                      <th className="px-3 py-2.5 font-medium">Assignment</th>
-                      <th className="px-3 py-2.5 font-medium">Submitted</th>
-                      <th className="px-5 py-2.5 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {dashboard.recentSubmissions.map((row) => (
-                      <SubmissionRow key={row.id} row={row} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <ul className="divide-y divide-slate-100 md:hidden">
-                {dashboard.recentSubmissions.map((row) => (
-                  <SubmissionCard key={row.id} row={row} />
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-
-        <section className={`${CARD} xl:col-span-2`}>
-          <SectionHeader title="Trainees who need help" href="/trainer/interventions" linkLabel="View all" />
-          {errors.attention ? (
-            <div className="px-5 pb-5">
-              <SectionError message="Unable to load alerts." onRetry={onRetry} />
-            </div>
-          ) : dashboard.attention.length === 0 ? (
-            <EmptyCopy title="All caught up" description="No trainees currently need help." />
-          ) : (
-            <ul className="divide-y divide-slate-100 px-2 pb-2">
-              {dashboard.attention.map((item) => (
-                <AttentionRow key={item.id} item={item} />
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+          </>
+        )}
+      </section>
     </>
   );
 }
@@ -467,6 +460,30 @@ function EmptyCopy({
   );
 }
 
+function BatchRow({ batch }: { batch: TrainerDashboardBatch }) {
+  const statusLabel = batch.status === "ONGOING" ? "Ongoing" : batch.status === "UPCOMING" ? "Upcoming" : "Completed";
+  return (
+    <li>
+      <Link href={batch.href} className="flex items-start justify-between gap-3 px-5 py-3.5 transition hover:bg-slate-50/80">
+        <div className="min-w-0">
+          <p className="font-medium text-slate-900">{batch.name}</p>
+          <p className="mt-1 flex flex-wrap gap-1.5">
+            {batch.courses.map((course) => (
+              <span key={course.id} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                {course.label} · {course.title}
+              </span>
+            ))}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-semibold tabular-nums text-slate-900">{batch.memberCount}</p>
+          <p className="text-[11px] text-slate-400">{statusLabel}</p>
+        </div>
+      </Link>
+    </li>
+  );
+}
+
 function ProgramRow({ program }: { program: TrainerDashboardProgram }) {
   return (
     <tr className="text-slate-700 transition duration-150 hover:bg-slate-50/80">
@@ -478,7 +495,7 @@ function ProgramRow({ program }: { program: TrainerDashboardProgram }) {
           <span className="min-w-0">
             <span className="block font-medium text-slate-900">{program.title}</span>
             <span className="block text-xs text-slate-500">
-              {program.category} · {program.durationWeeks} weeks
+              {program.category}
             </span>
           </span>
         </Link>
@@ -577,20 +594,3 @@ function SubmissionCard({ row }: { row: TrainerRecentSubmission }) {
   );
 }
 
-function AttentionRow({ item }: { item: TrainerAttentionItem }) {
-  return (
-    <li>
-      <Link href={item.href} className="flex items-start gap-3 rounded-xl px-3 py-3 transition duration-150 hover:bg-slate-50">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
-          <FileText className="h-4 w-4" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-slate-900">{item.trainee.name}</span>
-          <span className="block text-xs text-slate-500">
-            {item.program.title} · {attentionLabel(item.trigger)}
-          </span>
-        </span>
-      </Link>
-    </li>
-  );
-}

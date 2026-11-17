@@ -33,7 +33,6 @@ function activityHref(programId: string, activity: ProgressActivity, batchId?: s
     activity.kind === "PRACTICE_QUIZ" ||
     activity.kind === "WEEKLY_QUIZ" ||
     activity.kind === "WEEKLY_EXAM" ||
-    activity.kind === "MILESTONE_EXAM" ||
     activity.kind === "FINAL_EXAM"
   ) {
     return `/trainee/assessments/${activity.id}`;
@@ -185,50 +184,6 @@ function ProgressClient() {
                     );
                   })}
                 </ul>
-              </section>
-
-              <section className={`${traineeCardClass} px-5 py-5`}>
-                <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Checkpoints</p>
-                {view.milestones.length === 0 ? (
-                  <p className="mt-3 text-sm text-slate-500">No checkpoints in this course yet.</p>
-                ) : (
-                  <ul className="mt-3 space-y-4">
-                    {view.milestones.map((milestone) => (
-                      <li key={milestone.id} className="rounded-2xl px-1 py-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-slate-900">{milestone.title}</p>
-                          <span className="text-[11px] font-semibold text-slate-500">
-                            {milestone.satisfied ? "Unlocked" : "Locked"}
-                          </span>
-                        </div>
-                        <ul className="mt-2 space-y-1.5 text-sm">
-                          {milestone.requirements.map((requirement) => (
-                            <li key={requirement.id} className="flex items-start gap-2 text-slate-700">
-                              {requirement.complete ? (
-                                <Check className="mt-0.5 h-4 w-4 text-emerald-600" strokeWidth={3} />
-                              ) : (
-                                <Lock className="mt-0.5 h-3.5 w-3.5 text-slate-400" />
-                              )}
-                              <span>
-                                {requirement.label}
-                                <span className="ml-2 text-slate-400">{requirement.display}</span>
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                        {milestone.exam ? (
-                          <p className="mt-2 text-sm text-slate-500">
-                            Quiz: {milestone.exam.title}
-                            {milestone.exam.reason ? ` · ${friendlyLockReason(milestone.exam.reason)}` : ""}
-                          </p>
-                        ) : null}
-                        {!milestone.satisfied && milestone.reason ? (
-                          <p className="mt-2 text-sm text-slate-500">{friendlyLockReason(milestone.reason)}</p>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </section>
             </div>
 

@@ -118,7 +118,6 @@ describe("learning sidebar path", () => {
     const finals = path.filter((item) => item.kind === "FINAL_EXAM");
     assert.equal(finals.length, 1);
     assert.equal(contentTypeLabel("QUIZ", "FINAL_EXAM"), "Final Exam");
-    assert.equal(contentTypeLabel("QUIZ", "MILESTONE_EXAM"), "Milestone Exam");
   });
 
   it("shows retry vs exhausted status without calling a failed quiz passed", () => {

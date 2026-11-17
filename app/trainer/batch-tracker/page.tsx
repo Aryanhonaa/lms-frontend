@@ -17,7 +17,7 @@ export default function TrainerBatchTrackerPage() {
         <BatchTrackerBoard
           role="trainer"
           basePath="/trainer/batch-tracker"
-          emptyHint="Batches you train appear here. Create one from a program's Trainees page."
+          emptyHint="Create a batch, pick an approved course, assign co-trainers, then enroll trainees."
         />
       </Suspense>
     </TrainerShell>

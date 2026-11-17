@@ -9,9 +9,12 @@ import {
   LogOut,
   MoreHorizontal,
   RotateCcw,
+  BookOpen,
   Send,
   Trash2,
   Undo2,
+  UserPlus,
+  Users,
   UserX,
   type LucideIcon,
 } from "lucide-react";
@@ -26,9 +29,12 @@ import {
   type TrackerRole,
 } from "@/lib/api/batch-tracker";
 import { ApiClientError } from "@/lib/api/client";
-import { cardClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
+import { cardClass, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import type { TrackerBatch, TrackerDetail, TrackerTrainee } from "@/types/batch-tracker";
 import { BatchStatusBadge, LateTag, LobChip, TraineeStageBadge } from "./badges";
+import { EditBatchCoursesDialog } from "./edit-batch-courses-dialog";
+import { EditBatchTeamDialog } from "./edit-batch-team-dialog";
 import { GLOSSARY, STAGE_META, batchTitle, downloadCsv, formatDay, formatPct, isExited } from "./format";
 import { ExitDialog, HandoverDialog, JoinedDateDialog, RemoveEnrollmentDialog } from "./trainee-actions";
 
@@ -398,7 +404,13 @@ function TraineeJourney({ row, batch }: { row: TrackerTrainee; batch: TrackerBat
               title="Counted in Day 7 HC"
               detail={formatDay(batch.milestones.headcountLocks, true)}
             />
-            <JourneyStep done={row.progress >= 100} title="Training" detail={`${Math.round(row.progress)}% complete`} />
+            <JourneyStep
+              done={(row.averageProgress ?? row.progress) >= 100}
+              title="Training"
+              detail={`${Math.round(row.averageProgress ?? row.progress)}% complete${
+                row.courses && row.courses.length > 1 ? " average across courses" : ""
+              }`}
+            />
             <JourneyStep
               done={row.appeared}
               title="Final exam"
@@ -423,6 +435,22 @@ function TraineeJourney({ row, batch }: { row: TrackerTrainee; batch: TrackerBat
           </>
         )}
       </ol>
+      {row.courses && row.courses.length > 1 ? (
+        <div className="rounded-xl bg-slate-50 px-3 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Courses</p>
+          <ul className="mt-2 space-y-2">
+            {row.courses.map((course) => (
+              <li key={course.programId} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-slate-800">{course.title}</span>
+                <span className="shrink-0 tabular-nums text-slate-600">
+                  {Math.round(course.progress)}%
+                  {course.exam?.score != null ? ` · exam ${course.exam.score}%` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <p className="text-xs text-slate-400">{row.trainee.email}</p>
     </div>
   );
@@ -446,13 +474,17 @@ export function BatchTrackerDetail({
   const [joinedTarget, setJoinedTarget] = useState<TrackerTrainee | null>(null);
   const [removeTarget, setRemoveTarget] = useState<{ enrollmentId: string; name: string } | null>(null);
   const [handover, setHandover] = useState<{ key: number; preselected: string[] } | null>(null);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [coursesOpen, setCoursesOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [courseFilter, setCourseFilter] = useState<string>("all");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     const payload = await getBatchTrackerDetail(role, batchId);
     setData(payload);
     setError(null);
-    onLoaded?.(batchTitle(payload.batch));
+    onLoaded?.(payload.batch.name);
   }, [batchId, onLoaded, role]);
 
   useEffect(() => {
@@ -462,7 +494,7 @@ export function BatchTrackerDetail({
         if (!cancelled) {
           setData(payload);
           setError(null);
-          onLoaded?.(batchTitle(payload.batch));
+          onLoaded?.(payload.batch.name);
         }
       })
       .catch((err: unknown) => {
@@ -487,11 +519,44 @@ export function BatchTrackerDetail({
     [load],
   );
 
+  const courseOptions = useMemo(() => {
+    if (!data) {
+      return [] as Array<{ id: string; title: string }>;
+    }
+    const fromBatch = data.batch.courses?.length ? data.batch.courses : [data.batch.program];
+    const fromTrainees = data.trainees.flatMap((row) => row.courses ?? []);
+    const merged = new Map<string, string>();
+    for (const course of fromBatch) {
+      merged.set(course.id, course.title);
+    }
+    for (const course of fromTrainees) {
+      merged.set(course.programId, course.title);
+    }
+    return [...merged.entries()].map(([id, title]) => ({ id, title }));
+  }, [data]);
+
+  const activeCourseId = courseFilter === "all" ? "all" : courseOptions.some((c) => c.id === courseFilter) ? courseFilter : (courseOptions[0]?.id ?? "all");
+
   const rows = useMemo(() => (data ? data.trainees.filter(FILTERS[filter].match) : []), [data, filter]);
   const handoverCandidates = useMemo(
     () => (data ? data.trainees.filter((row) => row.certified && !row.handedOverAt) : []),
     [data],
   );
+
+  function progressFor(row: TrackerTrainee): number {
+    if (activeCourseId === "all") {
+      return row.averageProgress ?? row.progress;
+    }
+    return row.courses?.find((course) => course.programId === activeCourseId)?.progress ?? row.progress;
+  }
+
+  function examFor(row: TrackerTrainee) {
+    if (activeCourseId === "all") {
+      return row.exam;
+    }
+    return row.courses?.find((course) => course.programId === activeCourseId)?.exam ?? null;
+  }
+
 
   async function runAction(action: () => Promise<unknown>, message: string) {
     setBusy(true);
@@ -605,15 +670,22 @@ export function BatchTrackerDetail({
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">{batchTitle(batch)}</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">{batch.name}</h2>
             <LobChip value={batch.lineOfBusiness} />
             <BatchStatusBadge status={batch.status} />
           </div>
+          {batch.code ? (
+            <p className="mt-1 font-mono text-sm font-medium tracking-wide text-violet-700">{batch.code}</p>
+          ) : null}
           <p className="mt-1 text-sm text-slate-500">
             {[
-              batch.program.title,
-              batch.salesTrainer ? `${batch.salesTrainer.name} (Sales)` : null,
-              batch.supportTrainer ? `${batch.supportTrainer.name} (Support)` : null,
+              (batch.courses?.length ? batch.courses.map((course) => course.title).join(" · ") : batch.program.title),
+              batch.salesTrainer ? `${batch.salesTrainer.name} (Lead)` : null,
+              ...(batch.collaborators?.length
+                ? batch.collaborators.map((row) => `${row.name} (Co-trainer)`)
+                : batch.supportTrainer
+                  ? [`${batch.supportTrainer.name} (Co-trainer)`]
+                  : []),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -629,6 +701,24 @@ export function BatchTrackerDetail({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {role === "trainer" && data.canManage ? (
+            <>
+              {data.canEditTeam ? (
+                <button type="button" className={secondaryButtonClass} onClick={() => setTeamOpen(true)}>
+                  <Users className="h-4 w-4" />
+                  Edit team
+                </button>
+              ) : null}
+              <button type="button" className={secondaryButtonClass} onClick={() => setCoursesOpen(true)}>
+                <BookOpen className="h-4 w-4" />
+                Edit courses
+              </button>
+              <button type="button" className={secondaryButtonClass} onClick={() => setEnrollOpen(true)}>
+                <UserPlus className="h-4 w-4" />
+                Enroll trainees
+              </button>
+            </>
+          ) : null}
           <button type="button" className={secondaryButtonClass} onClick={exportTrainees}>
             <Download className="h-4 w-4" />
             Export
@@ -677,6 +767,39 @@ export function BatchTrackerDetail({
         </div>
       </header>
 
+      <section className={`${cardClass} px-5 py-4`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Learning order</h3>
+            <p className="mt-0.5 text-sm text-slate-500">Trainees take these courses in this sequence.</p>
+          </div>
+          {role === "trainer" && data.canManage ? (
+            <button type="button" className={secondaryButtonClass} onClick={() => setCoursesOpen(true)}>
+              Change order
+            </button>
+          ) : null}
+        </div>
+        {(batch.courses?.length ? batch.courses : [batch.program]).length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">No courses assigned yet.</p>
+        ) : (
+          <ol className="mt-3 grid gap-2 sm:grid-cols-2">
+            {(batch.courses?.length ? batch.courses : [batch.program]).map((course, index) => (
+              <li key={course.id} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-semibold text-violet-800 ring-1 ring-slate-200">
+                  {index + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-slate-900">{course.title}</span>
+                  <span className="text-[11px] font-medium text-slate-400">
+                    {"label" in course && course.label ? course.label : index === 0 ? "First" : `Course ${index + 1}`}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
       {!data.canManage ? (
         <p className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
           You can view this batch. Only its assigned trainers can mark trainees as left, terminate, reinstate or hand
@@ -701,6 +824,32 @@ export function BatchTrackerDetail({
       {error ? <ErrorState message={error} /> : null}
 
       <FunnelStrip batch={batch} active={filter} onSelect={setFilter} />
+
+      <div className={`${cardClass} flex flex-wrap items-center justify-between gap-3 px-5 py-3`}>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Filter by course</p>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {activeCourseId === "all"
+              ? "Showing average progress across every course in this batch"
+              : "Showing progress and exam for the selected course"}
+          </p>
+        </div>
+        <label className="flex min-w-[14rem] flex-col gap-1 text-sm">
+          <span className="sr-only">Course</span>
+          <select
+            value={activeCourseId}
+            onChange={(event) => setCourseFilter(event.target.value)}
+            className={`${fieldClass} w-auto min-w-[14rem]`}
+          >
+            {courseOptions.length > 1 ? <option value="all">All courses</option> : null}
+            {courseOptions.map((course, index) => (
+              <option key={course.id} value={course.id}>
+                {index + 1}. {course.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <section className={`${cardClass} overflow-hidden`}>
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3">
@@ -754,6 +903,8 @@ export function BatchTrackerDetail({
               <tbody className="divide-y divide-slate-100">
                 {rows.map((row) => {
                   const exited = isExited(row);
+                  const progress = progressFor(row);
+                  const exam = examFor(row);
                   return (
                     <tr
                       key={row.enrollmentId}
@@ -782,20 +933,20 @@ export function BatchTrackerDetail({
                       </td>
                       <td className="px-3 py-3">
                         {exited ? (
-                          <span className="text-slate-400 tabular-nums">{Math.round(row.progress)}%</span>
+                          <span className="text-slate-400 tabular-nums">{Math.round(progress)}%</span>
                         ) : (
                           <div className="flex w-32 items-center gap-2">
                             <div className="flex-1">
-                              <ProgressBar value={row.progress} />
+                              <ProgressBar value={progress} />
                             </div>
                             <span className="w-9 text-right text-xs text-slate-600 tabular-nums">
-                              {Math.round(row.progress)}%
+                              {Math.round(progress)}%
                             </span>
                           </div>
                         )}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-slate-600 tabular-nums">
-                        {row.exam ? (row.exam.needsReview ? "Grading" : `${row.exam.score ?? "–"}%`) : "–"}
+                        {exam ? (exam.needsReview ? "Grading" : `${exam.score ?? "–"}%`) : "–"}
                       </td>
                       <td className="px-3 py-3 text-slate-600">{row.team?.name ?? "–"}</td>
                       <td className="px-3 py-3 text-right">
@@ -848,6 +999,47 @@ export function BatchTrackerDetail({
           void refresh("Joining date updated.");
         }}
       />
+      {role === "trainer" && data.canManage ? (
+        <>
+          {coursesOpen ? (
+            <EditBatchCoursesDialog
+              key={`${batch.id}-courses`}
+              open
+              batchId={batch.id}
+              primaryProgramId={batch.program.id}
+              currentCourseIds={(batch.courses?.length ? batch.courses : [batch.program]).map((course) => course.id)}
+              onClose={() => setCoursesOpen(false)}
+              onSaved={() => void refresh("Courses updated.")}
+            />
+          ) : null}
+          {teamOpen && data.canEditTeam ? (
+            <EditBatchTeamDialog
+              key={`${batch.id}-team`}
+              open
+              batchId={batch.id}
+              lead={batch.salesTrainer}
+              collaborators={
+                batch.collaborators?.length
+                  ? batch.collaborators
+                  : batch.supportTrainer
+                    ? [batch.supportTrainer]
+                    : []
+              }
+              onClose={() => setTeamOpen(false)}
+              onSaved={() => void refresh("Team updated.")}
+            />
+          ) : null}
+          <EnrollTraineesDialog
+            open={enrollOpen}
+            programId={batch.program.id}
+            programTitle={batch.program.title}
+            batchId={batch.id}
+            batchName={batch.name}
+            onClose={() => setEnrollOpen(false)}
+            onEnrolled={() => void refresh()}
+          />
+        </>
+      ) : null}
       {handover ? (
         <HandoverDialog
           key={handover.key}

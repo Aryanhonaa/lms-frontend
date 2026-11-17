@@ -4,6 +4,7 @@ import { ApiClientError } from "@/lib/api/client";
 import { trainerScopeQuery, type TrainerWorkScope } from "@/lib/api/scope";
 import type {
   AssignmentCatalog,
+  RecentAssignmentSubmission,
   SubmissionFileView,
   TrainerAssignmentDetail,
   TrainerAssignmentSummary,
@@ -110,8 +111,12 @@ export async function downloadSubmissionFile(
   URL.revokeObjectURL(url);
 }
 
-export async function listTrainerAssignments(scope?: TrainerWorkScope): Promise<{ assignments: TrainerAssignmentSummary[] }> {
-  return apiClient<{ assignments: TrainerAssignmentSummary[] }>(`/trainer/assignments${trainerScopeQuery(scope)}`);
+export async function listTrainerAssignments(
+  scope?: TrainerWorkScope,
+): Promise<{ assignments: TrainerAssignmentSummary[]; recentSubmissions: RecentAssignmentSubmission[] }> {
+  return apiClient<{ assignments: TrainerAssignmentSummary[]; recentSubmissions: RecentAssignmentSubmission[] }>(
+    `/trainer/assignments${trainerScopeQuery(scope)}`,
+  );
 }
 
 export async function getTrainerAssignment(

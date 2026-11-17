@@ -7,10 +7,10 @@ export const CALENDAR_TYPE_LABEL: Record<CalendarEventType, string> = {
   ASSIGNMENT: "Assignment",
   TASK: "Task",
   NOTIFICATION: "Notification",
-  MILESTONE: "Milestone",
   DEADLINE: "Deadline",
   PROGRAM: "Course",
   HOLIDAY: "Holiday",
+  ACTIVITY: "Activity",
 };
 
 export const CALENDAR_TYPE_COLOR: Record<CalendarEventType, "violet" | "blue" | "orange" | "pink" | "green"> = {
@@ -20,10 +20,10 @@ export const CALENDAR_TYPE_COLOR: Record<CalendarEventType, "violet" | "blue" | 
   ASSIGNMENT: "orange",
   TASK: "orange",
   NOTIFICATION: "pink",
-  MILESTONE: "pink",
   DEADLINE: "orange",
   PROGRAM: "green",
   HOLIDAY: "pink",
+  ACTIVITY: "violet",
 };
 
 export type UpcomingEventGroup = {

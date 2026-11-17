@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ExternalLink, Flag, Radio } from "lucide-react";
+import { CheckCircle2, ExternalLink, Radio } from "lucide-react";
 import { ContentTypeChip, ContentTypeIcon } from "@/components/learning/content-type-chip";
 import { FileActionsRow, FileViewer } from "@/components/files/file-viewer";
 import { StatusBadge } from "@/components/status-badge";
@@ -22,7 +22,7 @@ import type {
   Video,
 } from "@/types/program";
 
-type ReviewKind = "LESSON" | "VIDEO" | "RESOURCE" | "REEL" | "ASSIGNMENT" | "QUIZ" | "SESSION" | "MILESTONE";
+type ReviewKind = "LESSON" | "VIDEO" | "RESOURCE" | "REEL" | "ASSIGNMENT" | "QUIZ" | "SESSION";
 
 type ReviewItem = {
   key: string;
@@ -39,8 +39,6 @@ type ReviewItem = {
   assignment?: Assignment;
   quiz?: Quiz;
   session?: TrainingSession;
-  milestoneTitle?: string;
-  milestoneRequirements?: string[];
 };
 
 const CARD = "rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5";
@@ -159,32 +157,6 @@ function flattenProgram(program: ProgramTree): ReviewItem[] {
     });
   });
 
-  program.milestones.forEach((milestone) => {
-    items.push({
-      key: `milestone-${milestone.id}`,
-      kind: "MILESTONE",
-      title: milestone.title,
-      location: `After week ${milestone.afterWeekIndex + 1}`,
-      weekIndex: milestone.afterWeekIndex,
-      dayIndex: null,
-      scope: "program",
-      milestoneTitle: milestone.title,
-      milestoneRequirements: milestone.requirements.map((requirement) => requirement.label),
-    });
-    if (milestone.exam) {
-      items.push({
-        key: `milestone-exam-${milestone.exam.id}`,
-        kind: "QUIZ",
-        title: milestone.exam.title,
-        location: `Milestone · ${milestone.title}`,
-        weekIndex: milestone.afterWeekIndex,
-        dayIndex: null,
-        scope: "program",
-        quiz: milestone.exam,
-      });
-    }
-  });
-
   program.quizzes.forEach((quiz) => {
     items.push({
       key: `program-quiz-${quiz.id}`,
@@ -264,6 +236,7 @@ function StoredMedia({
   return (
     <FileViewer
       key={`${type}-${id}`}
+      resourceKey={`${type}-${id}`}
       loader={() => getItemFileAccess(viewer, type, id)}
       fileName={file.fileName ?? title}
       mimeType={file.mimeType ?? "application/octet-stream"}
@@ -438,19 +411,6 @@ function ItemBody({ item, viewer }: { item: ReviewItem; viewer: FileAudience }) 
     );
   }
 
-  if (item.kind === "MILESTONE") {
-    return (
-      <article className={`${CARD} px-5 py-5`}>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-          {(item.milestoneRequirements ?? []).map((label) => (
-            <li key={label}>{label}</li>
-          ))}
-        </ul>
-        {!item.milestoneRequirements?.length ? <p className="text-sm text-slate-500">No requirements listed.</p> : null}
-      </article>
-    );
-  }
-
   return <p className="text-sm text-slate-500">Nothing to preview for this item.</p>;
 }
 
@@ -514,14 +474,15 @@ export function ProgramReview({
               return (
                 <div key={week.id} className="px-2 py-1">
                   <p className="px-3 py-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-                    Week {weekIndex + 1} · {week.title}
+                    {week.title && week.title !== "Plan" ? week.title : "Days"}
                   </p>
                   {week.days.map((day, dayIndex) => {
                     const dayItems = items.filter((item) => item.scope === "day" && item.weekIndex === weekIndex && item.dayIndex === dayIndex);
+                    const dayNumber = weeks.slice(0, weekIndex).reduce((sum, item) => sum + item.days.length, 0) + dayIndex + 1;
                     return (
                       <div key={day.id}>
                         <p className="px-3 py-1 text-[11px] font-medium text-slate-500">
-                          Day {dayIndex + 1} · {day.title}
+                          Day {dayNumber} · {day.title}
                         </p>
                         {dayItems.length === 0 ? (
                           <p className="px-3 pb-2 text-xs text-slate-400">Empty day</p>
@@ -555,9 +516,9 @@ export function ProgramReview({
             <section className="min-w-0 space-y-4">
               <div className={`${CARD} px-5 py-4`}>
                 <div className="flex items-start gap-3">
-                  <ContentTypeIcon type={selected.kind === "SESSION" ? "LESSON" : selected.kind === "MILESTONE" ? "QUIZ" : selected.kind} />
+                  <ContentTypeIcon type={selected.kind === "SESSION" ? "LESSON" : selected.kind} />
                   <div className="min-w-0">
-                    <ContentTypeChip type={selected.kind === "SESSION" ? "LESSON" : selected.kind === "MILESTONE" ? "QUIZ" : selected.kind} />
+                    <ContentTypeChip type={selected.kind === "SESSION" ? "LESSON" : selected.kind} />
                     <h3 className="mt-2 text-lg font-semibold text-slate-900">{selected.title}</h3>
                     <p className="mt-0.5 text-xs text-slate-500">{selected.location}</p>
                   </div>
@@ -589,7 +550,6 @@ function OutlineButton({
         active ? "bg-violet-50 font-medium text-violet-900" : "text-slate-700 hover:bg-slate-50"
       }`}
     >
-      {item.kind === "MILESTONE" ? <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> : null}
       <span className="min-w-0">
         <span className="block truncate">{item.title}</span>
         <span className="block text-[11px] font-normal text-slate-400">{item.kind.replaceAll("_", " ").toLowerCase()}</span>

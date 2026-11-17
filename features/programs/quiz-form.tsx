@@ -42,6 +42,7 @@ type QuestionDraft = {
   prompt: string;
   points: number;
   modelAnswer: string;
+  keepOptionOrder: boolean;
   options: OptionDraft[];
 };
 
@@ -59,6 +60,7 @@ const emptyQuestion = (type: QuestionType = "MULTIPLE_CHOICE"): QuestionDraft =>
   prompt: "",
   points: DEFAULT_POINTS[type],
   modelAnswer: "",
+  keepOptionOrder: true,
   options: emptyOptions(),
 });
 
@@ -73,6 +75,7 @@ function questionsFromQuiz(quiz?: Quiz): QuestionDraft[] {
       prompt: question.prompt,
       points: question.points || DEFAULT_POINTS[type],
       modelAnswer: question.modelAnswer ?? "",
+      keepOptionOrder: question.keepOptionOrder !== false,
       options:
         type === "WRITTEN" || question.options.length === 0
           ? emptyOptions()
@@ -126,6 +129,7 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [questions, setQuestions] = useState<QuestionDraft[]>(() => questionsFromQuiz(initial));
+  const [shuffleOptions, setShuffleOptions] = useState(Boolean(initial?.shuffleOptions));
 
   function updateQuestion(index: number, nextQuestion: QuestionDraft) {
     setQuestions((current) => current.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
@@ -182,6 +186,7 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
       timeLimitMin: data.get("timeLimitMin") ? Number(data.get("timeLimitMin")) : null,
       maxAttempts: data.get("maxAttempts") ? Number(data.get("maxAttempts")) : null,
       randomized: data.get("randomized") === "on",
+      shuffleOptions,
       questionDrawCount,
       revealMode: "HIDDEN",
       revealAt: null,
@@ -192,12 +197,14 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
               prompt: question.prompt.trim(),
               points: question.points,
               modelAnswer: question.modelAnswer.trim(),
+              keepOptionOrder: true,
               options: [],
             }
           : {
               type: "MULTIPLE_CHOICE" as const,
               prompt: question.prompt.trim(),
               points: question.points,
+              keepOptionOrder: question.keepOptionOrder,
               options: question.options.map((option) => ({
                 label: option.label.trim(),
                 isCorrect: option.isCorrect,
@@ -352,10 +359,25 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
             disabled={locked}
           />
         </Field>
-        <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700">
-          <input type="checkbox" name="randomized" defaultChecked={initial?.randomized ?? true} disabled={locked} />
-          Shuffle question and option order
-        </label>
+        <div className="self-end space-y-2 pb-2">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" name="randomized" defaultChecked={initial?.randomized ?? true} disabled={locked} />
+            Shuffle question order
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={shuffleOptions}
+              disabled={locked}
+              onChange={(event) => setShuffleOptions(event.target.checked)}
+            />
+            Shuffle answer choices
+          </label>
+          <p className="text-xs text-slate-500">
+            For “All of the above” or “None of the above”, keep that option last and turn on Keep answer order for that
+            question.
+          </p>
+        </div>
         <p className="self-end pb-2 text-sm text-slate-500">
           Trainees see their score after submit (after your grading, if there are written questions). They cannot
           review questions or answers. You can still see their paper.
@@ -463,63 +485,90 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
                   onChange={(event) => updateQuestion(index, { ...question, prompt: event.target.value })}
                 />
                 <p className="text-xs text-slate-500">Answer options. Select the circle next to the correct answer.</p>
-            {question.options.map((option, optionIndex) => (
-              <div key={optionIndex} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name={`correct-${index}`}
-                  checked={option.isCorrect}
-                  disabled={locked}
-                  aria-label={`Mark option ${OPTION_LABELS[optionIndex]} as correct`}
-                  onChange={() =>
-                    updateQuestion(index, {
-                      ...question,
-                      options: question.options.map((item, itemIndex) => ({
-                        ...item,
-                        isCorrect: itemIndex === optionIndex,
-                      })),
-                    })
-                  }
-                />
-                <span className="w-5 shrink-0 text-xs font-semibold text-slate-500">{OPTION_LABELS[optionIndex]}</span>
-                <input
-                  className={`flex-1 ${fieldClass}`}
-                  placeholder={option.isCorrect ? "Correct answer" : "Incorrect answer"}
-                  value={option.label}
-                  disabled={locked}
-                  onChange={(event) =>
-                    updateQuestion(index, {
-                      ...question,
-                      options: question.options.map((item, itemIndex) =>
-                        itemIndex === optionIndex ? { ...item, label: event.target.value } : item,
-                      ),
-                    })
-                  }
-                />
-                {question.options.length > MIN_OPTIONS ? (
+                {question.options.map((option, optionIndex) => (
+                  <div key={optionIndex} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name={`correct-${index}`}
+                      checked={option.isCorrect}
+                      disabled={locked}
+                      aria-label={`Mark option ${OPTION_LABELS[optionIndex]} as correct`}
+                      onChange={() =>
+                        updateQuestion(index, {
+                          ...question,
+                          options: question.options.map((item, itemIndex) => ({
+                            ...item,
+                            isCorrect: itemIndex === optionIndex,
+                          })),
+                        })
+                      }
+                    />
+                    <span className="w-5 shrink-0 text-xs font-semibold text-slate-500">
+                      {OPTION_LABELS[optionIndex]}
+                    </span>
+                    <input
+                      className={`flex-1 ${fieldClass}`}
+                      placeholder={
+                        optionIndex === question.options.length - 1
+                          ? "e.g. All of the above"
+                          : option.isCorrect
+                            ? "Correct answer"
+                            : "Incorrect answer"
+                      }
+                      value={option.label}
+                      disabled={locked}
+                      onChange={(event) =>
+                        updateQuestion(index, {
+                          ...question,
+                          options: question.options.map((item, itemIndex) =>
+                            itemIndex === optionIndex ? { ...item, label: event.target.value } : item,
+                          ),
+                        })
+                      }
+                    />
+                    {question.options.length > MIN_OPTIONS ? (
+                      <button
+                        type="button"
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                        disabled={locked}
+                        aria-label={`Remove option ${OPTION_LABELS[optionIndex]}`}
+                        onClick={() => removeOption(index, optionIndex)}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+                {question.options.length < MAX_OPTIONS ? (
                   <button
                     type="button"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                    className={ghostButtonClass}
                     disabled={locked}
-                    aria-label={`Remove option ${OPTION_LABELS[optionIndex]}`}
-                    onClick={() => removeOption(index, optionIndex)}
+                    onClick={() => addOption(index)}
                   >
-                    <X className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
+                    Add answer
                   </button>
                 ) : null}
-              </div>
-            ))}
-            {question.options.length < MAX_OPTIONS ? (
-              <button
-                type="button"
-                className={ghostButtonClass}
-                disabled={locked}
-                onClick={() => addOption(index)}
-              >
-                <Plus className="h-4 w-4" />
-                Add answer
-              </button>
-            ) : null}
+                <label className="flex items-start gap-2 rounded-xl bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={question.keepOptionOrder}
+                    disabled={locked}
+                    onChange={(event) =>
+                      updateQuestion(index, { ...question, keepOptionOrder: event.target.checked })
+                    }
+                  />
+                  <span>
+                    <span className="font-medium">Keep answer order</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      {shuffleOptions
+                        ? "Leave on so “All of the above” / “None of the above” stay at the bottom."
+                        : "Recommended when the last option is “All of the above” or “None of the above”."}
+                    </span>
+                  </span>
+                </label>
               </>
             )}
           </div>

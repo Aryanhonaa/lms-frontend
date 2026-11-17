@@ -40,7 +40,7 @@ export default function AdminFeedbackPage() {
   async function setStatus(id: string, status: FeedbackModerationStatus) {
     setBusyId(id);
     try {
-      await moderateFeedback(id, status);
+      await moderateFeedback(id, status, "admin");
       reload(filter === "ALL" ? undefined : filter);
     } catch (err: unknown) {
       setError(err instanceof ApiClientError ? err.message : "Unable to moderate");

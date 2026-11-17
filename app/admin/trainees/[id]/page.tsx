@@ -16,29 +16,6 @@ import { ApiClientError } from "@/lib/api/client";
 import { useAuth } from "@/providers/auth-provider";
 import { canDeleteRole } from "@/lib/auth/create-user-schema";
 import type { AdminDirectoryUser } from "@/types/admin";
-import type { MilestoneProgress } from "@/types/progress";
-
-function milestoneLabel(milestone: MilestoneProgress): string {
-  if (milestone.satisfied || milestone.status === "COMPLETED" || milestone.status === "PASSED") {
-    return "Completed";
-  }
-  if (milestone.status === "LOCKED") {
-    return "Locked";
-  }
-  const complete = milestone.requirements.filter((row) => row.complete).length;
-  return `${complete} / ${milestone.requirements.length} requirements`;
-}
-
-function milestoneMark(milestone: MilestoneProgress): string {
-  if (milestone.satisfied || milestone.status === "COMPLETED" || milestone.status === "PASSED") {
-    return "✓";
-  }
-  if (milestone.status === "LOCKED") {
-    return "🔒";
-  }
-  return "◉";
-}
-
 function ProgramCard({ row }: { row: AdminTraineeProgram }) {
   const percent = Math.round(row.progress.overall.percent);
   return (
@@ -57,26 +34,6 @@ function ProgramCard({ row }: { row: AdminTraineeProgram }) {
       </div>
       <div className="h-2 bg-slate-100">
         <div className="h-2 bg-violet-600" style={{ width: `${Math.min(100, percent)}%` }} />
-      </div>
-      <div className="px-5 py-4">
-        <h3 className="text-sm font-semibold text-slate-900">Milestones</h3>
-        {row.progress.milestones.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No milestone activity yet.</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {row.progress.milestones.map((milestone) => (
-              <li key={milestone.id} className="flex items-start gap-3 text-sm">
-                <span aria-hidden className="mt-0.5 text-slate-500">
-                  {milestoneMark(milestone)}
-                </span>
-                <div>
-                  <p className="font-medium text-slate-900">{milestone.title}</p>
-                  <p className="text-slate-500">{milestoneLabel(milestone)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </section>
   );

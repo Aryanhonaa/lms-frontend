@@ -6,7 +6,7 @@ function QuizPreview({ quiz }: { quiz: Quiz }) {
   return (
     <div className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-slate-950/5">
       <p className="font-medium text-slate-900">
-        {quiz.title} · {quiz.kind.replaceAll("_", " ").toLowerCase()}
+        {quiz.title} · {quiz.kind === "WEEKLY_EXAM" ? "checkpoint exam" : quiz.kind.replaceAll("_", " ").toLowerCase()}
       </p>
       <p className="mt-1 text-slate-500">
         {quiz.questions.length} questions · pass {quiz.passingScore}%
@@ -50,15 +50,17 @@ export function ProgramPreview({ program }: { program: ProgramTree }) {
       <RejectionBanner program={program} />
       {program.weeks.map((week, weekIndex) => (
         <section key={week.id} className="rounded-2xl bg-white px-5 py-5 ring-1 ring-slate-950/5">
-          <h3 className="font-medium text-slate-900">
-            Week {weekIndex + 1}: {week.title}
-          </h3>
+          {week.title && week.title !== "Plan" ? (
+            <h3 className="font-medium text-slate-900">
+              {week.title}
+            </h3>
+          ) : null}
           {week.description ? <p className="mt-1 text-sm text-slate-600">{week.description}</p> : null}
           <div className="mt-4 space-y-4">
             {week.days.map((day, dayIndex) => (
               <div key={day.id}>
                 <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Day {dayIndex + 1}: {day.title}
+                  Day {program.weeks.slice(0, weekIndex).reduce((sum, item) => sum + item.days.length, 0) + dayIndex + 1}: {day.title}
                 </h4>
                 <ul className="mt-2 space-y-1 text-sm text-slate-700">
                   {day.resources.map((item) => (
@@ -135,17 +137,6 @@ export function ProgramPreview({ program }: { program: ProgramTree }) {
               </ul>
             ) : null}
           </div>
-        </section>
-      ))}
-      {program.milestones.map((milestone) => (
-        <section key={milestone.id} className="rounded-2xl bg-white px-5 py-5 ring-1 ring-slate-950/5">
-          <h3 className="font-medium text-slate-900">Milestone · {milestone.title}</h3>
-          <ul className="mt-2 list-disc pl-5 text-sm text-slate-600">
-            {milestone.requirements.map((requirement) => (
-              <li key={requirement.id}>{requirement.label}</li>
-            ))}
-          </ul>
-          {milestone.exam ? <div className="mt-3"><QuizPreview quiz={milestone.exam} /></div> : null}
         </section>
       ))}
       {program.quizzes.map((quiz) => (

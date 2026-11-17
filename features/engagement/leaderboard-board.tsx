@@ -33,10 +33,7 @@ function Row({
       <td className="px-3 py-3 text-sm text-stone-800">{entry.score}</td>
       <td className="px-3 py-3 text-sm text-stone-600">{entry.progressPercent}%</td>
       <td className="px-3 py-3 text-sm text-stone-600">{passedLabel(entry.quizzesPassed, entry.quizzesTotal)}</td>
-      <td className="px-3 py-3 text-sm text-stone-600">{passedLabel(entry.examsPassed, entry.examsTotal)}</td>
-      <td className="px-5 py-3 text-sm text-stone-600">
-        {passedLabel(entry.milestonesComplete, entry.milestonesTotal)}
-      </td>
+      <td className="px-5 py-3 text-sm text-stone-600">{passedLabel(entry.examsPassed, entry.examsTotal)}</td>
     </tr>
   );
 }
@@ -64,7 +61,7 @@ export function LeaderboardBoardView({
         <h2 className="text-base font-medium text-stone-950">{board.program.title}</h2>
         <p className="mt-1 text-sm text-stone-600">
           {subtitle ??
-            "Rank uses a blended score of progress, quiz performance, exam performance, and milestones — not completion percent alone."}
+            "Rank uses a blended score of progress, quiz performance, and exam performance — not completion percent alone."}
         </p>
       </div>
       {you ? (
@@ -77,7 +74,6 @@ export function LeaderboardBoardView({
             [
               you.breakdown.quiz === null ? null : `Quiz ${you.breakdown.quiz}`,
               you.breakdown.exam === null ? null : `Exam ${you.breakdown.exam}`,
-              you.breakdown.milestone === null ? null : `Milestones ${you.breakdown.milestone}`,
             ]
               .filter(Boolean)
               .join(" · ") || "Progress only",
@@ -96,8 +92,7 @@ export function LeaderboardBoardView({
                 <th className="px-3 py-3 font-medium">Score</th>
                 <th className="px-3 py-3 font-medium">Progress</th>
                 <th className="px-3 py-3 font-medium">Quizzes passed</th>
-                <th className="px-3 py-3 font-medium">Exams passed</th>
-                <th className="px-5 py-3 font-medium">Milestones</th>
+                <th className="px-5 py-3 font-medium">Exams passed</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">

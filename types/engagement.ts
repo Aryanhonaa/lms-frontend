@@ -2,7 +2,6 @@ export type LeaderboardWeights = {
   progress: number;
   quiz: number;
   exam: number;
-  milestone: number;
 };
 
 export type PublicLeaderboardEntry = {
@@ -14,8 +13,6 @@ export type PublicLeaderboardEntry = {
   quizzesTotal: number;
   examsPassed: number;
   examsTotal: number;
-  milestonesComplete: number;
-  milestonesTotal: number;
 };
 
 export type OwnLeaderboardEntry = PublicLeaderboardEntry & {
@@ -23,7 +20,6 @@ export type OwnLeaderboardEntry = PublicLeaderboardEntry & {
     progress: number;
     quiz: number | null;
     exam: number | null;
-    milestone: number | null;
     weights: LeaderboardWeights;
   };
 };
@@ -46,7 +42,6 @@ export type LeaderboardBoard = {
 export type AchievementKey =
   | "FIRST_COURSE_COMPLETED"
   | "PERFECT_QUIZ"
-  | "MILESTONE_MASTER"
   | "TOP_PERFORMER"
   | "PERFECT_ATTENDANCE"
   | "LEARNING_STREAK"

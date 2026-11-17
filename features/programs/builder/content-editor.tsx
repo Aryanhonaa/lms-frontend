@@ -20,7 +20,6 @@ export type EditorState =
   | { view: "weekly-quiz"; weekId: string }
   | { view: "weekly-exam"; weekId: string }
   | { view: "final-exam" }
-  | { view: "milestone" }
   | { view: "edit-quiz"; quiz: Quiz };
 
 const PICKER_OPTIONS: Array<{ kind: PickerKind; label: string; hint: string; icon: typeof Play }> = [
@@ -101,7 +100,6 @@ type ContentEditorProps = {
   onAddWeeklyExam: (weekId: string, input: QuizInput) => Promise<void>;
   onAddFinalExam: (input: QuizInput) => Promise<void>;
   onUpdateQuiz: (quizId: string, input: QuizInput) => Promise<void>;
-  onAddMilestone: (input: { title: string; afterWeekIndex: number }) => Promise<void>;
   fileOptions?: Array<{ type: "LESSON" | "VIDEO" | "RESOURCE" | "REEL"; id: string; title: string }>;
 };
 
@@ -241,43 +239,6 @@ export function ContentEditor(props: ContentEditorProps) {
     );
   }
 
-  if (state.view === "milestone") {
-    return (
-      <form
-        className="grid gap-3"
-        onSubmit={(event: FormEvent<HTMLFormElement>) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          const title = String(data.get("title") ?? "").trim();
-          if (!title) {
-            setError("A title is required");
-            return;
-          }
-          void run(() =>
-            props.onAddMilestone({
-              title,
-              afterWeekIndex: Number(data.get("afterWeekIndex") || 0),
-            }),
-          );
-        }}
-      >
-        <Field label="Title" required>
-          <input name="title" className={fieldClass} placeholder="Checkpoint" disabled={disabled || busy} />
-        </Field>
-        <Field label="After week number">
-          <input name="afterWeekIndex" type="number" min={0} defaultValue={0} className={fieldClass} disabled={disabled || busy} />
-        </Field>
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <EditorNav onCancel={onClose} />
-          <button type="submit" className={primaryButtonClass} disabled={disabled || busy}>
-            {busy ? "Adding…" : "Add milestone"}
-          </button>
-        </div>
-      </form>
-    );
-  }
-
   if (state.view === "edit-quiz") {
     return (
       <div className="grid gap-3">
@@ -301,7 +262,7 @@ export function ContentEditor(props: ContentEditorProps) {
       <div className="grid gap-3">
         <EditorNav onCancel={onClose} />
         <QuizForm
-        submitLabel={state.view === "final-exam" ? "Create final exam" : state.view === "weekly-exam" ? "Create weekly exam" : "Create weekly quiz"}
+        submitLabel={state.view === "final-exam" ? "Create final exam" : state.view === "weekly-exam" ? "Create checkpoint exam" : "Create quiz"}
         disabled={disabled || busy}
         onSubmit={async (input) => {
           if (state.view === "final-exam") {
@@ -724,14 +685,11 @@ export function editorTitle(state: EditorState): string {
   if (state.view === "day") {
     return "Add day";
   }
-  if (state.view === "milestone") {
-    return "Add milestone";
-  }
   if (state.view === "weekly-quiz") {
     return "Weekly quiz";
   }
   if (state.view === "weekly-exam") {
-    return "Weekly exam";
+    return "Checkpoint exam";
   }
   if (state.view === "final-exam") {
     return "Final exam";

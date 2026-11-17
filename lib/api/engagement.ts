@@ -83,8 +83,9 @@ export async function listAdminFeedback(status?: FeedbackModerationStatus): Prom
 export async function moderateFeedback(
   id: string,
   status: FeedbackModerationStatus,
+  role: "admin" | "trainer" = "admin",
 ): Promise<{ feedback: FeedbackItem }> {
-  return apiClient(`/admin/feedback/${id}`, { method: "PATCH", body: { status } });
+  return apiClient(`/${role}/feedback/${id}`, { method: "PATCH", body: { status } });
 }
 
 export async function listAnnouncements(role: "trainee" | "trainer" | "admin"): Promise<{ announcements: AnnouncementItem[] }> {
