@@ -1,9 +1,17 @@
 "use client";
 
 import { Info, ListChecks, PenLine, Plus, X } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { RequiredMark } from "@/components/ui/required-mark";
+import { SaveStatus, type SaveState } from "@/components/ui/save-status";
 import { fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
+import {
+  clearQuizDraft,
+  quizDraftHasContent,
+  readQuizDraft,
+  writeQuizDraft,
+  type QuizQuestionDraft,
+} from "@/features/programs/quiz-draft";
 import type { QuestionType, Quiz, QuizInput } from "@/types/program";
 
 function Field({
@@ -33,25 +41,18 @@ type QuizFormProps = {
   submitLabel: string;
   disabled?: boolean;
   initial?: Quiz;
+  draftKey?: string;
   onSubmit: (input: QuizInput) => Promise<void>;
 };
 
-type OptionDraft = { label: string; isCorrect: boolean };
-type QuestionDraft = {
-  type: QuestionType;
-  prompt: string;
-  points: number;
-  modelAnswer: string;
-  keepOptionOrder: boolean;
-  options: OptionDraft[];
-};
+type QuestionDraft = QuizQuestionDraft;
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"] as const;
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 6;
 const DEFAULT_POINTS: Record<QuestionType, number> = { MULTIPLE_CHOICE: 1, WRITTEN: 5 };
 
-const emptyOption = (isCorrect: boolean): OptionDraft => ({ label: "", isCorrect });
+const emptyOption = (isCorrect: boolean) => ({ label: "", isCorrect });
 
 const emptyOptions = () => [emptyOption(true), emptyOption(false)];
 
@@ -85,6 +86,46 @@ function questionsFromQuiz(quiz?: Quiz): QuestionDraft[] {
             })),
     };
   });
+}
+
+function metaFromQuiz(quiz?: Quiz) {
+  return {
+    title: quiz?.title ?? "",
+    description: quiz?.description ?? "",
+    passingScore: quiz?.passingScore ?? 70,
+    timeLimitMin: quiz?.timeLimitMin != null ? String(quiz.timeLimitMin) : "",
+    maxAttempts: quiz?.maxAttempts != null ? String(quiz.maxAttempts) : "",
+    questionDrawCount: quiz?.questionDrawCount != null ? String(quiz.questionDrawCount) : "",
+    randomized: quiz?.randomized ?? true,
+    shuffleOptions: Boolean(quiz?.shuffleOptions),
+  };
+}
+
+function loadFormState(draftKey: string | undefined, quiz?: Quiz) {
+  const seed = {
+    ...metaFromQuiz(quiz),
+    questions: questionsFromQuiz(quiz),
+    restored: false,
+  };
+  if (!draftKey) {
+    return seed;
+  }
+  const draft = readQuizDraft(draftKey);
+  if (!draft || !quizDraftHasContent(draft)) {
+    return seed;
+  }
+  return {
+    title: draft.title,
+    description: draft.description,
+    passingScore: draft.passingScore,
+    timeLimitMin: draft.timeLimitMin,
+    maxAttempts: draft.maxAttempts,
+    questionDrawCount: draft.questionDrawCount,
+    randomized: draft.randomized,
+    shuffleOptions: draft.shuffleOptions,
+    questions: draft.questions,
+    restored: true,
+  };
 }
 
 function TypeToggle({
@@ -125,11 +166,90 @@ function TypeToggle({
   );
 }
 
-export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormProps) {
+export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }: QuizFormProps) {
+  const [boot] = useState(() => loadFormState(draftKey, initial));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [questions, setQuestions] = useState<QuestionDraft[]>(() => questionsFromQuiz(initial));
-  const [shuffleOptions, setShuffleOptions] = useState(Boolean(initial?.shuffleOptions));
+  const [title, setTitle] = useState(boot.title);
+  const [description, setDescription] = useState(boot.description);
+  const [passingScore, setPassingScore] = useState(boot.passingScore);
+  const [timeLimitMin, setTimeLimitMin] = useState(boot.timeLimitMin);
+  const [maxAttempts, setMaxAttempts] = useState(boot.maxAttempts);
+  const [questionDrawCount, setQuestionDrawCount] = useState(boot.questionDrawCount);
+  const [randomized, setRandomized] = useState(boot.randomized);
+  const [shuffleOptions, setShuffleOptions] = useState(boot.shuffleOptions);
+  const [questions, setQuestions] = useState<QuestionDraft[]>(boot.questions);
+  const [draftStatus, setDraftStatus] = useState<SaveState>(boot.restored ? "saved" : "idle");
+  const [restoredDraft, setRestoredDraft] = useState(boot.restored);
+  const skipFirstSaveRef = useRef(true);
+
+  useEffect(() => {
+    if (!draftKey) {
+      return;
+    }
+    if (skipFirstSaveRef.current) {
+      skipFirstSaveRef.current = false;
+      return;
+    }
+    const draft = {
+      title,
+      description,
+      passingScore,
+      timeLimitMin,
+      maxAttempts,
+      questionDrawCount,
+      randomized,
+      shuffleOptions,
+      questions,
+    };
+    const timer = window.setTimeout(() => {
+      if (!quizDraftHasContent(draft)) {
+        clearQuizDraft(draftKey);
+        setDraftStatus("idle");
+        setRestoredDraft(false);
+        return;
+      }
+      setDraftStatus("saving");
+      writeQuizDraft(draftKey, draft);
+      setDraftStatus("saved");
+      setRestoredDraft(true);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    draftKey,
+    title,
+    description,
+    passingScore,
+    timeLimitMin,
+    maxAttempts,
+    questionDrawCount,
+    randomized,
+    shuffleOptions,
+    questions,
+  ]);
+
+  function resetToInitial() {
+    const next = metaFromQuiz(initial);
+    setTitle(next.title);
+    setDescription(next.description);
+    setPassingScore(next.passingScore);
+    setTimeLimitMin(next.timeLimitMin);
+    setMaxAttempts(next.maxAttempts);
+    setQuestionDrawCount(next.questionDrawCount);
+    setRandomized(next.randomized);
+    setShuffleOptions(next.shuffleOptions);
+    setQuestions(questionsFromQuiz(initial));
+    setError(null);
+  }
+
+  function discardDraft() {
+    if (draftKey) {
+      clearQuizDraft(draftKey);
+    }
+    resetToInitial();
+    setRestoredDraft(false);
+    setDraftStatus("idle");
+  }
 
   function updateQuestion(index: number, nextQuestion: QuestionDraft) {
     setQuestions((current) => current.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
@@ -167,27 +287,24 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const title = String(data.get("title") ?? "").trim();
-    const passingScore = Number(data.get("passingScore") || 70);
-    const drawRaw = String(data.get("questionDrawCount") ?? "").trim();
-    const questionDrawCount = drawRaw ? Number(drawRaw) : null;
+    const trimmedTitle = title.trim();
+    const drawRaw = questionDrawCount.trim();
+    const drawCount = drawRaw ? Number(drawRaw) : null;
 
-    if (!title) {
+    if (!trimmedTitle) {
       setError("Quiz title is required");
       return;
     }
 
     const payload: QuizInput = {
-      title,
-      description: String(data.get("description") ?? "").trim(),
-      passingScore,
-      timeLimitMin: data.get("timeLimitMin") ? Number(data.get("timeLimitMin")) : null,
-      maxAttempts: data.get("maxAttempts") ? Number(data.get("maxAttempts")) : null,
-      randomized: data.get("randomized") === "on",
+      title: trimmedTitle,
+      description: description.trim(),
+      passingScore: Number(passingScore) || 70,
+      timeLimitMin: timeLimitMin.trim() ? Number(timeLimitMin) : null,
+      maxAttempts: maxAttempts.trim() ? Number(maxAttempts) : null,
+      randomized,
       shuffleOptions,
-      questionDrawCount,
+      questionDrawCount: drawCount,
       revealMode: "HIDDEN",
       revealAt: null,
       questions: questions.map((question) =>
@@ -236,17 +353,17 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
       }
     }
 
-    if (questionDrawCount !== null && payload.questions) {
-      if (!Number.isInteger(questionDrawCount) || questionDrawCount < 1) {
+    if (drawCount !== null && payload.questions) {
+      if (!Number.isInteger(drawCount) || drawCount < 1) {
         setError("Questions per attempt must be a whole number of at least 1");
         return;
       }
-      if (questionDrawCount > payload.questions.length) {
+      if (drawCount > payload.questions.length) {
         setError("Questions per attempt cannot exceed the number of questions in the bank");
         return;
       }
       const writtenTotal = questions.filter((question) => question.type === "WRITTEN").length;
-      if (questionDrawCount < writtenTotal) {
+      if (drawCount < writtenTotal) {
         setError(
           `Every trainee always gets all ${writtenTotal} written question${writtenTotal === 1 ? "" : "s"}, so questions per attempt must be at least ${writtenTotal}`,
         );
@@ -258,9 +375,13 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
     setError(null);
     try {
       await onSubmit(payload);
+      if (draftKey) {
+        clearQuizDraft(draftKey);
+      }
+      setRestoredDraft(false);
+      setDraftStatus("idle");
       if (!initial) {
-        form.reset();
-        setQuestions([emptyQuestion()]);
+        resetToInitial();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save quiz");
@@ -288,12 +409,33 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
 
   return (
     <form className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={handleSubmit}>
+      {draftKey && (draftStatus !== "idle" || restoredDraft) ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <div className="flex flex-wrap items-center gap-2">
+            <SaveStatus state={draftStatus} />
+            <span>
+              {draftStatus === "saving"
+                ? "Saving draft…"
+                : restoredDraft
+                  ? "Draft saved on this device. Reopens if you close this panel."
+                  : "Draft saved on this device"}
+            </span>
+          </div>
+          {restoredDraft ? (
+            <button type="button" className="font-medium text-slate-700 underline-offset-2 hover:underline" onClick={discardDraft}>
+              Discard draft
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Title" required>
           <input
             name="title"
             placeholder="Week 1 quiz"
-            defaultValue={initial?.title ?? ""}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
             className={fieldClass}
             disabled={locked}
           />
@@ -302,7 +444,8 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
           <input
             name="description"
             placeholder="Optional"
-            defaultValue={initial?.description ?? ""}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
             className={fieldClass}
             disabled={locked}
           />
@@ -313,7 +456,8 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
             type="number"
             min={0}
             max={100}
-            defaultValue={initial?.passingScore ?? 70}
+            value={passingScore}
+            onChange={(event) => setPassingScore(event.target.valueAsNumber)}
             className={fieldClass}
             disabled={locked}
           />
@@ -324,7 +468,8 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
             type="number"
             min={1}
             placeholder="Optional"
-            defaultValue={initial?.timeLimitMin ?? undefined}
+            value={timeLimitMin}
+            onChange={(event) => setTimeLimitMin(event.target.value)}
             className={fieldClass}
             disabled={locked}
           />
@@ -335,7 +480,8 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
             type="number"
             min={1}
             placeholder="Optional"
-            defaultValue={initial?.maxAttempts ?? undefined}
+            value={maxAttempts}
+            onChange={(event) => setMaxAttempts(event.target.value)}
             className={fieldClass}
             disabled={locked}
           />
@@ -354,14 +500,21 @@ export function QuizForm({ submitLabel, disabled, initial, onSubmit }: QuizFormP
             min={1}
             max={200}
             placeholder="All questions"
-            defaultValue={initial?.questionDrawCount ?? undefined}
+            value={questionDrawCount}
+            onChange={(event) => setQuestionDrawCount(event.target.value)}
             className={fieldClass}
             disabled={locked}
           />
         </Field>
         <div className="self-end space-y-2 pb-2">
           <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" name="randomized" defaultChecked={initial?.randomized ?? true} disabled={locked} />
+            <input
+              type="checkbox"
+              name="randomized"
+              checked={randomized}
+              disabled={locked}
+              onChange={(event) => setRandomized(event.target.checked)}
+            />
             Shuffle question order
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-700">

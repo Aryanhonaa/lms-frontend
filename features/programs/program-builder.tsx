@@ -428,6 +428,7 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
       <Dialog open={Boolean(editor)} title={editor ? editorTitle(editor) : ""} side wide onClose={() => setEditor(null)}>
         {editor ? (
           <ContentEditor
+            programId={program.id}
             state={editor}
             disabled={!editable || busy}
             onChange={setEditor}

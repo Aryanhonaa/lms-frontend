@@ -159,7 +159,7 @@ export function CurriculumPanel({
               return (
                 <li
                   key={row.day.id}
-                  className="group relative flex items-center gap-3 overflow-hidden rounded-[1.4rem] border border-white bg-white/90 p-3.5 shadow-[0_8px_30px_rgba(51,41,90,0.06)] ring-1 ring-slate-900/[0.04] transition duration-200 hover:-translate-y-0.5 hover:border-violet-100 hover:shadow-[0_16px_40px_rgba(82,61,153,0.12)] sm:gap-4 sm:p-4"
+                  className="group relative flex items-center gap-3 rounded-[1.4rem] border border-white bg-white/90 p-3.5 shadow-[0_8px_30px_rgba(51,41,90,0.06)] ring-1 ring-slate-900/[0.04] transition duration-200 hover:-translate-y-0.5 hover:border-violet-100 hover:shadow-[0_16px_40px_rgba(82,61,153,0.12)] sm:gap-4 sm:p-4"
                 >
                   <span
                     className={`relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-bold shadow-sm transition group-hover:rotate-3 sm:h-12 sm:w-12 ${

@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { AudioLines, FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck, ChevronLeft } from "lucide-react";
 import { QuizForm } from "@/features/programs/quiz-form";
+import { quizDraftStorageKey } from "@/features/programs/quiz-draft";
 import { VideoFields, type VideoDraft } from "@/features/programs/builder/video-fields";
 import { AttachmentUploadField } from "@/components/files/attachment-upload-field";
 import { RequiredMark } from "@/components/ui/required-mark";
@@ -32,7 +33,27 @@ const PICKER_OPTIONS: Array<{ kind: PickerKind; label: string; hint: string; ico
   { kind: "ASSIGNMENT", label: "Assignment", hint: "Work to review", icon: ListChecks },
 ];
 
+function quizEditorDraftKey(programId: string, state: EditorState): string | undefined {
+  if (state.view === "edit-quiz") {
+    return quizDraftStorageKey(programId, `quiz:${state.quiz.id}`);
+  }
+  if (state.view === "weekly-quiz") {
+    return quizDraftStorageKey(programId, `week:${state.weekId}:weekly-quiz`);
+  }
+  if (state.view === "weekly-exam") {
+    return quizDraftStorageKey(programId, `week:${state.weekId}:weekly-exam`);
+  }
+  if (state.view === "final-exam") {
+    return quizDraftStorageKey(programId, "final-exam");
+  }
+  if (state.view === "content" && state.kind === "QUIZ") {
+    return quizDraftStorageKey(programId, `day:${state.dayId}:practice`);
+  }
+  return undefined;
+}
+
 type ContentEditorProps = {
+  programId: string;
   state: EditorState;
   disabled: boolean;
   onChange: (state: EditorState) => void;
@@ -140,7 +161,8 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 export function ContentEditor(props: ContentEditorProps) {
-  const { state, disabled, onChange, onClose } = props;
+  const { programId, state, disabled, onChange, onClose } = props;
+  const draftKey = quizEditorDraftKey(programId, state);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -244,10 +266,11 @@ export function ContentEditor(props: ContentEditorProps) {
       <div className="grid gap-3">
         <EditorNav onCancel={onClose} />
         <QuizForm
-          key={state.quiz.id}
+          key={draftKey ?? state.quiz.id}
           submitLabel="Save quiz"
           disabled={disabled || busy}
           initial={state.quiz}
+          draftKey={draftKey}
           onSubmit={async (input) => {
             await props.onUpdateQuiz(state.quiz.id, input);
             onClose();
@@ -262,19 +285,21 @@ export function ContentEditor(props: ContentEditorProps) {
       <div className="grid gap-3">
         <EditorNav onCancel={onClose} />
         <QuizForm
-        submitLabel={state.view === "final-exam" ? "Create final exam" : state.view === "weekly-exam" ? "Create checkpoint exam" : "Create quiz"}
-        disabled={disabled || busy}
-        onSubmit={async (input) => {
-          if (state.view === "final-exam") {
-            await props.onAddFinalExam(input);
-          } else if (state.view === "weekly-exam") {
-            await props.onAddWeeklyExam(state.weekId, input);
-          } else {
-            await props.onAddWeeklyQuiz(state.weekId, input);
-          }
-          onClose();
-        }}
-      />
+          key={draftKey}
+          submitLabel={state.view === "final-exam" ? "Create final exam" : state.view === "weekly-exam" ? "Create checkpoint exam" : "Create quiz"}
+          disabled={disabled || busy}
+          draftKey={draftKey}
+          onSubmit={async (input) => {
+            if (state.view === "final-exam") {
+              await props.onAddFinalExam(input);
+            } else if (state.view === "weekly-exam") {
+              await props.onAddWeeklyExam(state.weekId, input);
+            } else {
+              await props.onAddWeeklyQuiz(state.weekId, input);
+            }
+            onClose();
+          }}
+        />
       </div>
     );
   }
@@ -288,13 +313,15 @@ export function ContentEditor(props: ContentEditorProps) {
       <div className="grid gap-3">
         <EditorNav onBack={() => onChange({ view: "picker", dayId: state.dayId })} onCancel={onClose} />
         <QuizForm
-        submitLabel="Create practice quiz"
-        disabled={disabled || busy}
-        onSubmit={async (input) => {
-          await props.onAddPracticeQuiz(state.dayId, input);
-          onClose();
-        }}
-      />
+          key={draftKey}
+          submitLabel="Create practice quiz"
+          disabled={disabled || busy}
+          draftKey={draftKey}
+          onSubmit={async (input) => {
+            await props.onAddPracticeQuiz(state.dayId, input);
+            onClose();
+          }}
+        />
       </div>
     );
   }
