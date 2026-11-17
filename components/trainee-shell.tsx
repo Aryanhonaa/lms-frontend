@@ -21,7 +21,6 @@ import {
   PlayCircle,
   Search,
   Trophy,
-  ClipboardList,
   User,
   X,
 } from "lucide-react";
@@ -46,16 +45,15 @@ type NavItem = {
 
 const TRAINEE_NAV: NavItem[] = [
   { href: "/trainee", label: "Home", icon: LayoutDashboard, exact: true },
-  { href: "/trainee/courses", label: "My Courses", icon: BookOpen },
-  { href: "/trainee/learn", label: "Learn", icon: PlayCircle },
-  { href: "/trainee/assessments", label: "Evaluations", icon: ClipboardCheck },
+  { href: "/trainee/courses", label: "My learning", icon: BookOpen },
+  { href: "/trainee/learn", label: "Continue", icon: PlayCircle },
+  { href: "/trainee/assessments", label: "Quizzes", icon: ClipboardCheck },
   { href: "/trainee/assignments", label: "Assignments", icon: ListChecks },
   { href: "/trainee/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/trainee/progress", label: "Your Journey", icon: GraduationCap },
+  { href: "/trainee/progress", label: "Progress", icon: GraduationCap },
   { href: "/trainee/announcements", label: "Announcements", icon: Megaphone },
   { href: "/trainee/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/trainee/achievements", label: "Achievements", icon: Award },
-  { href: "/trainee/requirements", label: "Requirements", icon: ClipboardList },
   { href: "/trainee/certificates", label: "Certificates", icon: Award },
   { href: "/trainee/profile", label: "Profile", icon: User },
 ];
@@ -336,7 +334,7 @@ function flattenResults(results: TraineeSearchResults): FlatHit[] {
     ...results.programs.map((item) => ({ ...item, group: "Courses" })),
     ...results.materials.map((item) => ({ ...item, group: "Materials" })),
     ...results.assignments.map((item) => ({ ...item, group: "Assignments" })),
-    ...results.assessments.map((item) => ({ ...item, group: "Evaluations" })),
+    ...results.assessments.map((item) => ({ ...item, group: "Quizzes" })),
     ...results.announcements.map((item) => ({ ...item, group: "Announcements" })),
   ];
 }
@@ -411,7 +409,7 @@ function TraineeSearch() {
     { label: "Courses", items: results.programs },
     { label: "Lessons", items: results.materials },
     { label: "Assignments", items: results.assignments },
-    { label: "Evaluations", items: results.assessments },
+    { label: "Quizzes", items: results.assessments },
     { label: "Announcements", items: results.announcements },
   ].filter((group) => group.items.length > 0);
 

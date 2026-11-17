@@ -64,7 +64,7 @@ export default function TraineeCertificatesPage() {
       {certificates && certificates.length === 0 && pendingReviews.length === 0 ? (
         <EmptyState
           title="No certificates yet"
-          description="When you complete a course, submit the required review to receive your digital certificate."
+          description="When you complete every assigned course and submit the required reviews, you receive one digital certificate."
         />
       ) : null}
       {certificates && certificates.length === 0 && pendingReviews.length > 0 ? (

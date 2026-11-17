@@ -15,6 +15,8 @@ type DialogProps = {
 export function Dialog({ open, title, onClose, children, footer, wide, side }: DialogProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) {
@@ -25,7 +27,7 @@ export function Dialog({ open, title, onClose, children, footer, wide, side }: D
 
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        onClose();
+        onCloseRef.current();
       }
     }
     document.addEventListener("keydown", onKey);
@@ -33,7 +35,7 @@ export function Dialog({ open, title, onClose, children, footer, wide, side }: D
       document.removeEventListener("keydown", onKey);
       previous?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) {
     return null;
@@ -56,13 +58,24 @@ export function Dialog({ open, title, onClose, children, footer, wide, side }: D
           <h2 id={titleId} className="text-base font-semibold text-slate-900">
             {title}
           </h2>
-          <button ref={closeRef} type="button" className="rounded-lg px-2 py-1 text-sm text-slate-500 transition duration-150 hover:bg-slate-50 hover:text-slate-900" onClick={onClose}>
+          <button
+            ref={closeRef}
+            type="button"
+            className="rounded-lg px-2 py-1 text-sm text-slate-500 transition duration-150 hover:bg-slate-50 hover:text-slate-900"
+            onClick={onClose}
+          >
             Close
           </button>
         </div>
-        <div className={side ? "min-h-0 flex-1 overflow-y-auto px-5 py-4" : footer ? "min-h-0 flex-1 overflow-y-auto" : undefined}>{children}</div>
+        <div className={side ? "min-h-0 flex-1 overflow-y-auto px-5 py-4" : footer ? "min-h-0 flex-1 overflow-y-auto" : undefined}>
+          {children}
+        </div>
         {footer ? (
-          <div className={`shrink-0 border-t border-slate-200 bg-white shadow-[0_-6px_16px_rgba(15,23,42,0.04)] ${side ? "px-5 py-4" : "pt-4"}`}>{footer}</div>
+          <div
+            className={`shrink-0 border-t border-slate-200 bg-white shadow-[0_-6px_16px_rgba(15,23,42,0.04)] ${side ? "px-5 py-4" : "pt-4"}`}
+          >
+            {footer}
+          </div>
         ) : null}
       </div>
     </div>

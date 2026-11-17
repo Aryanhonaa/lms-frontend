@@ -3,6 +3,7 @@ export type CertificateStatus = "VALID" | "REVOKED";
 export type OwnedCertificate = {
   certificateId: string;
   program: { id: string; title: string };
+  courseTitles: string[];
   trainerName: string;
   traineeName: string;
   completionDate: string;

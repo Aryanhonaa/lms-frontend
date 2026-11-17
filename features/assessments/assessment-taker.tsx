@@ -1,6 +1,6 @@
 "use client";
 
-import { Hourglass, PenLine } from "lucide-react";
+import { Check, Hourglass, PenLine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getAssessmentAttempt,
@@ -16,7 +16,9 @@ import { SecureQuizWarning } from "@/components/assessments/secure-quiz-warning"
 import { friendlyLockReason } from "@/lib/learning/ux";
 import { traineeCardClass, traineePrimaryCtaClass, traineeSecondaryCtaClass } from "@/lib/ui/trainee";
 import { useSecureQuizMode } from "@/hooks/use-secure-quiz-mode";
-import type { AssessmentAttemptView, AssessmentCatalog } from "@/types/assessment";
+import type { AssessmentAttemptView, AssessmentCatalog, SafeQuestion } from "@/types/assessment";
+
+const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"] as const;
 
 function formatRemaining(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -33,9 +35,11 @@ function formatRemaining(ms: number): string {
 export function AssessmentTaker({
   catalog,
   onCatalogChange,
+  autoOpenReview = false,
 }: {
   catalog: AssessmentCatalog;
   onCatalogChange: (next: AssessmentCatalog) => void;
+  autoOpenReview?: boolean;
 }) {
   const [attempt, setAttempt] = useState<AssessmentAttemptView | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
@@ -67,6 +71,7 @@ export function AssessmentTaker({
   const answersRef = useRef(answers);
   const textsRef = useRef(texts);
   const finishingRef = useRef(false);
+  const autoOpenedReviewRef = useRef(false);
   const secure = useSecureQuizMode(Boolean(taking));
 
   useEffect(() => {
@@ -141,6 +146,35 @@ export function AssessmentTaker({
       setBusy(false);
     }
   }
+
+  const openAnswerReview = useCallback(async () => {
+    const latestClosed = [...catalog.attempts].reverse().find((row) => row.status !== "IN_PROGRESS");
+    if (!latestClosed) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const payload = await getAssessmentAttempt(latestClosed.id);
+      setAttempt(payload.attempt);
+      setConfirming(false);
+      setGateOpen(false);
+    } catch (err: unknown) {
+      setError(err instanceof ApiClientError ? err.message : "Unable to load answer review");
+    } finally {
+      setBusy(false);
+    }
+  }, [catalog.attempts]);
+
+  const reviewAvailable = Boolean(catalog.assessment.answersVisible) && catalog.attempts.some((row) => row.status !== "IN_PROGRESS");
+
+  useEffect(() => {
+    if (!autoOpenReview || !reviewAvailable || autoOpenedReviewRef.current) {
+      return;
+    }
+    autoOpenedReviewRef.current = true;
+    void openAnswerReview();
+  }, [autoOpenReview, openAnswerReview, reviewAvailable]);
 
   function selectOption(questionId: string, optionId: string) {
     setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
@@ -217,40 +251,65 @@ export function AssessmentTaker({
                 {catalog.passed ? "Passed" : catalog.pendingReview ? "Awaiting trainer review" : "Not passed"}
               </div>
             </dl>
-            <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
-              {writtenInQuiz > 0
-                ? "Multiple-choice answers are marked instantly. Your trainer reads and grades written answers, then your final score appears here. Questions and answers stay hidden."
-                : "After you submit you will see your score. Questions and answers stay hidden. Your trainer can still review your paper."}
-            </p>
-            {catalog.assessment.status === "LOCKED" ? (
+            {reviewAvailable ? (
+              <div className="mt-4 rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900 ring-1 ring-teal-200">
+                <p className="font-semibold">Your trainer released answer review</p>
+                <p className="mt-1 text-teal-800/90">
+                  Open your paper to see what you answered, the correct answers, and marks for each question.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
+                {writtenInQuiz > 0
+                  ? "Multiple-choice answers are marked instantly. Your trainer reads and grades written answers, then your final score appears here. Questions and answers stay hidden until your trainer releases them for the whole batch."
+                  : "After you submit you will see your score. Questions and answers stay hidden until your trainer releases them for the whole batch."}
+              </p>
+            )}
+            {catalog.assessment.status === "LOCKED" && !reviewAvailable ? (
               <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
                 This quiz is locked for now. {friendlyLockReason(catalog.assessment.reason)}
               </p>
-            ) : catalog.pendingReview && !catalog.activeAttemptId ? (
+            ) : catalog.pendingReview && !catalog.activeAttemptId && !reviewAvailable ? (
               <PendingReviewNotice />
-            ) : catalog.activeAttemptId || catalog.canStart ? (
-              <button
-                className={`${traineePrimaryCtaClass} mt-6`}
-                disabled={busy || (!catalog.canStart && !catalog.activeAttemptId)}
-                onClick={() => setGateOpen(true)}
-              >
-                {catalog.activeAttemptId
-                  ? catalog.assessment.kind.includes("EXAM")
-                    ? "Continue exam"
-                    : "Continue quiz"
-                  : catalog.attemptsUsed > 0
+            ) : null}
+            <div className="mt-6 flex flex-wrap gap-3">
+              {reviewAvailable ? (
+                <button type="button" className={traineePrimaryCtaClass} disabled={busy} onClick={() => void openAnswerReview()}>
+                  {busy ? "Loading…" : "Review my answers"}
+                </button>
+              ) : null}
+              {catalog.assessment.status !== "LOCKED" &&
+              !(catalog.pendingReview && !catalog.activeAttemptId) &&
+              (catalog.activeAttemptId || catalog.canStart) ? (
+                <button
+                  type="button"
+                  className={reviewAvailable ? traineeSecondaryCtaClass : traineePrimaryCtaClass}
+                  disabled={busy || (!catalog.canStart && !catalog.activeAttemptId)}
+                  onClick={() => setGateOpen(true)}
+                >
+                  {catalog.activeAttemptId
                     ? catalog.assessment.kind.includes("EXAM")
-                      ? "Retry exam"
-                      : "Retry quiz"
-                    : catalog.assessment.kind.includes("EXAM")
-                      ? "Start exam"
-                      : "Start quiz"}
-              </button>
-            ) : (
+                      ? "Continue exam"
+                      : "Continue quiz"
+                    : catalog.attemptsUsed > 0
+                      ? catalog.assessment.kind.includes("EXAM")
+                        ? "Retry exam"
+                        : "Retry quiz"
+                      : catalog.assessment.kind.includes("EXAM")
+                        ? "Start exam"
+                        : "Start quiz"}
+                </button>
+              ) : null}
+            </div>
+            {!reviewAvailable &&
+            catalog.assessment.status !== "LOCKED" &&
+            !(catalog.pendingReview && !catalog.activeAttemptId) &&
+            !catalog.activeAttemptId &&
+            !catalog.canStart ? (
               <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
                 You have used all available attempts. You can continue with the course. This assessment was not passed.
               </p>
-            )}
+            ) : null}
           </div>
           <AttemptHistory attempts={catalog.attempts} />
         </section>
@@ -312,8 +371,9 @@ export function AssessmentTaker({
                 />
               ) : (
               <ul className="mt-4 grid gap-2">
-                {current.options.map((option) => {
+                {current.options.map((option, optionIndex) => {
                   const selected = answers[current.id] === option.id;
+                  const letter = OPTION_LETTERS[optionIndex] ?? String(optionIndex + 1);
                   return (
                     <li key={option.id}>
                       <label
@@ -328,6 +388,7 @@ export function AssessmentTaker({
                           onChange={() => selectOption(current.id, option.id)}
                           className="mt-0.5"
                         />
+                        <span className="w-5 shrink-0 text-xs font-semibold text-slate-500">{letter}</span>
                         <span>{option.label}</span>
                       </label>
                     </li>
@@ -400,42 +461,50 @@ export function AssessmentTaker({
 
       {closed ? (
         <section className="grid gap-6 px-4 py-6 md:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className={`${traineeCardClass} px-5 py-5`}>
-            {attempt.needsReview ? (
-              <>
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                    <Hourglass className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="text-lg font-semibold text-amber-800">
-                      {attempt.status === "TIMED_OUT" ? "Time's up · " : ""}Submitted · Waiting for your trainer
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Your multiple-choice answers are marked. Your trainer will read and grade your written answers.
-                      Your final score will appear here, and you&apos;ll get a notification when it&apos;s ready.
-                    </p>
+          <div className="space-y-4">
+            <div className={`${traineeCardClass} px-5 py-5`}>
+              {attempt.needsReview ? (
+                <>
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                      <Hourglass className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="text-lg font-semibold text-amber-800">
+                        {attempt.status === "TIMED_OUT" ? "Time's up · " : ""}Submitted · Waiting for your trainer
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Your multiple-choice answers are marked. Your trainer will read and grade your written answers.
+                        Your final score will appear here, and you&apos;ll get a notification when it&apos;s ready.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
-                  You don&apos;t need to wait. The next part of the course is open, so carry on while your trainer
-                  grades.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className={`text-lg font-semibold ${attempt.passed ? "text-emerald-700" : "text-red-700"}`}>
-                  {attempt.status === "TIMED_OUT" ? "Timed out · " : ""}
-                  {attempt.passed ? "Passed" : "Failed"} · {attempt.score ?? 0}% (pass {attempt.passingScore}%)
-                </p>
-                <p className="mt-3 text-sm text-slate-600">
-                  Your attempt is recorded. Questions and answers stay hidden. Your trainer can review your paper.
-                </p>
-              </>
-            )}
-            <button type="button" className={`${traineeSecondaryCtaClass} mt-4`} onClick={leaveAttempt}>
-              Back to overview
-            </button>
+                  <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+                    You don&apos;t need to wait. The next part of the course is open, so carry on while your trainer
+                    grades.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className={`text-lg font-semibold ${attempt.passed ? "text-emerald-700" : "text-red-700"}`}>
+                    {attempt.status === "TIMED_OUT" ? "Timed out · " : ""}
+                    {attempt.passed ? "Passed" : "Failed"} · {attempt.score ?? 0}% (pass {attempt.passingScore}%)
+                  </p>
+                  {attempt.gradedBy ? (
+                    <p className="mt-2 text-sm font-medium text-slate-700">Graded by {attempt.gradedBy.name}</p>
+                  ) : null}
+                  <p className="mt-3 text-sm text-slate-600">
+                    {attempt.answersVisible
+                      ? "Your trainer released answer review for this batch. Scroll down to see each question."
+                      : "Your attempt is recorded. Questions and answers stay hidden until your trainer releases them for the whole batch."}
+                  </p>
+                </>
+              )}
+              <button type="button" className={`${traineeSecondaryCtaClass} mt-4`} onClick={leaveAttempt}>
+                Back to overview
+              </button>
+            </div>
+            {attempt.answersVisible ? <AnswerReview questions={attempt.questions} /> : null}
           </div>
           <AttemptHistory attempts={catalog.attempts} />
         </section>
@@ -446,6 +515,150 @@ export function AssessmentTaker({
           <SecureQuizNotice type={secure.notice.type} message={secure.notice.message} onDismiss={secure.dismissNotice} />
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function reviewTone(question: SafeQuestion): "full" | "partial" | "none" | "neutral" {
+  if (question.type === "WRITTEN") {
+    const awarded = question.pointsAwarded;
+    if (awarded === undefined || awarded === null) {
+      return "neutral";
+    }
+    if (awarded >= question.points && question.points > 0) {
+      return "full";
+    }
+    if (awarded > 0) {
+      return "partial";
+    }
+    return "none";
+  }
+  if (question.isCorrect === true) {
+    return "full";
+  }
+  if (question.isCorrect === false) {
+    return "none";
+  }
+  return "neutral";
+}
+
+const REVIEW_CARD_TONE = {
+  full: "bg-emerald-50/70 ring-emerald-200",
+  partial: "bg-amber-50/80 ring-amber-200",
+  none: "bg-rose-50/70 ring-rose-200",
+  neutral: "bg-slate-50 ring-slate-200",
+} as const;
+
+const REVIEW_BADGE_TONE = {
+  full: "bg-emerald-100 text-emerald-800",
+  partial: "bg-amber-100 text-amber-900",
+  none: "bg-rose-100 text-rose-800",
+  neutral: "bg-slate-100 text-slate-600",
+} as const;
+
+function AnswerReview({ questions }: { questions: SafeQuestion[] }) {
+  const wrongCount = questions.filter((question) => reviewTone(question) === "none").length;
+  const partialCount = questions.filter((question) => reviewTone(question) === "partial").length;
+  return (
+    <div className={`${traineeCardClass} px-5 py-5`}>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h3 className="text-base font-semibold text-slate-900">Answer review</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Your answers, the correct answers, and marks for each question.
+          </p>
+        </div>
+        <p className="text-sm text-slate-500">
+          {wrongCount === 0 && partialCount === 0
+            ? "All marked questions correct"
+            : [
+                partialCount > 0 ? `${partialCount} partial` : null,
+                wrongCount > 0 ? `${wrongCount} incorrect` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+        </p>
+      </div>
+      <ol className="mt-5 space-y-4">
+        {questions.map((question, index) => {
+          const tone = reviewTone(question);
+          const selected = new Set(question.selectedOptionIds);
+          const correctIds = new Set(question.correctOptionIds ?? []);
+          return (
+            <li key={question.id} className={`rounded-2xl px-4 py-4 ring-1 ${REVIEW_CARD_TONE[tone]}`}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="text-sm font-medium text-slate-900">
+                  <span className="mr-2 text-slate-400">Q{index + 1}</span>
+                  {question.prompt}
+                </p>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${REVIEW_BADGE_TONE[tone]}`}
+                >
+                  {tone === "full" ? <Check className="h-3 w-3" /> : tone === "none" ? <X className="h-3 w-3" /> : null}
+                  {question.pointsAwarded ?? 0}/{question.points} pts
+                </span>
+              </div>
+
+              {question.type === "WRITTEN" ? (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Your answer</p>
+                    <p className="mt-1 whitespace-pre-wrap text-slate-800">
+                      {question.textAnswer?.trim() ? question.textAnswer : "No answer written"}
+                    </p>
+                  </div>
+                  {question.trainerComment?.trim() ? (
+                    <div className="rounded-xl bg-white/80 px-3 py-2 ring-1 ring-slate-200">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Trainer note</p>
+                      <p className="mt-1 whitespace-pre-wrap text-slate-700">{question.trainerComment}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <ul className="mt-3 space-y-1.5">
+                  {question.options.map((option, optionIndex) => {
+                    const isSelected = selected.has(option.id);
+                    const isCorrectOption = correctIds.has(option.id) || option.isCorrect === true;
+                    const letter = OPTION_LETTERS[optionIndex] ?? String(optionIndex + 1);
+                    return (
+                      <li
+                        key={option.id}
+                        className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${
+                          isCorrectOption
+                            ? "bg-emerald-100/80 text-emerald-950"
+                            : isSelected
+                              ? "bg-rose-100/80 text-rose-950"
+                              : "bg-white/70 text-slate-700"
+                        }`}
+                      >
+                        <span className="mt-0.5 shrink-0">
+                          {isCorrectOption ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-700" />
+                          ) : isSelected ? (
+                            <X className="h-3.5 w-3.5 text-rose-700" />
+                          ) : (
+                            <span className="inline-block h-3.5 w-3.5" />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="mr-2 text-xs font-semibold opacity-70">{letter}</span>
+                          {option.label}
+                          {isSelected ? (
+                            <span className="ml-2 text-xs font-medium opacity-80">Your choice</span>
+                          ) : null}
+                          {isCorrectOption ? (
+                            <span className="ml-2 text-xs font-medium opacity-80">Correct</span>
+                          ) : null}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

@@ -85,6 +85,24 @@ export type TrainerAssignmentSummary = {
   lifecycleStatus?: string;
 };
 
+export type RecentAssignmentSubmission = {
+  id: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  programId: string;
+  programTitle: string;
+  location: string;
+  trainee: PersonRef;
+  batch: BatchRef | null;
+  status: Exclude<AssignmentSubmissionStatus, "NOT_STARTED" | "IN_PROGRESS">;
+  revision: number;
+  submittedAt: string;
+  score: number | null;
+  maxScore: number;
+  gradedBy: PersonRef | null;
+  gradedAt: string | null;
+};
+
 export type TrainerSubmission = {
   id: string;
   status: Exclude<AssignmentSubmissionStatus, "NOT_STARTED">;

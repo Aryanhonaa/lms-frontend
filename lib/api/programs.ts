@@ -248,45 +248,12 @@ export async function addFinalExam(programId: string, body: QuizInput): Promise<
   return apiClient<ProgramPayload>(`/trainer/programs/${programId}/final-exam`, { method: "POST", body });
 }
 
-export async function addMilestoneExam(milestoneId: string, body: QuizInput): Promise<ProgramPayload> {
-  return apiClient<ProgramPayload>(`/trainer/milestones/${milestoneId}/exam`, { method: "POST", body });
-}
-
 export async function updateQuiz(quizId: string, body: QuizInput): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/quizzes/${quizId}`, { method: "PATCH", body });
 }
 
 export async function deleteQuiz(quizId: string): Promise<ProgramPayload> {
   return apiClient<ProgramPayload>(`/trainer/quizzes/${quizId}`, { method: "DELETE" });
-}
-
-export async function addMilestone(
-  programId: string,
-  body: { title: string; afterWeekIndex: number },
-): Promise<ProgramPayload> {
-  return apiClient<ProgramPayload>(`/trainer/programs/${programId}/milestones`, { method: "POST", body });
-}
-
-export async function deleteMilestone(milestoneId: string): Promise<ProgramPayload> {
-  return apiClient<ProgramPayload>(`/trainer/milestones/${milestoneId}`, { method: "DELETE" });
-}
-
-export async function addRequirement(
-  milestoneId: string,
-  body: {
-    label: string;
-    kind?: "WEEKS_COMPLETED" | "ASSESSMENTS_PASSED" | "ASSIGNMENTS_COMPLETE" | "ATTENDANCE" | "CUSTOM";
-    targetCount?: number;
-  },
-): Promise<ProgramPayload> {
-  return apiClient<ProgramPayload>(`/trainer/milestones/${milestoneId}/requirements`, {
-    method: "POST",
-    body,
-  });
-}
-
-export async function deleteRequirement(requirementId: string): Promise<ProgramPayload> {
-  return apiClient<ProgramPayload>(`/trainer/requirements/${requirementId}`, { method: "DELETE" });
 }
 
 export async function addSession(

@@ -56,7 +56,11 @@ export function progressHeadline(
 }
 
 export function locationLabel(weekTitle: string, dayTitle?: string | null): string {
-  return dayTitle ? `${weekTitle} · ${dayTitle}` : weekTitle;
+  const hideWeek = !weekTitle || weekTitle === "Plan";
+  if (!dayTitle) {
+    return hideWeek ? "Course" : weekTitle;
+  }
+  return hideWeek ? dayTitle : `${weekTitle} · ${dayTitle}`;
 }
 
 export function contentTypeLabel(type: string, kind?: string | null): string {
@@ -78,11 +82,8 @@ export function contentTypeLabel(type: string, kind?: string | null): string {
   if (kind === "FINAL_EXAM") {
     return "Final Exam";
   }
-  if (kind === "MILESTONE_EXAM") {
-    return "Milestone Exam";
-  }
   if (kind === "WEEKLY_EXAM") {
-    return "Weekly exam";
+    return "Checkpoint exam";
   }
   if (type === "QUIZ" || kind?.includes("QUIZ") || kind?.includes("EXAM")) {
     return "Quiz";
@@ -90,12 +91,9 @@ export function contentTypeLabel(type: string, kind?: string | null): string {
   return "Lesson";
 }
 
-export function assessmentHierarchy(kind?: string | null): "final" | "milestone" | "quiz" | null {
+export function assessmentHierarchy(kind?: string | null): "final" | "quiz" | null {
   if (kind === "FINAL_EXAM") {
     return "final";
-  }
-  if (kind === "MILESTONE_EXAM") {
-    return "milestone";
   }
   if (kind?.includes("QUIZ") || kind?.includes("EXAM")) {
     return "quiz";
@@ -236,11 +234,6 @@ export function friendlyLockReason(reason: string | null): string {
   }
   if (/lessons and practice quizzes first/i.test(reason)) {
     return "Finish this chapter's lessons and quizzes first.";
-  }
-
-  const milestone = reason.match(/Complete (.+) before this milestone exam\./i);
-  if (milestone) {
-    return `Finish ${milestone[1]} to unlock this quiz.`;
   }
 
   if (/Missing requirement:/i.test(reason)) {
@@ -395,16 +388,6 @@ export function flattenLearnPath(view: LearnView): PathItem[] {
       }
       push({
         ...quizPathFields(quiz),
-        weekTitle: week.title,
-        dayTitle: null,
-      });
-    }
-    for (const milestone of view.milestones ?? []) {
-      if (milestone.afterWeekIndex !== week.sortOrder || !milestone.exam) {
-        continue;
-      }
-      push({
-        ...quizPathFields(milestone.exam),
         weekTitle: week.title,
         dayTitle: null,
       });

@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, Circle } from "lucide-react";
 import { ProgramPreview } from "@/features/programs/program-preview";
 import type { BuilderSection, SectionStatus } from "@/features/programs/builder/completion";
 import { analyzeBuilder } from "@/features/programs/builder/completion";
-import { CARD, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
+import { CARD } from "@/features/programs/builder/ui";
 import { programStatusLabel } from "@/lib/programs/enrollment";
 import type { ProgramTree } from "@/types/program";
 
@@ -18,10 +18,10 @@ const CHECKS: Array<{ id: BuilderSection; label: string; completeText: string; a
   },
   {
     id: "curriculum",
-    label: "Curriculum",
-    completeText: "Weeks and days are ready.",
-    attentionText: "You have a week. Add at least one day so content has a home.",
-    emptyText: "Add your first week.",
+    label: "Days",
+    completeText: "Days are ready.",
+    attentionText: "Add at least one day so content has a home.",
+    emptyText: "Add your first day.",
   },
   {
     id: "content",
@@ -49,25 +49,19 @@ const CHECKS: Array<{ id: BuilderSection; label: string; completeText: string; a
 export function ReviewPanel({
   program,
   editable,
-  busy,
   onGo,
-  onSubmit,
 }: {
   program: ProgramTree;
   editable: boolean;
-  busy: boolean;
   onGo: (section: BuilderSection) => void;
-  onSubmit: () => void;
 }) {
   const analysis = analyzeBuilder(program);
 
   return (
-    <div className="lms-fade-up mx-auto max-w-3xl space-y-6">
+    <div className="lms-fade-up mx-auto max-w-3xl space-y-5">
       <div>
-        <h2 className="text-[1.45rem] font-semibold tracking-tight text-slate-900">Review & send</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Check what is done, preview the trainee path, then send for review when you are ready.
-        </p>
+        <h2 className="text-[1.45rem] font-semibold tracking-tight text-slate-900">Review</h2>
+        <p className="mt-1 text-sm text-slate-500">Check the program, then send it from the top bar.</p>
       </div>
 
       <section className={`${CARD} divide-y divide-slate-100`}>
@@ -77,7 +71,7 @@ export function ReviewPanel({
             <button
               key={item.id}
               type="button"
-              className="flex w-full items-start gap-3 px-5 py-4 text-left transition duration-150 hover:bg-slate-50"
+              className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50"
               onClick={() => onGo(item.id === "review" ? "curriculum" : item.id)}
             >
               <StatusIcon status={status} />
@@ -94,22 +88,13 @@ export function ReviewPanel({
 
       {analysis.submitHint ? <p className="text-sm text-amber-700">{analysis.submitHint}</p> : null}
 
-      {editable ? (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={primaryButtonClass} disabled={busy || !analysis.canSubmit} onClick={onSubmit}>
-            {busy ? "Sending…" : "Send for Review"}
-          </button>
-          <button type="button" className={secondaryButtonClass} onClick={() => onGo("curriculum")}>
-            Back to curriculum
-          </button>
-        </div>
-      ) : (
-        <p className="text-sm text-slate-500">This program is {programStatusLabel(program.status)}. Editing is locked until it returns to draft.</p>
+      {editable ? null : (
+        <p className="text-sm text-slate-500">This program is {programStatusLabel(program.status)}, so the builder is read-only.</p>
       )}
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-slate-900">Trainee preview</h3>
-        <div className={`${CARD} overflow-hidden p-1`}>
+        <h3 className="mb-2 text-sm font-medium text-slate-700">Trainee preview</h3>
+        <div className={`${CARD} overflow-hidden`}>
           <ProgramPreview program={program} />
         </div>
       </div>

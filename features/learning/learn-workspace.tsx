@@ -31,7 +31,7 @@ import {
   quizActionLabel,
 } from "@/lib/learning/ux";
 import { ContentTypeChip, ContentTypeIcon } from "@/components/learning/content-type-chip";
-import { FileActionsRow, FileViewer } from "@/components/files/file-viewer";
+import { FileViewer } from "@/components/files/file-viewer";
 import { getAttachmentAccess, getItemFileAccess } from "@/lib/api/files";
 import type { AttachmentView } from "@/types/files";
 import { LockCard, UnlocksNextCard } from "@/components/learning/lock-card";
@@ -68,13 +68,17 @@ function AttachmentList({ attachments, batchId }: { attachments: AttachmentView[
   return (
     <div className={`${traineeCardClass} px-5 py-4 md:px-6`}>
       <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Attachments</p>
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-3 space-y-4">
         {attachments.map((attachment) => (
           <li key={attachment.id} className="rounded-xl bg-slate-50 px-3 py-3">
-            <FileActionsRow
+            <FileViewer
+              key={attachment.id}
+              resourceKey={attachment.id}
               loader={() => getAttachmentAccess("trainee", attachment.id, batchId)}
               fileName={attachment.title || attachment.fileName}
+              mimeType={attachment.mimeType}
               fileSize={attachment.fileSize}
+              title={attachment.title || attachment.fileName}
             />
           </li>
         ))}
@@ -107,6 +111,8 @@ function ItemBody({ item, batchId }: { item: LearnItem; batchId?: string }) {
           <p className={`${traineeCardClass} px-5 py-4 text-sm whitespace-pre-wrap text-slate-700 md:px-6`}>{item.description}</p>
         ) : null}
         <FileViewer
+          key={`${item.type}-${item.id}`}
+          resourceKey={`${item.type}-${item.id}`}
           loader={() => getItemFileAccess("trainee", item.type as "VIDEO" | "RESOURCE" | "REEL", item.id, batchId)}
           fileName={item.file.fileName}
           mimeType={item.file.mimeType}
@@ -119,7 +125,7 @@ function ItemBody({ item, batchId }: { item: LearnItem; batchId?: string }) {
 
   if (item.type === "VIDEO" && item.url) {
     if (youtubeVideoId(item.url)) {
-      return <YoutubeEmbed title={item.title} url={item.url} vertical={isYoutubeShortsUrl(item.url)} />;
+      return <YoutubeEmbed key={item.url} title={item.title} url={item.url} vertical={isYoutubeShortsUrl(item.url)} />;
     }
     return (
       <video className="w-full overflow-hidden rounded-2xl bg-black shadow-lg" src={item.url} controls>
@@ -132,7 +138,7 @@ function ItemBody({ item, batchId }: { item: LearnItem; batchId?: string }) {
 
   if (item.type === "REEL" && item.url) {
     if (youtubeVideoId(item.url)) {
-      return <YoutubeEmbed title={item.title} url={item.url} vertical />;
+      return <YoutubeEmbed key={item.url} title={item.title} url={item.url} vertical />;
     }
     return <video className="mx-auto max-h-[70vh] w-full overflow-hidden rounded-2xl bg-black shadow-lg" src={item.url} controls />;
   }
@@ -382,7 +388,7 @@ export function LearnWorkspace({ view, batchId, currentType, currentId, onViewCh
                 <ActivityCard item={current} programId={view.program.id} batchId={batchId} />
               ) : contentItem ? (
                 <div className="space-y-4">
-                  <ItemBody item={contentItem} batchId={batchId} />
+                  <ItemBody key={`${contentItem.type}-${contentItem.id}`} item={contentItem} batchId={batchId} />
                   {linkedAssignment ? (
                     isDoneStatus(current.status) && linkedAssignment.status !== "LOCKED" ? (
                       <ActivityCard item={linkedAssignment} programId={view.program.id} batchId={batchId} />

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, ChevronDown, RotateCcw, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarDays, Check, ChevronDown, Plus, RotateCcw, Search } from "lucide-react";
 import { TrainerShell } from "@/components/trainer-shell";
 import { ErrorState, LoadingState } from "@/components/ui/empty-state";
+import { AddActivityDialog } from "@/features/calendar/add-activity-dialog";
 import { CalendarBoard } from "@/features/calendar/calendar-board";
 import { listTrainerCalendar } from "@/lib/api/calendar";
 import { ApiClientError } from "@/lib/api/client";
+import { primaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
 import type { CalendarEvent, TrainerCalendarFilters } from "@/types/calendar";
 
@@ -135,6 +137,15 @@ export default function TrainerCalendarPage() {
   const [filters, setFilters] = useState<TrainerCalendarFilters>(NO_FILTERS);
   const [selected, setSelected] = useState<CalendarSelections>(NO_SELECTIONS);
   const [error, setError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const payload = await listTrainerCalendar();
+    setEvents(payload.events);
+    setFilters(payload.filters ?? NO_FILTERS);
+    setError(null);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,7 +153,7 @@ export default function TrainerCalendarPage() {
       .then((payload) => {
         if (!cancelled) {
           setEvents(payload.events);
-          setFilters(payload.filters);
+          setFilters(payload.filters ?? NO_FILTERS);
           setError(null);
         }
       })
@@ -196,8 +207,18 @@ export default function TrainerCalendarPage() {
   }
 
   return (
-    <TrainerShell title="Calendar" user={user}>
+    <TrainerShell
+      title="Calendar"
+      user={user}
+      actions={
+        <button type="button" className={primaryButtonClass} onClick={() => setAddOpen(true)} disabled={!events}>
+          <Plus className="h-4 w-4" />
+          Add activity
+        </button>
+      }
+    >
       {error ? <ErrorState message={error} /> : null}
+      {notice ? <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{notice}</p> : null}
       {events === null && !error ? <LoadingState /> : null}
       {events ? (
         <div className="space-y-5">
@@ -205,7 +226,10 @@ export default function TrainerCalendarPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Filter activities</h2>
-                <p className="mt-1 text-xs text-slate-500">Choose any combination. Empty filters include all activities.</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Batch start/end dates, exams, holidays, and activities you add. Use Add activity for sessions even
+                  when a course is not in scheduled mode.
+                </p>
               </div>
               {selected.courses.length + selected.batches.length + selected.trainees.length > 0 ? (
                 <button
@@ -282,6 +306,19 @@ export default function TrainerCalendarPage() {
           />
         </div>
       ) : null}
+
+      <AddActivityDialog
+        open={addOpen}
+        filters={filters}
+        onClose={() => setAddOpen(false)}
+        onCreated={() => {
+          setAddOpen(false);
+          setNotice("Activity added. It will show on the assigned trainee calendars.");
+          void load().catch((err: unknown) => {
+            setError(err instanceof ApiClientError ? err.message : "Unable to refresh calendar");
+          });
+        }}
+      />
     </TrainerShell>
   );
 }

@@ -7,6 +7,7 @@ import { CourseOutcomeBadge, CourseOutcomePanel } from "@/components/course-outc
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useTraineeEnrollment } from "@/hooks/use-trainee-enrollment";
+import { sequenceLabel } from "@/lib/batches/course-sequence";
 import { traineePathHref } from "@/lib/learning/path";
 import {
   courseListCategory,
@@ -20,23 +21,74 @@ import type { EnrollmentSummary } from "@/types/learning";
 
 const FILTERS: Array<{ id: CourseListFilter; label: string }> = [
   { id: "all", label: "All" },
-  { id: "in-progress", label: "In Progress" },
+  { id: "in-progress", label: "In progress" },
   { id: "completed", label: "Completed" },
-  { id: "failed", label: "Failed" },
+  { id: "failed", label: "Needs attention" },
 ];
 
 function courseHref(row: EnrollmentSummary) {
   return traineePathHref(row.program.id, null, row.batch?.id);
 }
 
-function CourseCard({ row }: { row: EnrollmentSummary }) {
+function courseState(row: EnrollmentSummary): "completed" | "current" | "upcoming" {
+  if (row.course.outcome === "PASSED") {
+    return "completed";
+  }
+  if (row.sequenceLocked) {
+    return "upcoming";
+  }
+  if (row.course.outcome === "FAILED") {
+    return "current";
+  }
+  if (row.progress.percent > 0) {
+    return "current";
+  }
+  return "upcoming";
+}
+
+function actionLabel(row: EnrollmentSummary, state: ReturnType<typeof courseState>) {
+  if (row.sequenceLocked) {
+    return "Locked";
+  }
+  if (row.course.outcome === "PASSED") {
+    return "View course";
+  }
+  if (state === "upcoming") {
+    return "View course";
+  }
+  if (row.progress.percent > 0) {
+    return "Resume learning";
+  }
+  return "Continue learning";
+}
+
+function CourseCard({
+  row,
+  sequence,
+  state,
+}: {
+  row: EnrollmentSummary;
+  sequence: number;
+  state: ReturnType<typeof courseState>;
+}) {
   const finished = row.course.outcome !== "PENDING";
+  const locked = Boolean(row.sequenceLocked);
   const date = formatCourseDate(row.course.finishedAt ?? row.course.lastActivityAt);
+  const stateCopy = locked
+    ? "Locked"
+    : state === "completed"
+      ? "Completed"
+      : state === "current"
+        ? "You're here"
+        : "Up next";
   return (
     <article className={`${traineeCardClass} flex flex-col p-5`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-900">{row.program.title}</h2>
+          <p className="text-[11px] font-semibold tracking-wide text-violet-700 uppercase">
+            {sequenceLabel(sequence)} · {stateCopy}
+          </p>
+          <h2 className="mt-1 text-base font-semibold text-slate-900">{row.program.title}</h2>
           <p className="mt-1 text-sm text-slate-500">
             {row.program.category}
             {row.batch?.name ? ` · ${row.batch.name}` : ""}
@@ -60,11 +112,35 @@ function CourseCard({ row }: { row: EnrollmentSummary }) {
         <p className="mt-3 text-xs text-slate-500">Completed on {date}</p>
       ) : null}
       {!finished && date ? <p className="mt-3 text-xs text-slate-500">Last activity {date}</p> : null}
-      <Link href={courseHref(row)} className={`${finished ? traineeSecondaryCtaClass : traineePrimaryCtaClass} mt-4`}>
-        {finished ? "View Course" : "Continue Learning"}
-      </Link>
+      {locked ? (
+        <p className={`${traineeSecondaryCtaClass} mt-4 cursor-not-allowed opacity-70`}>
+          {row.sequenceLockReason ?? "Finish the previous course first."}
+        </p>
+      ) : (
+        <Link
+          href={courseHref(row)}
+          className={`${finished || state === "upcoming" ? traineeSecondaryCtaClass : traineePrimaryCtaClass} mt-4`}
+        >
+          {actionLabel(row, state)}
+        </Link>
+      )}
     </article>
   );
+}
+
+function groupByBatch(rows: EnrollmentSummary[]) {
+  const groups = new Map<string, { name: string; rows: EnrollmentSummary[] }>();
+  for (const row of rows) {
+    const key = row.batch?.familyId ?? row.batch?.id ?? row.id;
+    const name = row.batch?.name ?? "Your learning";
+    const current = groups.get(key) ?? { name, rows: [] };
+    current.rows.push(row);
+    groups.set(key, current);
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    rows: [...group.rows].sort((a, b) => (a.batch?.sortOrder ?? 0) - (b.batch?.sortOrder ?? 0)),
+  }));
 }
 
 function CoursesClient() {
@@ -72,10 +148,10 @@ function CoursesClient() {
   const filters = useTraineeEnrollment();
   const [tab, setTab] = useState<CourseListFilter>("all");
 
-  const visible = useMemo(
-    () => filters.enrollments.filter((row) => row.course && matchesCourseFilter(row.course, tab)),
-    [filters.enrollments, tab],
-  );
+  const grouped = useMemo(() => {
+    const visible = filters.enrollments.filter((row) => row.course && matchesCourseFilter(row.course, tab));
+    return groupByBatch(visible);
+  }, [filters.enrollments, tab]);
 
   const counts = useMemo(() => {
     const rows = filters.enrollments;
@@ -92,7 +168,8 @@ function CoursesClient() {
   }
 
   return (
-    <TraineeShell title="My Courses" user={user}>
+    <TraineeShell title="My learning" user={user}>
+      <p className="mb-4 text-sm text-slate-500">Courses appear in the order your trainer set for each batch.</p>
       <div className="mb-5 flex flex-wrap gap-2">
         {FILTERS.map((filter) => (
           <button
@@ -111,18 +188,39 @@ function CoursesClient() {
       {filters.error ? <ErrorState message={filters.error} /> : null}
       {!filters.ready && !filters.error ? <LoadingState /> : null}
       {filters.ready && filters.enrollments.length === 0 ? (
-        <EmptyState title="No courses yet" description="When you are enrolled, your courses will appear here." />
+        <EmptyState title="Nothing assigned yet" description="When you join a batch, your courses show up here in order." />
       ) : null}
-      {filters.ready && filters.enrollments.length > 0 && visible.length === 0 ? (
+      {filters.ready && filters.enrollments.length > 0 && grouped.length === 0 ? (
         <EmptyState title={`No ${FILTERS.find((row) => row.id === tab)?.label.toLowerCase()} courses`} description="Try another filter." />
       ) : null}
-      {visible.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {visible.map((row) => (
-            <CourseCard key={row.id} row={row} />
-          ))}
-        </div>
-      ) : null}
+      {grouped.map((group) => {
+        const currentIndex = group.rows.findIndex((row) => courseState(row) !== "completed");
+        return (
+          <section key={group.name + group.rows[0]?.id} className="mb-8">
+            <h2 className="mb-3 text-sm font-semibold text-slate-900">{group.name}</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {group.rows.map((row, index) => (
+                <CourseCard
+                  key={row.id}
+                  row={row}
+                  sequence={index}
+                  state={
+                    currentIndex < 0
+                      ? "completed"
+                      : index === currentIndex
+                        ? "current"
+                        : index < currentIndex
+                          ? "completed"
+                          : courseState(row) === "current"
+                            ? "current"
+                            : "upcoming"
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </TraineeShell>
   );
 }

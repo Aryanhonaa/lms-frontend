@@ -308,6 +308,9 @@ export function AssignmentWorkspace({
             <p className="mt-1 text-2xl font-semibold text-violet-950">
               {catalog.submission.score} / {catalog.assignment.maxScore}
             </p>
+            {catalog.submission.gradedBy ? (
+              <p className="mt-1 text-sm text-violet-800">Graded by {catalog.submission.gradedBy.name}</p>
+            ) : null}
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
               <div
                 className="h-full bg-violet-600"
@@ -361,7 +364,12 @@ export function AssignmentWorkspace({
           <p className="mt-2">Last saved {formatWhen(catalog.submission.updatedAt)}</p>
         ) : null}
         {catalog.submission.submittedAt ? <p className="mt-2">Submitted {formatWhen(catalog.submission.submittedAt)}</p> : null}
-        {catalog.submission.gradedAt ? <p className="mt-2">Graded {formatWhen(catalog.submission.gradedAt)}</p> : null}
+        {catalog.submission.gradedAt ? (
+          <p className="mt-2">
+            Graded {formatWhen(catalog.submission.gradedAt)}
+            {catalog.submission.gradedBy ? ` by ${catalog.submission.gradedBy.name}` : ""}
+          </p>
+        ) : null}
       </aside>
 
       <Dialog open={confirmOpen} title="Submit assignment?" onClose={() => setConfirmOpen(false)}>

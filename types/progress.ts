@@ -9,7 +9,6 @@ export type TrackedKind =
   | "PRACTICE_QUIZ"
   | "WEEKLY_QUIZ"
   | "WEEKLY_EXAM"
-  | "MILESTONE_EXAM"
   | "FINAL_EXAM";
 
 export type ProgressActivity = {
@@ -18,39 +17,6 @@ export type ProgressActivity = {
   title: string;
   weekTitle: string;
   dayTitle: string | null;
-};
-
-export type RequirementStatus = {
-  id: string;
-  kind: string;
-  label: string;
-  targetCount: number;
-  complete: boolean;
-  blocking: boolean;
-  display: "Complete" | "Missing";
-};
-
-export type MilestoneProgress = {
-  id: string;
-  title: string;
-  afterWeekIndex: number;
-  sortOrder: number;
-  satisfied: boolean;
-  status: ProgressStatus;
-  reason: string | null;
-  requirements: RequirementStatus[];
-  exam: {
-    id: string;
-    title: string;
-    status: ProgressStatus;
-    reason: string | null;
-    available: boolean;
-    canRetry?: boolean;
-    score?: number | null;
-    passingScore?: number;
-    attemptsUsed?: number;
-    maxAttempts?: number | null;
-  } | null;
 };
 
 export type FinalExamEligibility = {
@@ -122,8 +88,6 @@ export type ProgressView = {
     weekTitle: string;
     dayTitle: string | null;
   }>;
-  milestones: MilestoneProgress[];
-  currentMilestone: { id: string; title: string } | null;
   finalExam: FinalExamEligibility;
 };
 
@@ -137,6 +101,5 @@ export type ProgressListItem = {
   currentWeek: ProgressView["currentWeek"];
   currentActivity: ProgressActivity | null;
   nextActivity: ProgressActivity | null;
-  currentMilestone: { id: string; title: string } | null;
   course?: CourseOutcomeView;
 };

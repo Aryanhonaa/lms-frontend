@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Clock3, FileText, UserRound } from "lucide-react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TrainerCourseBatchFilters } from "@/components/trainer-course-batch-filters";
 import { TrainerShell } from "@/components/trainer-shell";
@@ -47,10 +48,17 @@ export default function TrainerAssignmentDetailPage() {
   const [payload, setPayload] = useState<Awaited<ReturnType<typeof getTrainerAssignment>> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const requestedSubmissionId = searchParams.get("submissionId");
 
-  const scope = filters.programId && filters.batchId ? { programId: filters.programId, batchId: filters.batchId } : undefined;
+  const scope = useMemo(
+    () =>
+      filters.programId && filters.batchId
+        ? { programId: filters.programId, batchId: filters.batchId }
+        : undefined,
+    [filters.batchId, filters.programId],
+  );
 
   useEffect(() => {
     if (urlProgramId || !params.id) {
@@ -94,7 +102,7 @@ export default function TrainerAssignmentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [params.id, filters.ready, filters.programId, filters.batchId]);
+  }, [params.id, filters.ready, scope]);
 
   function onProgramChange(programId: string) {
     if (programId === filters.programId) {
@@ -136,7 +144,12 @@ export default function TrainerAssignmentDetailPage() {
     }
   }
 
-  const roster: TrainerRosterRow[] = payload?.roster ?? [];
+  const roster: TrainerRosterRow[] = useMemo(() => payload?.roster ?? [], [payload?.roster]);
+  const automaticOpenId =
+    (requestedSubmissionId ? roster.find((row) => row.latest?.id === requestedSubmissionId)?.enrollmentId : undefined) ??
+    roster.find((row) => row.status === "SUBMITTED")?.enrollmentId ??
+    null;
+  const effectiveOpenId = openId === undefined ? automaticOpenId : openId;
   const visibleRoster = useMemo(() => {
     if (statusFilter === "ALL") {
       return roster;
@@ -178,16 +191,34 @@ export default function TrainerAssignmentDetailPage() {
       ) : null}
       {payload ? (
         <section className="grid gap-4">
-          <div className="rounded-2xl bg-white px-5 py-4 ring-1 ring-slate-950/5">
-            <p className="text-sm text-slate-500">
-              {payload.assignment.programTitle} · {selectedBatch?.name} · {payload.assignment.location}
-            </p>
-            <p className="mt-1 text-sm text-slate-600">
-              {payload.roster.filter((row) => row.status !== "NOT_STARTED").length} submissions · max{" "}
-              {payload.assignment.maxScore} points
-            </p>
+          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-950/5">
+            <div className="bg-gradient-to-r from-slate-950 to-slate-800 px-5 py-5 text-white">
+              <p className="text-xs font-semibold tracking-[0.16em] text-violet-300 uppercase">Assignment review</p>
+              <h2 className="mt-1 text-xl font-semibold">{payload.assignment.title}</h2>
+              <p className="mt-1 text-sm text-slate-300">
+                {payload.assignment.programTitle} · {selectedBatch?.name} · {payload.assignment.location}
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl bg-white/10 px-3 py-2.5">
+                  <p className="text-xs text-slate-300">Submitted</p>
+                  <p className="mt-0.5 font-semibold">
+                    {payload.roster.filter((row) => row.status !== "NOT_STARTED").length} trainees
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white/10 px-3 py-2.5">
+                  <p className="text-xs text-slate-300">Waiting for review</p>
+                  <p className="mt-0.5 font-semibold">
+                    {payload.roster.filter((row) => row.status === "SUBMITTED").length} submissions
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white/10 px-3 py-2.5">
+                  <p className="text-xs text-slate-300">Maximum score</p>
+                  <p className="mt-0.5 font-semibold">{payload.assignment.maxScore} points</p>
+                </div>
+              </div>
+            </div>
             {roster.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 px-5 py-4">
                 {STATUS_FILTERS.map((item) => {
                   const count = filterCounts.get(item.id) ?? 0;
                   if (item.id !== "ALL" && count === 0) {
@@ -214,7 +245,7 @@ export default function TrainerAssignmentDetailPage() {
               </div>
             ) : null}
             {payload.assignment.attachments?.length ? (
-              <div className="mt-4 border-t border-slate-100 pt-3">
+              <div className="border-t border-slate-100 px-5 py-4">
                 <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">Attachments</p>
                 <ul className="mt-2 space-y-2">
                   {payload.assignment.attachments.map((attachment) => (
@@ -245,33 +276,59 @@ export default function TrainerAssignmentDetailPage() {
               const latest = row.latest;
               const submission = payload.submissions.find((item) => item.id === latest?.id);
               return (
-                <article key={row.enrollmentId} className="rounded-2xl bg-white p-5 ring-1 ring-slate-950/5">
+                <article
+                  key={row.enrollmentId}
+                  className={`overflow-hidden rounded-2xl bg-white transition ring-1 ${
+                    effectiveOpenId === row.enrollmentId ? "ring-violet-300 shadow-md" : "ring-slate-950/5"
+                  }`}
+                >
                   <button
                     type="button"
-                    className="flex w-full items-start justify-between gap-3 text-left"
-                    onClick={() => setOpenId((current) => (current === row.enrollmentId ? null : row.enrollmentId))}
+                    className="flex w-full items-start justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                    onClick={() => setOpenId(effectiveOpenId === row.enrollmentId ? null : row.enrollmentId)}
                   >
-                    <div>
+                    <div className="flex min-w-0 gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-700">
+                        <UserRound className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
                       <p className="font-medium text-slate-900">{row.trainee.name}</p>
                       <p className="mt-1 text-sm text-slate-500">
                         {latest?.submittedAt ? new Date(latest.submittedAt).toLocaleString() : "—"}
                         {latest?.isLate ? " · submitted late" : ""}
                         {latest ? ` · attempt ${latest.revision}` : ""}
                       </p>
+                      {latest?.gradedBy ? (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Marked by {latest.gradedBy.name}
+                        </p>
+                      ) : latest?.submittedAt ? (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                          <Clock3 className="h-3.5 w-3.5" /> Waiting for a trainer
+                        </p>
+                      ) : null}
+                      </div>
                     </div>
                     <span className="rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium tracking-wide text-slate-600 uppercase">
                       {statusLabel(row.status)}
                     </span>
                   </button>
-                  {openId === row.enrollmentId && submission ? (
+                  {effectiveOpenId === row.enrollmentId && submission ? (
                     <form
-                      className="mt-4 border-t border-slate-100 pt-4"
+                      className="border-t border-slate-100 bg-slate-50/40 px-5 py-5"
                       onSubmit={(event) => {
                         event.preventDefault();
                         void review(submission, "GRADED", event.currentTarget);
                       }}
                     >
-                      <p className="whitespace-pre-wrap text-sm text-slate-700">{submission.body || "No text response."}</p>
+                      <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          <FileText className="h-4 w-4" /> Trainee response
+                        </p>
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                          {submission.body || "No text response."}
+                        </p>
+                      </div>
                       {(submission.files ?? latest?.files ?? []).length > 0 ? (
                         <ul className="mt-3 space-y-2">
                           {(submission.files ?? latest?.files ?? []).map((file) => (
@@ -302,7 +359,7 @@ export default function TrainerAssignmentDetailPage() {
                       ) : (
                         <p className="mt-3 text-xs text-slate-500">No previous attempts.</p>
                       )}
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="mt-5 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
                         <label className="text-sm font-medium text-slate-800">
                           Score
                           <RequiredMark />
@@ -330,17 +387,9 @@ export default function TrainerAssignmentDetailPage() {
                           />
                         </label>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-4 flex flex-wrap gap-2">
                         <button type="submit" className={primaryButtonClass} disabled={busyId === submission.id}>
                           {busyId === submission.id ? "Saving…" : "Save grade"}
-                        </button>
-                        <button
-                          type="button"
-                          className={secondaryButtonClass}
-                          disabled={busyId === submission.id}
-                          onClick={(event) => void review(submission, "CHANGES_REQUESTED", event.currentTarget.form!)}
-                        >
-                          Request changes
                         </button>
                         <button
                           type="button"
@@ -353,7 +402,7 @@ export default function TrainerAssignmentDetailPage() {
                       </div>
                     </form>
                   ) : null}
-                  {openId === row.enrollmentId && !submission ? (
+                  {effectiveOpenId === row.enrollmentId && !submission ? (
                     <p className="mt-3 text-sm text-slate-500">This trainee has not submitted yet.</p>
                   ) : null}
                 </article>

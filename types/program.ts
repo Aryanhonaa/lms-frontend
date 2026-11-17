@@ -37,6 +37,7 @@ export type Question = {
   prompt: string;
   points: number;
   modelAnswer?: string;
+  keepOptionOrder?: boolean;
   options: QuestionOption[];
 };
 
@@ -49,6 +50,7 @@ export type Quiz = {
   timeLimitMin: number | null;
   maxAttempts: number | null;
   randomized: boolean;
+  shuffleOptions?: boolean;
   questionDrawCount: number | null;
   questions: Question[];
 };
@@ -162,23 +164,6 @@ export type Week = {
   trainingSessions: TrainingSession[];
 };
 
-export type MilestoneRequirement = {
-  id: string;
-  sortOrder: number;
-  kind: "WEEKS_COMPLETED" | "ASSESSMENTS_PASSED" | "ASSIGNMENTS_COMPLETE" | "ATTENDANCE" | "CUSTOM";
-  label: string;
-  targetCount: number;
-};
-
-export type Milestone = {
-  id: string;
-  sortOrder: number;
-  title: string;
-  afterWeekIndex: number;
-  requirements: MilestoneRequirement[];
-  exam: Quiz | null;
-};
-
 export type ProgramSummary = {
   id: string;
   title: string;
@@ -208,7 +193,6 @@ export type ProgramTree = ProgramSummary & {
   learningObjectives: string[];
   prerequisites: string[];
   weeks: Week[];
-  milestones: Milestone[];
   quizzes: Quiz[];
 };
 
@@ -232,6 +216,7 @@ export type QuizInput = {
   timeLimitMin?: number | null;
   maxAttempts?: number | null;
   randomized?: boolean;
+  shuffleOptions?: boolean;
   questionDrawCount?: number | null;
   revealMode?: "HIDDEN" | "IMMEDIATE" | "SCHEDULED";
   revealAt?: string | null;
@@ -240,6 +225,7 @@ export type QuizInput = {
     prompt: string;
     points?: number;
     modelAnswer?: string;
+    keepOptionOrder?: boolean;
     options?: Array<{ label: string; isCorrect: boolean }>;
   }>;
 };

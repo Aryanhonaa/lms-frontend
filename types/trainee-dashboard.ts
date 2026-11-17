@@ -9,6 +9,19 @@ export type TraineeDashboardStatistics = {
   overallProgress: { percent: number };
   pendingAssignments: { total: number };
   upcomingAssessments: { total: number };
+  answerReviews?: { total: number };
+};
+
+export type TraineeAnswerReview = {
+  quizId: string;
+  title: string;
+  kind: string;
+  programTitle: string;
+  batchName: string | null;
+  score: number | null;
+  passed: boolean | null;
+  revealedAt: string | null;
+  href: string;
 };
 
 export type TraineeCurrentLearning = {
@@ -26,11 +39,6 @@ export type TraineeCurrentLearning = {
   assignmentsHref: string;
   programHref: string;
   progressHref: string;
-  milestones: {
-    completed: Array<{ id: string; title: string }>;
-    upcoming: { id: string; title: string } | null;
-    current: { id: string; title: string } | null;
-  };
 };
 
 export type TraineeTopStudent = {
@@ -74,6 +82,7 @@ export type TraineeDashboard = {
   topStudent: TraineeTopStudent | null;
   upcoming: TraineeUpcomingEvent[];
   pendingAssignments: TraineePendingAssignment[];
+  answerReviews?: TraineeAnswerReview[];
   announcements: TraineeDashboardAnnouncement[];
   otherPrograms: Array<{ id: string; title: string; percent: number; outcome?: CourseOutcome; href: string }>;
   errors: {
@@ -82,6 +91,7 @@ export type TraineeDashboard = {
     assignments: string | null;
     announcements: string | null;
     topStudent: string | null;
+    answerReviews?: string | null;
   };
 };
 

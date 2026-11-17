@@ -9,6 +9,17 @@ export type TrainerDashboardStatistics = {
   pendingReviews: { total: number };
   upcomingAssessments: { total: number };
   pendingSubmissions: { total: number };
+  batches?: { total: number; ongoing: number };
+};
+
+export type TrainerDashboardBatch = {
+  id: string;
+  name: string;
+  code: string | null;
+  status: "UPCOMING" | "ONGOING" | "COMPLETED";
+  memberCount: number;
+  courses: Array<{ id: string; title: string; sequence: number; label: string }>;
+  href: string;
 };
 
 export type TrainerDashboardProgram = {
@@ -59,6 +70,7 @@ export type TrainerDashboard = {
   rangeEnd: string;
   statistics: TrainerDashboardStatistics;
   programs: TrainerDashboardProgram[];
+  batches?: TrainerDashboardBatch[];
   upcoming: TrainerUpcomingEvent[];
   recentSubmissions: TrainerRecentSubmission[];
   attention: TrainerAttentionItem[];

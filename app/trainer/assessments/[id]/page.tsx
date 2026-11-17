@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
   Keyboard,
   ListChecks,
   Maximize2,
@@ -22,8 +24,14 @@ import { TrainerCourseBatchFilters } from "@/components/trainer-course-batch-fil
 import { TrainerShell } from "@/components/trainer-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { useTrainerCourseBatch } from "@/hooks/use-trainer-course-batch";
-import { getTrainerAssessment, gradeAssessmentAttempt, notifyGradingChanged } from "@/lib/api/assessments";
+import {
+  getTrainerAssessment,
+  gradeAssessmentAttempt,
+  notifyGradingChanged,
+  setAssessmentAnswerVisibility,
+} from "@/lib/api/assessments";
 import { ApiClientError } from "@/lib/api/client";
+import { ReleaseAnswersDialog } from "@/features/assessments/release-answers-dialog";
 import { coveredTerms, highlightSegments, keyTerms } from "@/lib/assessments/grading";
 import { primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import { useAuth } from "@/providers/auth-provider";
@@ -80,6 +88,94 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function AnswerReleaseCard({
+  answersVisible,
+  canReveal,
+  submittedCount,
+  rosterCount,
+  pendingSubmitCount,
+  needsReviewCount,
+  busy,
+  onShow,
+  onHide,
+}: {
+  answersVisible: boolean;
+  canReveal: boolean;
+  submittedCount: number;
+  rosterCount: number;
+  pendingSubmitCount: number;
+  needsReviewCount: number;
+  busy: boolean;
+  onShow: () => void;
+  onHide: () => void;
+}) {
+  if (rosterCount === 0) {
+    return null;
+  }
+
+  if (answersVisible) {
+    return (
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-emerald-50 px-4 py-3 ring-1 ring-emerald-200">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+            <Eye className="h-4 w-4 shrink-0" />
+            Answers are visible to this batch
+          </p>
+          <p className="mt-1 text-sm text-emerald-800/80">
+            Every trainee can review their answers, the correct answers, and marks for this quiz.
+          </p>
+        </div>
+        <button type="button" className={secondaryButtonClass} disabled={busy} onClick={onHide}>
+          <EyeOff className="h-4 w-4" />
+          {busy ? "Updating…" : "Hide answers"}
+        </button>
+      </div>
+    );
+  }
+
+  if (canReveal) {
+    return (
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-violet-50 px-4 py-3 ring-1 ring-violet-200">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-semibold text-violet-950">
+            <Eye className="h-4 w-4 shrink-0" />
+            Ready to show answers
+          </p>
+          <p className="mt-1 text-sm text-violet-900/80">
+            Everyone in this batch has submitted ({submittedCount}/{rosterCount}).
+            {needsReviewCount > 0
+              ? ` ${needsReviewCount} still need grading — you can still release answers now.`
+              : " Release once so the whole batch can review together."}
+          </p>
+        </div>
+        <button type="button" className={primaryButtonClass} disabled={busy} onClick={onShow}>
+          <Eye className="h-4 w-4" />
+          {busy ? "Releasing…" : "Show answers to batch"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 ring-1 ring-amber-200">
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 text-sm font-semibold text-amber-950">
+          <EyeOff className="h-4 w-4 shrink-0" />
+          Some trainees have not submitted
+        </p>
+        <p className="mt-1 text-sm text-amber-900/80">
+          {submittedCount}/{rosterCount} submitted
+          {pendingSubmitCount > 0 ? ` · ${pendingSubmitCount} left` : ""}. You can release answers early after confirming.
+        </p>
+      </div>
+      <button type="button" className={primaryButtonClass} disabled={busy} onClick={onShow}>
+        <Eye className="h-4 w-4" />
+        {busy ? "Releasing…" : "Show answers anyway"}
+      </button>
+    </div>
+  );
+}
+
 export default function TrainerAssessmentDetailPage() {
   const { user } = useAuth();
   const params = useParams<{ id: string }>();
@@ -90,6 +186,7 @@ export default function TrainerAssessmentDetailPage() {
   const urlBatchId = searchParams.get("batchId") ?? "";
   const openParam = searchParams.get("open") ?? "";
   const fromGrading = searchParams.get("from") === "grading";
+  const focusAnswers = searchParams.get("focus") === "answers";
   const autoOpenedRef = useRef(false);
   const scrollToRef = useRef<string | null>(null);
   const [resolvedProgramId, setResolvedProgramId] = useState(urlProgramId);
@@ -103,6 +200,8 @@ export default function TrainerAssessmentDetailPage() {
   const [filter, setFilter] = useState<RosterFilter | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
+  const [revealBusy, setRevealBusy] = useState(false);
+  const [confirmRelease, setConfirmRelease] = useState(false);
   const dirtyRef = useRef(false);
 
   useEffect(() => {
@@ -148,7 +247,9 @@ export default function TrainerAssessmentDetailPage() {
             setOpenId(target.enrollmentId);
             return;
           }
-          setFilter((current) => current ?? ((data.summary.needsReviewCount ?? 0) > 0 ? "needs" : "all"));
+          setFilter((current) =>
+            focusAnswers ? "all" : (current ?? ((data.summary.needsReviewCount ?? 0) > 0 ? "needs" : "all")),
+          );
         }
       })
       .catch((err: unknown) => {
@@ -159,7 +260,17 @@ export default function TrainerAssessmentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [params.id, filters.ready, filters.programId, filters.batchId, reloadKey, openParam]);
+  }, [params.id, filters.ready, filters.programId, filters.batchId, reloadKey, openParam, focusAnswers]);
+
+  useEffect(() => {
+    if (!payload || !focusAnswers) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("answer-release")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [payload, focusAnswers]);
 
   useEffect(() => {
     if (!openId || scrollToRef.current !== openId) {
@@ -179,6 +290,42 @@ export default function TrainerAssessmentDetailPage() {
     const timer = window.setTimeout(() => setFlash(null), 6000);
     return () => window.clearTimeout(timer);
   }, [flash]);
+
+  async function toggleAnswerVisibility(nextVisible: boolean) {
+    if (!params.id || !filters.batchId) {
+      return;
+    }
+    if (nextVisible) {
+      setConfirmRelease(true);
+      return;
+    }
+    await applyAnswerVisibility(false);
+  }
+
+  async function applyAnswerVisibility(nextVisible: boolean) {
+    if (!params.id || !filters.batchId) {
+      return;
+    }
+    setRevealBusy(true);
+    setError(null);
+    try {
+      await setAssessmentAnswerVisibility(params.id, {
+        batchId: filters.batchId,
+        answersVisible: nextVisible,
+      });
+      setFlash(
+        nextVisible
+          ? "Answers are now visible to all trainees in this batch."
+          : "Answer review is hidden again for this batch.",
+      );
+      setConfirmRelease(false);
+      setReloadKey((value) => value + 1);
+    } catch (err: unknown) {
+      setError(err instanceof ApiClientError ? err.message : "Unable to update answer visibility");
+    } finally {
+      setRevealBusy(false);
+    }
+  }
 
   const roster: TrainerAssessmentRosterRow[] = useMemo(() => payload?.roster ?? [], [payload]);
   const counts = useMemo(
@@ -349,6 +496,21 @@ export default function TrainerAssessmentDetailPage() {
               <Stat label="Avg score" value={formatScore(payload.summary.averageScore)} />
               <Stat label="Pass rate" value={formatScore(payload.summary.passRate)} />
             </dl>
+
+            <div id="answer-release" className="scroll-mt-24">
+              <AnswerReleaseCard
+                answersVisible={Boolean(payload.summary.answersVisible)}
+                canReveal={Boolean(payload.summary.canRevealAnswers)}
+                submittedCount={payload.summary.submittedCount}
+                rosterCount={payload.summary.rosterCount}
+                pendingSubmitCount={payload.summary.pendingSubmitCount ?? 0}
+                needsReviewCount={payload.summary.needsReviewCount ?? 0}
+                busy={revealBusy}
+                onShow={() => void toggleAnswerVisibility(true)}
+                onHide={() => void toggleAnswerVisibility(false)}
+              />
+            </div>
+
             <div role="tablist" aria-label="Filter trainees" className="mt-4 flex flex-wrap gap-1.5">
               {tabs.map((tab) => {
                 const active = activeFilter === tab.id;
@@ -432,6 +594,7 @@ export default function TrainerAssessmentDetailPage() {
                         <p className="mt-1 text-sm text-slate-500">
                           {latest?.submittedAt ? new Date(latest.submittedAt).toLocaleString() : "—"}
                           {latest ? ` · attempt ${latest.attemptNumber}` : ""}
+                          {latest?.gradedBy && !latest.needsReview ? ` · graded by ${latest.gradedBy.name}` : ""}
                         </p>
                       </div>
                     </div>
@@ -489,6 +652,23 @@ export default function TrainerAssessmentDetailPage() {
           )}
         </section>
       ) : null}
+
+      <ReleaseAnswersDialog
+        open={confirmRelease && Boolean(payload)}
+        quizTitle={payload?.assessment.title ?? ""}
+        batchName={selectedBatch?.name ?? "This batch"}
+        courseTitle={payload?.assessment.programTitle}
+        submittedCount={payload?.summary.submittedCount ?? 0}
+        rosterCount={payload?.summary.rosterCount ?? 0}
+        pendingCount={payload?.summary.pendingSubmitCount ?? 0}
+        busy={revealBusy}
+        onClose={() => {
+          if (!revealBusy) {
+            setConfirmRelease(false);
+          }
+        }}
+        onConfirm={() => void applyAnswerVisibility(true)}
+      />
     </TrainerShell>
   );
 }
@@ -1114,6 +1294,12 @@ function AttemptPaper({
 
   return (
     <div className="grid gap-3">
+      {alreadyGraded && attempt.gradedBy ? (
+        <p className="text-sm text-slate-600">
+          Graded by <span className="font-medium text-slate-800">{attempt.gradedBy.name}</span>
+          {attempt.gradedAt ? ` · ${new Date(attempt.gradedAt).toLocaleString()}` : ""}
+        </p>
+      ) : null}
       {writtenQuestions.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex items-center gap-2.5">

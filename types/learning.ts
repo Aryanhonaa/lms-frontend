@@ -97,13 +97,6 @@ export type LearnWeek = {
   quizzes?: LearnQuiz[];
 };
 
-export type LearnMilestone = {
-  id: string;
-  title: string;
-  afterWeekIndex: number;
-  exam: LearnQuiz | null;
-};
-
 export type NextActivity = {
   type: LearnPathType;
   kind?: string;
@@ -146,7 +139,6 @@ export type LearnView = {
     remainingItems?: number;
   };
   weeks: LearnWeek[];
-  milestones?: LearnMilestone[];
   finalExam?: LearnQuiz | null;
 };
 
@@ -157,10 +149,17 @@ export type EnrollmentSummary = {
   currentWeekIndex: number;
   currentDayIndex: number;
   program: LearnView["program"];
-  batch?: { id: string; name: string } | null;
+  batch?: {
+    id: string;
+    name: string;
+    sortOrder?: number;
+    familyId?: string;
+  } | null;
   currentWeek: LearnView["currentWeek"];
   currentDay: LearnView["currentDay"];
   nextActivity: NextActivity;
   course: CourseOutcomeView;
   progress: LearnView["progress"];
+  sequenceLocked?: boolean;
+  sequenceLockReason?: string | null;
 };

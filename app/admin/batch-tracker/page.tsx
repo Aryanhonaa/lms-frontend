@@ -13,7 +13,7 @@ export default function AdminBatchTrackerPage() {
         <BatchTrackerBoard
           role="admin"
           basePath="/admin/batch-tracker"
-          emptyHint="Batches appear here once trainers create them on a program's Trainees page."
+          emptyHint="Batches appear here once trainers create them in Batch Tracker."
         />
       </Suspense>
     </>

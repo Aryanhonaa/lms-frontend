@@ -43,9 +43,6 @@ function contentLabel(item: PathItem): string {
   if (item.kind === "FINAL_EXAM") {
     return "Final Exam";
   }
-  if (item.kind === "MILESTONE_EXAM") {
-    return "Milestone Exam";
-  }
   if (item.type === "ASSIGNMENT") {
     return "Assignment";
   }
@@ -280,16 +277,9 @@ export function LearnSidebar({
             (item) => item.weekTitle === week.title && item.dayTitle && item.kind !== "FINAL_EXAM",
           );
           const weekQuizzes = path.filter(
-            (item) =>
-              item.weekTitle === week.title &&
-              !item.dayTitle &&
-              item.kind !== "FINAL_EXAM" &&
-              item.kind !== "MILESTONE_EXAM",
+            (item) => item.weekTitle === week.title && !item.dayTitle && item.kind !== "FINAL_EXAM",
           );
-          const weekMilestones = path.filter(
-            (item) => item.weekTitle === week.title && item.kind === "MILESTONE_EXAM",
-          );
-          const stats = dayCounts([...weekItems, ...weekQuizzes, ...weekMilestones]);
+          const stats = dayCounts([...weekItems, ...weekQuizzes]);
           const isCurrent = week.id === currentWeekId;
           const expanded = weekOpen(week.id, isCurrent);
           return (
@@ -305,10 +295,12 @@ export function LearnSidebar({
               >
                 <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${expanded ? "" : "-rotate-90"}`} />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-slate-900">{week.title}</span>
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {view.weeks.length === 1 && week.title === "Plan" ? "Course" : week.title}
+                  </span>
                   <span className="block text-[11px] font-medium text-slate-500">
                     {week.status === "LOCKED" ? "Locked" : `${stats.done} / ${stats.total} completed`}
-                    {isCurrent ? " · Current week" : ""}
+                    {isCurrent ? " · Current" : ""}
                   </span>
                 </span>
               </button>
@@ -379,27 +371,6 @@ export function LearnSidebar({
                         </li>
                       ))}
                     </ul>
-                  ) : null}
-                  {weekMilestones.length > 0 ? (
-                    <div className="mt-2 rounded-xl bg-fuchsia-50/70 p-1 ring-1 ring-fuchsia-100">
-                      <p className="px-2 pt-1 text-[11px] font-semibold tracking-wide text-fuchsia-800 uppercase">
-                        Milestone
-                      </p>
-                      <ul className="space-y-0.5">
-                        {weekMilestones.map((item) => (
-                          <li key={`milestone-${item.id}`}>
-                            <PathRow
-                              item={item}
-                              active={current?.id === item.id && current.type === item.type}
-                              programId={view.program.id}
-                              batchId={batchId}
-                              onClick={onNavigate}
-                              rowRef={current?.id === item.id && current.type === item.type ? activeRef : undefined}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   ) : null}
                 </div>
               ) : null}

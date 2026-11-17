@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
-import { enrollTrainees, listEligibleTrainees, type EligibleTrainee } from "@/lib/api/enrollments";
+import { enrollIntoBatch } from "@/lib/api/batches";
+import { listEligibleTrainees, type EligibleTrainee } from "@/lib/api/enrollments";
 import { ApiClientError } from "@/lib/api/client";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 
@@ -103,19 +104,23 @@ export function EnrollTraineesDialog({
     setError(null);
     setResult(null);
     try {
-      const payload = await enrollTrainees(programId, [...selected], batchId, joinedAt || undefined);
-      const parts = [`${payload.enrolledCount} enrolled successfully`];
+      const payload = await enrollIntoBatch(batchId, [...selected], joinedAt || undefined);
+      onEnrolled?.();
+      if (payload.enrolledCount > 0) {
+        close();
+        return;
+      }
+      const parts: string[] = [];
       if (payload.alreadyEnrolledCount > 0) {
         parts.push(`${payload.alreadyEnrolledCount} were already enrolled`);
       }
       if (payload.skippedCount > 0) {
         parts.push(`${payload.skippedCount} could not be enrolled`);
       }
-      setResult(parts.join(". ") + ".");
+      setResult(parts.length > 0 ? `${parts.join(". ")}.` : "No new trainees were enrolled.");
       setSelected(new Set());
       const refreshed = await listEligibleTrainees(programId, debounced, batchId);
       setTrainees(refreshed.trainees);
-      onEnrolled?.();
     } catch (err: unknown) {
       setError(err instanceof ApiClientError ? err.message : "Unable to enroll selected trainees.");
     } finally {

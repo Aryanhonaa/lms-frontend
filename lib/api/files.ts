@@ -260,28 +260,49 @@ export async function objectUrlFromAccess(access: FileAccess): Promise<string> {
   return URL.createObjectURL(await response.blob());
 }
 
+function triggerDownload(href: string, fileName: string, revoke?: boolean) {
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = fileName;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  if (revoke) {
+    URL.revokeObjectURL(href);
+  }
+}
+
 export async function openFromAccess(access: FileAccess): Promise<void> {
-  const url = await objectUrlFromAccess(access);
-  window.open(url, "_blank", "noopener,noreferrer");
+  try {
+    const url = await objectUrlFromAccess(access);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      window.location.assign(url);
+    }
+  } catch {
+    window.open(resolveAccessUrl(access), "_blank", "noopener,noreferrer");
+  }
 }
 
 export async function downloadFromAccess(access: FileAccess): Promise<void> {
   const url = resolveAccessUrl(access);
-  const response = await fetch(access.strategy === "signed" ? url : `${url}?download=1`, {
-    credentials: access.strategy === "signed" ? "omit" : "include",
-  });
-  if (!response.ok) {
-    throw new ApiClientError(response.status, "This file is currently unavailable.", "REQUEST_FAILED");
+  const fetchUrl = access.strategy === "signed" ? url : `${url}${url.includes("?") ? "&" : "?"}download=1`;
+  try {
+    const response = await fetch(fetchUrl, {
+      credentials: access.strategy === "signed" ? "omit" : "include",
+    });
+    if (!response.ok) {
+      throw new ApiClientError(response.status, "This file is currently unavailable.", "REQUEST_FAILED");
+    }
+    const blob = await response.blob();
+    triggerDownload(URL.createObjectURL(blob), access.fileName, true);
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 403) {
+      throw error;
+    }
+    triggerDownload(url, access.fileName);
   }
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = access.fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(objectUrl);
 }
 
 export function formatFileSize(bytes: number): string {

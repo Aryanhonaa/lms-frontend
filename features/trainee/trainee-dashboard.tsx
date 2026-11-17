@@ -8,6 +8,7 @@ import {
   Check,
   Circle,
   ClipboardCheck,
+  Eye,
   FileText,
   ListChecks,
   Lock,
@@ -23,8 +24,8 @@ import { ContentTypeChip, ContentTypeIcon } from "@/components/learning/content-
 import { useTraineeEnrollment } from "@/hooks/use-trainee-enrollment";
 import { getTraineeDashboard } from "@/lib/api/trainee";
 import { getTraineeLearnView } from "@/lib/api/learning";
-import { getTraineeProgress } from "@/lib/api/progress";
 import { ApiClientError } from "@/lib/api/client";
+import { sequenceLabel } from "@/lib/batches/course-sequence";
 import { traineeContinueHref, traineePathHref } from "@/lib/learning/path";
 import { currentDayItems, flattenLearnPath, isDoneStatus, locationLabel, progressHeadline } from "@/lib/learning/ux";
 import { traineePrimaryCtaClass } from "@/lib/ui/trainee";
@@ -32,6 +33,7 @@ import type { AuthUser } from "@/types/api";
 import type { CalendarEventType } from "@/types/calendar";
 import type { DashboardRange } from "@/types/trainer-dashboard";
 import type {
+  TraineeAnswerReview,
   TraineeCurrentLearning,
   TraineeDashboard,
   TraineeDashboardAnnouncement,
@@ -40,8 +42,6 @@ import type {
   TraineeUpcomingEvent,
 } from "@/types/trainee-dashboard";
 import type { LearnView } from "@/types/learning";
-import type { ProgressView } from "@/types/progress";
-
 const CARD =
   "rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-slate-950/5";
 
@@ -52,10 +52,10 @@ const EVENT_STYLE: Record<CalendarEventType, { wrap: string; icon: typeof Calend
   ASSIGNMENT: { wrap: "bg-amber-50 text-amber-700", icon: ListChecks },
   TASK: { wrap: "bg-rose-50 text-rose-700", icon: FileText },
   NOTIFICATION: { wrap: "bg-fuchsia-50 text-fuchsia-700", icon: Megaphone },
-  MILESTONE: { wrap: "bg-fuchsia-50 text-fuchsia-700", icon: Trophy },
   DEADLINE: { wrap: "bg-rose-50 text-rose-700", icon: FileText },
   PROGRAM: { wrap: "bg-violet-50 text-violet-700", icon: BookOpen },
   HOLIDAY: { wrap: "bg-slate-100 text-slate-600", icon: CalendarDays },
+  ACTIVITY: { wrap: "bg-violet-50 text-violet-700", icon: CalendarDays },
 };
 
 function firstName(name: string): string {
@@ -208,14 +208,28 @@ function DashboardSkeleton() {
 
 function DashboardBody({ dashboard, onRetry }: { dashboard: TraineeDashboard; onRetry: () => void }) {
   const { statistics } = dashboard;
+  const answerReviews = dashboard.answerReviews ?? [];
+  const answerCount = statistics.answerReviews?.total ?? answerReviews.length;
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard href="/trainee/courses" label="Your courses" value={`${statistics.enrolledPrograms.total}`} hint={`${statistics.enrolledPrograms.active} in progress · ${statistics.enrolledPrograms.failed} failed`} hintClass="text-violet-700" icon={BookOpen} iconClass="bg-violet-100 text-violet-700" />
         <StatCard href="/trainee/progress" label="Overall progress" value={`${Math.round(statistics.overallProgress.percent)}%`} hint={statistics.overallProgress.percent >= 85 ? "Almost there" : "Keep going"} hintClass="text-emerald-600" icon={ClipboardCheck} iconClass="bg-emerald-100 text-emerald-700" />
         <StatCard href="/trainee/assignments" label="Pending assignments" value={`${statistics.pendingAssignments.total}`} hint="Due soon" hintClass="text-amber-600" icon={ListChecks} iconClass="bg-amber-100 text-amber-700" />
-        <StatCard href="/trainee/calendar" label="Upcoming quizzes" value={`${statistics.upcomingAssessments.total}`} hint="In this range" hintClass="text-sky-700" icon={CalendarDays} iconClass="bg-sky-100 text-sky-700" />
+        <StatCard
+          href="/trainee/assessments"
+          label="Answers to review"
+          value={`${answerCount}`}
+          hint={answerCount > 0 ? "Your trainer released quiz answers" : "None released yet"}
+          hintClass={answerCount > 0 ? "text-teal-700" : "text-slate-500"}
+          icon={Eye}
+          iconClass={answerCount > 0 ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-500"}
+        />
       </div>
+
+      {answerCount > 0 ? (
+        <AnswerReviewsCard rows={answerReviews} error={dashboard.errors.answerReviews ?? null} onRetry={onRetry} />
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-12">
         <CourseCard learning={dashboard.currentLearning} error={dashboard.errors.learning} onRetry={onRetry} />
@@ -273,10 +287,8 @@ function SectionError({ message, onRetry }: { message: string; onRetry: () => vo
   );
 }
 
-function toCurrentLearning(learn: LearnView, progress: ProgressView, batchId?: string): TraineeCurrentLearning {
+function toCurrentLearning(learn: LearnView, batchId?: string): TraineeCurrentLearning {
   const batchQuery = batchId ? `&batchId=${encodeURIComponent(batchId)}` : "";
-  const completed = progress.milestones.filter((item) => item.satisfied).slice(-4);
-  const upcoming = progress.milestones.find((item) => !item.satisfied) ?? null;
   return {
     program: {
       id: learn.program.id,
@@ -297,11 +309,6 @@ function toCurrentLearning(learn: LearnView, progress: ProgressView, batchId?: s
     assignmentsHref: "/trainee/assignments",
     programHref: `/trainee/program?programId=${learn.program.id}${batchQuery}`,
     progressHref: `/trainee/progress?programId=${learn.program.id}${batchQuery}`,
-    milestones: {
-      completed: completed.map((item) => ({ id: item.id, title: item.title })),
-      upcoming: upcoming ? { id: upcoming.id, title: upcoming.title } : null,
-      current: progress.currentMilestone,
-    },
   };
 }
 
@@ -353,14 +360,11 @@ function CourseCard({
       return;
     }
     let cancelled = false;
-    Promise.all([
-      getTraineeLearnView(filters.programId, filters.batchId || undefined),
-      getTraineeProgress(filters.programId, filters.batchId || undefined),
-    ])
-      .then(([learn, progress]) => {
+    getTraineeLearnView(filters.programId, filters.batchId || undefined)
+      .then((learn) => {
         if (!cancelled) {
           setLearnView(learn);
-          setLearning(toCurrentLearning(learn, progress, filters.batchId || undefined));
+          setLearning(toCurrentLearning(learn, filters.batchId || undefined));
           setLocalError(null);
         }
       })
@@ -376,6 +380,15 @@ function CourseCard({
 
   const loadError = localError ?? error;
   const mission = learning?.nextActivity ?? null;
+  const currentEnrollment = filters.enrollments.find(
+    (row) => row.program.id === learning?.program.id && (!filters.batchId || row.batch?.id === filters.batchId),
+  );
+  const familyId = currentEnrollment?.batch?.familyId ?? currentEnrollment?.batch?.id;
+  const familyCourses = familyId
+    ? filters.enrollments
+        .filter((row) => (row.batch?.familyId ?? row.batch?.id) === familyId)
+        .sort((a, b) => (a.batch?.sortOrder ?? 0) - (b.batch?.sortOrder ?? 0))
+    : [];
   const today = learnView ? currentDayItems(learnView, flattenLearnPath(learnView), null) : [];
   const todayDone = today.filter((item) => isDoneStatus(item.status)).length;
   const headline = learning
@@ -451,8 +464,33 @@ function CourseCard({
           ) : null}
           <Link href={learning.continueHref} className={`${traineePrimaryCtaClass} mt-4`}>
             <Play className="h-4 w-4 fill-current" />
-            {learning.course.outcome === "PENDING" ? "Continue Learning" : "View Course"}
+            {learning.course.outcome === "PENDING"
+              ? learning.percent > 0
+                ? "Resume learning"
+                : "Continue learning"
+              : "View course"}
           </Link>
+          {familyCourses.length > 1 ? (
+            <ol className="mt-4 space-y-1 border-t border-slate-100 pt-4">
+              <li className="mb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">In this batch</li>
+              {familyCourses.map((row, index) => {
+                const active = row.program.id === learning.program.id;
+                const done = row.course.outcome === "PASSED";
+                const locked = Boolean(row.sequenceLocked);
+                return (
+                  <li key={row.id} className="flex items-center gap-2 px-1 py-1 text-sm">
+                    <span className="w-14 shrink-0 text-[11px] font-semibold text-violet-700">{sequenceLabel(index)}</span>
+                    <span className={`min-w-0 flex-1 truncate ${active ? "font-medium text-slate-900" : "text-slate-600"}`}>
+                      {row.program.title}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {done ? "Done" : locked ? "Locked" : active ? "Now" : "Later"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : null}
           {today.length > 0 ? (
             <ul className="mt-4 space-y-1 border-t border-slate-100 pt-4">
               <li className="mb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
@@ -482,31 +520,9 @@ function CourseCard({
               })}
             </ul>
           ) : null}
-          <MilestoneSummary learning={learning} />
         </div>
       ) : null}
     </section>
-  );
-}
-
-function MilestoneSummary({ learning }: { learning: TraineeCurrentLearning }) {
-  const upcoming = learning.milestones.upcoming;
-  if (!upcoming) {
-    return null;
-  }
-  return (
-    <div className="mt-4 border-t border-slate-100 pt-4">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">You&apos;ll unlock next</p>
-        <Link href={learning.progressHref} className="text-xs font-medium text-violet-700 hover:text-violet-800">
-          Your Journey
-        </Link>
-      </div>
-      <p className="flex items-center gap-2 text-sm text-slate-600">
-        <Lock className="h-3.5 w-3.5" />
-        {upcoming.title}
-      </p>
-    </div>
   );
 }
 
@@ -591,6 +607,79 @@ function UpcomingCard({
               </li>
             );
           })}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function kindLabel(kind: string) {
+  return kind.replaceAll("_", " ").toLowerCase();
+}
+
+function AnswerReviewsCard({
+  rows,
+  error,
+  onRetry,
+}: {
+  rows: TraineeAnswerReview[];
+  error: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={`${CARD} overflow-hidden`}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-br from-teal-50/80 via-white to-sky-50/40 px-5 py-4">
+        <div>
+          <p className="text-[11px] font-semibold tracking-wide text-teal-700 uppercase">Ready for you</p>
+          <h2 className="mt-1 text-base font-semibold text-slate-900">Quiz answers released</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            See what you answered, the correct answers, and your marks.
+          </p>
+        </div>
+        <Link href="/trainee/assessments" className="text-sm font-medium text-teal-700 hover:text-teal-800">
+          All quizzes
+        </Link>
+      </div>
+      {error ? <SectionError message="Unable to load released answers." onRetry={onRetry} /> : null}
+      {!error && rows.length === 0 ? (
+        <p className="px-5 py-6 text-sm text-slate-500">No answer reviews right now.</p>
+      ) : null}
+      {!error && rows.length > 0 ? (
+        <ul className="divide-y divide-slate-100">
+          {rows.map((row) => (
+            <li key={`${row.quizId}-${row.batchName ?? "batch"}`}>
+              <Link
+                href={row.href}
+                className="flex flex-col gap-3 px-5 py-4 transition duration-150 hover:bg-slate-50/80 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ContentTypeChip type="QUIZ" kind={row.kind} />
+                    {row.passed ? (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        Passed
+                      </span>
+                    ) : row.passed === false ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        Needs practice
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 font-semibold text-slate-900">{row.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {row.programTitle}
+                    {row.batchName ? ` · ${row.batchName}` : ""}
+                    {row.score !== null ? ` · your score ${Math.round(row.score)}%` : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400 capitalize">{kindLabel(row.kind)}</p>
+                </div>
+                <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-150 hover:bg-teal-700">
+                  <Eye className="h-4 w-4" />
+                  View answers
+                </span>
+              </Link>
+            </li>
+          ))}
         </ul>
       ) : null}
     </section>

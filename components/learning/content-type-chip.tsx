@@ -6,7 +6,6 @@ import {
   FileText,
   PenLine,
   PlayCircle,
-  Target,
   Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -70,13 +69,6 @@ const IDENTITY: Record<string, Identity> = {
     iconWrap: "bg-sky-600 text-white",
     accent: "from-sky-500 to-cyan-500",
   },
-  MILESTONE_EXAM: {
-    label: "Milestone Exam",
-    icon: Target,
-    chip: "bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-100",
-    iconWrap: "bg-fuchsia-700 text-white",
-    accent: "from-fuchsia-500 to-violet-600",
-  },
   FINAL_EXAM: {
     label: "Final Exam",
     icon: Trophy,
@@ -95,9 +87,6 @@ function identityFor(type: string, kind?: string | null): Identity {
   }
   if (kind === "FINAL_EXAM") {
     return IDENTITY.FINAL_EXAM;
-  }
-  if (kind === "MILESTONE_EXAM") {
-    return IDENTITY.MILESTONE_EXAM;
   }
   if (IDENTITY[type]) {
     return IDENTITY[type];

@@ -3,18 +3,32 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, Download, LayoutList, Search, Table2 } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  LayoutList,
+  Plus,
+  RotateCcw,
+  Search,
+  Table2,
+  X,
+} from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { CreateBatchDialog } from "@/features/batch-tracker/create-batch-dialog";
+import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
 import { getBatchTracker, type TrackerRole } from "@/lib/api/batch-tracker";
+import type { ProgramBatch } from "@/lib/api/batches";
 import { ApiClientError } from "@/lib/api/client";
-import { cardClass, fieldClass, secondaryButtonClass } from "@/lib/ui/form-classes";
-import type { BatchFunnel, LineOfBusiness, TrackerBatch, TrackerFilters, TrackerOverview } from "@/types/batch-tracker";
+import { cardClass, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { useAuth } from "@/providers/auth-provider";
+import type { BatchFunnel, TrackerBatch, TrackerFilters, TrackerOverview } from "@/types/batch-tracker";
 import { BatchStatusBadge, LobChip } from "./badges";
 import {
   GLOSSARY,
   SHEET_COLUMNS,
-  batchTitle,
   downloadCsv,
   formatDay,
   formatPct,
@@ -129,11 +143,27 @@ function BatchRow({ batch, href }: { batch: TrackerBatch; href: string }) {
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-slate-900">{batchTitle(batch)}</span>
+            <span className="font-semibold text-slate-900">{batch.name}</span>
             <LobChip value={batch.lineOfBusiness} />
             <BatchStatusBadge status={batch.status} />
           </div>
-          <p className="mt-0.5 truncate text-sm text-slate-500">{batch.program.title}</p>
+          {batch.code ? (
+            <p className="mt-0.5 font-mono text-xs font-medium tracking-wide text-violet-700">{batch.code}</p>
+          ) : null}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {(batch.courses?.length ? batch.courses : [batch.program]).map((course, index) => (
+              <span
+                key={course.id}
+                className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600"
+              >
+                <span className="font-semibold text-violet-700">{course.label ?? `${index + 1}`}</span>
+                {course.title}
+              </span>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500 tabular-nums">
+            {batch.funnel.actualHc} trainee{batch.funnel.actualHc === 1 ? "" : "s"}
+          </p>
         </div>
         <p className="truncate text-sm text-slate-600">{trainerNames(batch)}</p>
         <BatchProgress batch={batch} />
@@ -198,6 +228,7 @@ function SheetView({ batches, basePath }: { batches: TrackerBatch[]; basePath: s
 }
 
 export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
+  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -206,6 +237,10 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
   const [data, setData] = useState<TrackerOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(filters.q ?? "");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [enrollBatch, setEnrollBatch] = useState<ProgramBatch | null>(null);
+  const canCreate = role === "trainer" && Boolean(user);
 
   const setParam = useCallback(
     (key: string, value: string | undefined) => {
@@ -256,7 +291,7 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [filters, role]);
+  }, [filters, reloadKey, role]);
 
   const summary = data?.summary;
   const funnel = summary?.funnel;
@@ -264,18 +299,74 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
     filters.q || filters.programId || filters.trainerId || filters.lineOfBusiness || filters.status || filters.month,
   );
 
+  const programLabel =
+    data?.filterOptions.programs.find((program) => program.id === filters.programId)?.title ?? null;
+  const trainerLabel =
+    data?.filterOptions.trainers.find((trainer) => trainer.id === filters.trainerId)?.name ?? null;
+  const statusLabel =
+    filters.status === "ONGOING"
+      ? "Ongoing"
+      : filters.status === "UPCOMING"
+        ? "Upcoming"
+        : filters.status === "COMPLETED"
+          ? "Completed"
+          : null;
+  const lobLabel =
+    filters.lineOfBusiness === "VOICE" ? "Voice" : filters.lineOfBusiness === "NON_VOICE" ? "Non-voice" : null;
+  const monthLabel = filters.month
+    ? new Date(`${filters.month}-01T00:00:00`).toLocaleString(undefined, { month: "long", year: "numeric" })
+    : null;
+
+  const activeChips: Array<{ key: string; label: string; onClear: () => void }> = [];
+  if (filters.q) {
+    activeChips.push({ key: "q", label: `Code: ${filters.q}`, onClear: () => { setSearch(""); setParam("q", undefined); } });
+  }
+  if (programLabel) {
+    activeChips.push({ key: "programId", label: programLabel, onClear: () => setParam("programId", undefined) });
+  }
+  if (trainerLabel) {
+    activeChips.push({ key: "trainerId", label: trainerLabel, onClear: () => setParam("trainerId", undefined) });
+  }
+  if (statusLabel) {
+    activeChips.push({ key: "status", label: statusLabel, onClear: () => setParam("status", undefined) });
+  }
+  if (lobLabel) {
+    activeChips.push({
+      key: "lob",
+      label: lobLabel,
+      onClear: () => setParam("lob", undefined),
+    });
+  }
+  if (monthLabel) {
+    activeChips.push({ key: "month", label: monthLabel, onClear: () => setParam("month", undefined) });
+  }
+
+  function clearAllFilters() {
+    setSearch("");
+    const next = new URLSearchParams(searchParams.toString());
+    for (const key of ["q", "programId", "trainerId", "status", "lob", "month"]) {
+      next.delete(key);
+    }
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-500">
-          <span className="sr-only">Batch start month</span>
-          <input
-            type="month"
-            value={filters.month ?? ""}
-            onChange={(event) => setParam("month", event.target.value || undefined)}
-            className={`${fieldClass} w-auto py-2`}
-          />
-        </label>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        {canCreate ? (
+          <p className="max-w-xl text-sm text-slate-500">
+            Start with a batch: pick approved courses, invite co-trainers, then enroll trainees.
+          </p>
+        ) : (
+          <p className="max-w-xl text-sm text-slate-500">Track batch progress, headcount, and handover across courses.</p>
+        )}
+        {canCreate ? (
+          <button type="button" className={primaryButtonClass} onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Create batch
+          </button>
+        ) : null}
       </div>
 
       {error ? <ErrorState message={error} /> : null}
@@ -318,78 +409,233 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
             />
           </section>
 
-          <section className="flex flex-wrap items-center gap-3">
-            <label className="relative min-w-[14rem] flex-1">
-              <span className="sr-only">Search batch code</span>
-              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search batch code"
-                className={`${fieldClass} pl-9`}
-              />
-            </label>
-            <select
-              aria-label="Program"
-              value={filters.programId ?? ""}
-              onChange={(event) => setParam("programId", event.target.value || undefined)}
-              className={`${fieldClass} w-auto`}
-            >
-              <option value="">All programs</option>
-              {data.filterOptions.programs.map((program) => (
-                <option key={program.id} value={program.id}>
-                  {program.title}
-                </option>
-              ))}
-            </select>
-            {role === "admin" ? (
-              <select
-                aria-label="Trainer"
-                value={filters.trainerId ?? ""}
-                onChange={(event) => setParam("trainerId", event.target.value || undefined)}
-                className={`${fieldClass} w-auto`}
-              >
-                <option value="">All trainers</option>
-                {data.filterOptions.trainers.map((trainer) => (
-                  <option key={trainer.id} value={trainer.id}>
-                    {trainer.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            <select
-              aria-label="Status"
-              value={filters.status ?? ""}
-              onChange={(event) => setParam("status", event.target.value || undefined)}
-              className={`${fieldClass} w-auto`}
-            >
-              <option value="">Any status</option>
-              <option value="ONGOING">Ongoing</option>
-              <option value="UPCOMING">Upcoming</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                className={secondaryButtonClass}
-                onClick={() => setParam("view", view === "sheet" ? undefined : "sheet")}
-                aria-pressed={view === "sheet"}
-              >
-                {view === "sheet" ? <LayoutList className="h-4 w-4" /> : <Table2 className="h-4 w-4" />}
-                {view === "sheet" ? "List view" : "Sheet view"}
-              </button>
-              <button
-                type="button"
-                className={secondaryButtonClass}
-                disabled={data.batches.length === 0}
-                onClick={() =>
-                  downloadCsv(`batch-tracker-${data.today}.csv`, SHEET_COLUMNS, data.batches.map(sheetRow))
-                }
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </button>
+          <section className={`${cardClass} overflow-hidden`} aria-label="Filters">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Find batches</h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {data.batches.length} result{data.batches.length === 1 ? "" : "s"}
+                  {hasFilters ? " with current filters" : " in this view"}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                      view === "list" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                    onClick={() => setParam("view", undefined)}
+                    aria-pressed={view === "list"}
+                  >
+                    <LayoutList className="h-3.5 w-3.5" />
+                    List
+                  </button>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                      view === "sheet" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                    }`}
+                    onClick={() => setParam("view", "sheet")}
+                    aria-pressed={view === "sheet"}
+                  >
+                    <Table2 className="h-3.5 w-3.5" />
+                    Sheet
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className={secondaryButtonClass}
+                  disabled={data.batches.length === 0}
+                  onClick={() =>
+                    downloadCsv(`batch-tracker-${data.today}.csv`, SHEET_COLUMNS, data.batches.map(sheetRow))
+                  }
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </div>
             </div>
+
+            <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-12">
+              <label className="block md:col-span-2 xl:col-span-4">
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                  Batch code
+                </span>
+                <span className="relative block">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="e.g. NHT-OCT26-03"
+                    className={`${fieldClass} pr-9 pl-9`}
+                  />
+                  {search ? (
+                    <button
+                      type="button"
+                      className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      onClick={() => {
+                        setSearch("");
+                        setParam("q", undefined);
+                      }}
+                      aria-label="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </span>
+              </label>
+
+              <label className="block md:col-span-1 xl:col-span-3">
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                  Course
+                </span>
+                <span className="relative block">
+                  <select
+                    value={filters.programId ?? ""}
+                    onChange={(event) => setParam("programId", event.target.value || undefined)}
+                    className={`${fieldClass} appearance-none pr-9`}
+                  >
+                    <option value="">All batches</option>
+                    {data.filterOptions.programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </span>
+              </label>
+
+              {role === "admin" ? (
+                <label className="block md:col-span-1 xl:col-span-3">
+                  <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                    Trainer
+                  </span>
+                  <span className="relative block">
+                    <select
+                      value={filters.trainerId ?? ""}
+                      onChange={(event) => setParam("trainerId", event.target.value || undefined)}
+                      className={`${fieldClass} appearance-none pr-9`}
+                    >
+                      <option value="">All trainers</option>
+                      {data.filterOptions.trainers.map((trainer) => (
+                        <option key={trainer.id} value={trainer.id}>
+                          {trainer.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </span>
+                </label>
+              ) : null}
+
+              <label className={`block md:col-span-1 ${role === "admin" ? "xl:col-span-2" : "xl:col-span-5"}`}>
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                  Start month
+                </span>
+                <span className="relative block">
+                  <CalendarDays className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="month"
+                    value={filters.month ?? ""}
+                    onChange={(event) => setParam("month", event.target.value || undefined)}
+                    className={`${fieldClass} pl-9`}
+                  />
+                </span>
+              </label>
+
+              <div className={`block ${role === "admin" ? "md:col-span-2 xl:col-span-12" : "md:col-span-2 xl:col-span-12"}`}>
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                  Status
+                </span>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Batch status">
+                  {(
+                    [
+                      { value: "", label: "All" },
+                      { value: "ONGOING", label: "Ongoing" },
+                      { value: "UPCOMING", label: "Upcoming" },
+                      { value: "COMPLETED", label: "Completed" },
+                    ] as const
+                  ).map((option) => {
+                    const active = (filters.status ?? "") === option.value;
+                    return (
+                      <button
+                        key={option.label}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setParam("status", option.value || undefined)}
+                        className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                          active
+                            ? "bg-violet-600 text-white shadow-sm shadow-violet-600/20"
+                            : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="block md:col-span-2 xl:col-span-12">
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                  Line of business
+                </span>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Line of business">
+                  {(
+                    [
+                      { value: "", label: "All types" },
+                      { value: "VOICE", label: "Voice" },
+                      { value: "NON_VOICE", label: "Non-voice" },
+                    ] as const
+                  ).map((option) => {
+                    const active = (filters.lineOfBusiness ?? "") === option.value;
+                    return (
+                      <button
+                        key={option.label}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setParam("lob", option.value || undefined)}
+                        className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                          active
+                            ? "bg-slate-900 text-white"
+                            : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {activeChips.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-3">
+                <span className="text-xs font-medium text-slate-500">Active</span>
+                {activeChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={chip.onClear}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    {chip.label}
+                    <X className="h-3 w-3 text-slate-400" aria-hidden />
+                    <span className="sr-only">Remove {chip.label}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-50"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Clear all
+                </button>
+              </div>
+            ) : null}
           </section>
 
           {data.batches.length === 0 ? (
@@ -415,6 +661,32 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
               </ul>
             </section>
           )}
+        </>
+      ) : null}
+
+      {canCreate && user ? (
+        <>
+          <CreateBatchDialog
+            open={createOpen}
+            currentUserId={user.id}
+            onClose={() => setCreateOpen(false)}
+            onCreated={(batch) => {
+              setCreateOpen(false);
+              setEnrollBatch(batch);
+              setReloadKey((key) => key + 1);
+            }}
+          />
+          {enrollBatch ? (
+            <EnrollTraineesDialog
+              open
+              programId={enrollBatch.programId}
+              programTitle={enrollBatch.courses?.map((course) => course.title).join(" · ") || "Courses"}
+              batchId={enrollBatch.id}
+              batchName={enrollBatch.name}
+              onClose={() => setEnrollBatch(null)}
+              onEnrolled={() => setReloadKey((key) => key + 1)}
+            />
+          ) : null}
         </>
       ) : null}
     </div>

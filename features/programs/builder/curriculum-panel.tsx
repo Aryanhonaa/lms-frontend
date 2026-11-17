@@ -1,266 +1,275 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  ChevronRight,
+  CircleDashed,
+  FileText,
+  GraduationCap,
+  Layers3,
+  Play,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { dayItemCount } from "@/features/programs/builder/completion";
-import { CARD, dangerButtonClass, fieldClass, ghostButtonClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
+import { ActionMenu } from "@/features/programs/builder/chrome";
+import { CARD, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import { InlineTitle } from "@/components/ui/inline-title";
-import { RequiredMark } from "@/components/ui/required-mark";
-import type { ProgramTree, Week } from "@/types/program";
+import type { Day, ProgramTree, Week } from "@/types/program";
+
+type FlatDay = {
+  day: Day;
+  week: Week;
+  number: number;
+};
+
+function flattenDays(program: ProgramTree): FlatDay[] {
+  const rows: FlatDay[] = [];
+  let number = 1;
+  for (const week of program.weeks) {
+    for (const day of week.days) {
+      rows.push({ day, week, number });
+      number += 1;
+    }
+  }
+  return rows;
+}
 
 export function CurriculumPanel({
   program,
   editable,
   busy,
-  collapsed,
-  onToggle,
-  onRenameWeek,
   onRenameDay,
-  onDeleteWeek,
   onDeleteDay,
-  onAddWeek,
   onAddDay,
   onOpenDay,
-  onAddWeeklyQuiz,
-  onAddWeeklyExam,
+  onAddFinalExam,
 }: {
   program: ProgramTree;
   editable: boolean;
   busy: boolean;
-  collapsed: Record<string, boolean>;
-  onToggle: (id: string) => void;
-  onRenameWeek: (id: string, title: string) => Promise<void>;
+  collapsed?: Record<string, boolean>;
+  onToggle?: (id: string) => void;
+  onRenameWeek?: (id: string, title: string) => Promise<void>;
   onRenameDay: (id: string, title: string) => Promise<void>;
-  onDeleteWeek: (id: string) => void;
+  onDeleteWeek?: (id: string) => void;
   onDeleteDay: (id: string) => void;
   onAddWeek: (input: { title: string; description?: string }) => Promise<void>;
   onAddDay: (weekId: string, title: string) => Promise<void>;
   onOpenDay: (dayId: string) => void;
-  onAddWeeklyQuiz: (weekId: string) => void;
-  onAddWeeklyExam: (weekId: string) => void;
+  onAddWeeklyQuiz?: (weekId: string) => void;
+  onAddFinalExam: () => void;
 }) {
-  const [addingWeek, setAddingWeek] = useState(false);
-  const [addingDayFor, setAddingDayFor] = useState<string | null>(null);
+  const days = flattenDays(program);
+  const lastWeek = program.weeks[program.weeks.length - 1] ?? null;
+  const [adding, setAdding] = useState(false);
+  const finalExams = program.quizzes.filter((quiz) => quiz.kind === "FINAL_EXAM");
+  const canAddFinalExam = editable && finalExams.length === 0;
+  const contentCount = days.reduce((sum, row) => sum + dayItemCount(row.day), 0);
+  const readyDays = days.filter((row) => dayItemCount(row.day) > 0).length;
+
+  async function addDay(title: string) {
+    await onAddDay(lastWeek?.id ?? "", title);
+    setAdding(false);
+  }
 
   return (
-    <div className="lms-fade-up mx-auto max-w-3xl space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-[1.45rem] font-semibold tracking-tight text-slate-900">Your program</h2>
-          <p className="mt-1 text-sm text-slate-500">Build the path week by week. Open a day to add lessons and activities.</p>
+    <div className="lms-fade-up mx-auto max-w-4xl space-y-6">
+      <section className="relative isolate overflow-hidden rounded-[2rem] bg-[#18152b] px-5 py-6 text-white shadow-[0_24px_70px_rgba(66,47,138,0.24)] sm:px-7 sm:py-7">
+        <div className="pointer-events-none absolute -top-16 -right-10 h-48 w-48 rounded-full bg-violet-500/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-fuchsia-400/20 blur-3xl" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-xl">
+            <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-violet-100 uppercase">
+              <Sparkles className="h-3.5 w-3.5" />
+              Learning journey
+            </p>
+            <h2 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Build the flow.</h2>
+            <p className="mt-2 max-w-lg text-sm leading-6 text-violet-100/70">
+              Shape the order trainees move through. Every day is a chapter—fill it with lessons, videos, activities, and files.
+            </p>
+          </div>
+          {editable && days.length > 0 && !adding ? (
+            <button
+              type="button"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#211a42] shadow-lg shadow-black/15 transition hover:-translate-y-0.5 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={busy}
+              onClick={() => setAdding(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Add a day
+            </button>
+          ) : null}
         </div>
-        {editable && program.weeks.length > 0 ? (
-          <button type="button" className={primaryButtonClass} disabled={busy} onClick={() => setAddingWeek(true)}>
-            <Plus className="h-4 w-4" />
-            Add week
-          </button>
-        ) : null}
-      </div>
+        <div className="relative mt-6 grid grid-cols-3 gap-2 sm:max-w-md sm:gap-3">
+          {[
+            { value: days.length, label: "Days" },
+            { value: contentCount, label: "Content" },
+            { value: `${readyDays}/${days.length || 0}`, label: "Ready" },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-3 backdrop-blur-sm">
+              <p className="text-lg font-semibold tracking-tight">{stat.value}</p>
+              <p className="text-[10px] font-medium tracking-wider text-violet-200/60 uppercase">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {program.weeks.length === 0 && !addingWeek ? (
-        <div className={`${CARD} px-6 py-12 text-center`}>
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+      {days.length === 0 && !adding ? (
+        <div className={`${CARD} relative overflow-hidden px-6 py-16 text-center`}>
+          <div className="pointer-events-none absolute inset-x-16 top-0 h-24 rounded-full bg-violet-100/70 blur-3xl" />
+          <span className="relative mx-auto flex h-14 w-14 rotate-3 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-300">
             <BookOpen className="h-6 w-6" />
           </span>
-          <h3 className="mt-4 text-base font-semibold text-slate-900">Your curriculum is empty</h3>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
-            Start the learning journey by adding your first week. You can add days and content right after.
-          </p>
+          <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-slate-900">Your journey starts here</h3>
+          <p className="relative mx-auto mt-1 max-w-sm text-sm leading-6 text-slate-500">Create day one, then make it memorable with lessons, media, and hands-on activities.</p>
           {editable ? (
-            <button type="button" className={`${primaryButtonClass} mt-5`} onClick={() => setAddingWeek(true)}>
+            <button
+              type="button"
+              className={`${primaryButtonClass} relative mt-5`}
+              disabled={busy}
+              onClick={() => setAdding(true)}
+            >
               <Plus className="h-4 w-4" />
-              Add first week
+              Add first day
             </button>
           ) : null}
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        {program.weeks.map((week, weekIndex) => (
-          <WeekCard
-            key={week.id}
-            week={week}
-            weekIndex={weekIndex}
-            collapsed={Boolean(collapsed[week.id])}
-            editable={editable}
-            busy={busy}
-            addingDay={addingDayFor === week.id}
-            onToggle={() => onToggle(week.id)}
-            onRename={(title) => onRenameWeek(week.id, title)}
-            onDelete={() => onDeleteWeek(week.id)}
-            onOpenDay={onOpenDay}
-            onRenameDay={onRenameDay}
-            onDeleteDay={onDeleteDay}
-            onStartAddDay={() => {
-              if (collapsed[week.id]) {
-                onToggle(week.id);
-              }
-              setAddingDayFor(week.id);
-            }}
-            onCancelAddDay={() => setAddingDayFor(null)}
-            onAddDay={async (title) => {
-              await onAddDay(week.id, title);
-              setAddingDayFor(null);
-            }}
-            onAddWeeklyQuiz={() => onAddWeeklyQuiz(week.id)}
-            onAddWeeklyExam={() => onAddWeeklyExam(week.id)}
-          />
-        ))}
-      </div>
-
-      {addingWeek && editable ? (
-        <InlineCreate
-          title="New week"
-          placeholder="Network Security"
-          descriptionPlaceholder="What trainees will learn this week (optional)"
-          submitLabel="Add week"
-          busy={busy}
-          onCancel={() => setAddingWeek(false)}
-          onSubmit={async (title, description) => {
-            await onAddWeek({ title, description });
-            setAddingWeek(false);
-          }}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function WeekCard({
-  week,
-  weekIndex,
-  collapsed,
-  editable,
-  busy,
-  addingDay,
-  onToggle,
-  onRename,
-  onDelete,
-  onOpenDay,
-  onRenameDay,
-  onDeleteDay,
-  onStartAddDay,
-  onCancelAddDay,
-  onAddDay,
-  onAddWeeklyQuiz,
-  onAddWeeklyExam,
-}: {
-  week: Week;
-  weekIndex: number;
-  collapsed: boolean;
-  editable: boolean;
-  busy: boolean;
-  addingDay: boolean;
-  onToggle: () => void;
-  onRename: (title: string) => Promise<void>;
-  onDelete: () => void;
-  onOpenDay: (dayId: string) => void;
-  onRenameDay: (id: string, title: string) => Promise<void>;
-  onDeleteDay: (id: string) => void;
-  onStartAddDay: () => void;
-  onCancelAddDay: () => void;
-  onAddDay: (title: string) => Promise<void>;
-  onAddWeeklyQuiz: () => void;
-  onAddWeeklyExam: () => void;
-}) {
-  const hasWeeklyQuiz = week.quizzes.some((item) => item.kind === "WEEKLY_QUIZ");
-  const hasWeeklyExam = week.quizzes.some((item) => item.kind === "WEEKLY_EXAM");
-
-  return (
-    <article className={CARD}>
-      <div className="flex items-center gap-2 px-4 py-3">
-        <button type="button" className={ghostButtonClass} onClick={onToggle} aria-expanded={!collapsed}>
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          <span className="sr-only">{collapsed ? "Expand" : "Collapse"} week</span>
-        </button>
-        <span className="text-xs font-medium tracking-wide text-slate-400 uppercase">Week {weekIndex + 1}</span>
-        <div className="min-w-0 flex-1">
-          <InlineTitle as="h3" value={week.title} disabled={!editable || busy} onSave={onRename} />
-        </div>
-        {editable ? (
-          <button type="button" className={dangerButtonClass} disabled={busy} onClick={onDelete}>
-            Delete
-          </button>
-        ) : null}
-      </div>
-      {week.description ? <p className="px-4 pb-2 text-sm text-slate-500">{week.description}</p> : null}
-      {collapsed ? null : (
-        <div className="border-t border-slate-100 px-4 py-3">
-          {week.days.length === 0 && !addingDay ? (
-            <div className="mb-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-center">
-              <p className="text-sm font-medium text-slate-800">No days in this week yet</p>
-              <p className="mt-1 text-sm text-slate-500">A day is one sitting for trainees — lessons, videos, and quizzes go inside it.</p>
-              {editable ? (
-                <button type="button" className={`${primaryButtonClass} mt-3`} disabled={busy} onClick={onStartAddDay}>
-                  <Plus className="h-4 w-4" />
-                  Add first day
-                </button>
-              ) : null}
+      {days.length > 0 ? (
+        <article>
+          <div className="mb-3 flex items-center justify-between px-1">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.14em] text-violet-600 uppercase">Program timeline</p>
+              <p className="mt-0.5 text-sm text-slate-500">From first touch to final checkpoint.</p>
             </div>
-          ) : null}
-          <ul className="space-y-1">
-            {week.days.map((day, dayIndex) => {
-              const count = dayItemCount(day);
+            <span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 sm:inline-flex">
+              <Check className="h-3.5 w-3.5" />
+              {readyDays} day{readyDays === 1 ? "" : "s"} ready
+            </span>
+          </div>
+          <ul className="relative space-y-3 before:absolute before:top-8 before:bottom-8 before:left-[1.65rem] before:w-px before:bg-gradient-to-b before:from-violet-300 before:via-violet-200 before:to-slate-200 sm:before:left-[2.15rem]">
+            {days.map((row) => {
+              const count = dayItemCount(row.day);
+              const hasContent = count > 0;
               return (
-                <li key={day.id} className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-slate-50">
-                  <span className="w-14 shrink-0 text-xs font-medium tracking-wide text-slate-400 uppercase">Day {dayIndex + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <InlineTitle as="p" value={day.title} disabled={!editable || busy} onSave={(title) => onRenameDay(day.id, title)} />
-                  </div>
-                  <span className="hidden shrink-0 text-xs text-slate-400 sm:inline">
-                    {count === 0 ? "No content yet" : `${count} item${count === 1 ? "" : "s"}`}
+                <li
+                  key={row.day.id}
+                  className="group relative flex items-center gap-3 overflow-hidden rounded-[1.4rem] border border-white bg-white/90 p-3.5 shadow-[0_8px_30px_rgba(51,41,90,0.06)] ring-1 ring-slate-900/[0.04] transition duration-200 hover:-translate-y-0.5 hover:border-violet-100 hover:shadow-[0_16px_40px_rgba(82,61,153,0.12)] sm:gap-4 sm:p-4"
+                >
+                  <span
+                    className={`relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-bold shadow-sm transition group-hover:rotate-3 sm:h-12 sm:w-12 ${
+                      hasContent ? "bg-violet-600 text-white shadow-violet-200" : "bg-violet-50 text-violet-600 ring-1 ring-violet-100"
+                    }`}
+                  >
+                    {String(row.number).padStart(2, "0")}
                   </span>
-                  <button type="button" className={secondaryButtonClass} onClick={() => onOpenDay(day.id)}>
-                    {count === 0 ? "Add content" : "Open"}
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <InlineTitle
+                        as="p"
+                        value={row.day.title}
+                        disabled={!editable || busy}
+                        onSave={(title) => onRenameDay(row.day.id, title)}
+                      />
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+                        hasContent ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                      }`}>
+                        {hasContent ? <Check className="h-3 w-3" /> : <CircleDashed className="h-3 w-3" />}
+                        {hasContent ? "Ready" : "Draft"}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
+                      {hasContent ? (
+                        <>
+                          <span className="flex items-center gap-1"><Layers3 className="h-3.5 w-3.5" />{count} item{count === 1 ? "" : "s"}</span>
+                          <span aria-hidden>·</span>
+                          <span className="hidden items-center gap-1 sm:flex"><Play className="h-3.5 w-3.5" />Learning content</span>
+                        </>
+                      ) : (
+                        <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" />Waiting for its first idea</span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`inline-flex shrink-0 items-center justify-center gap-1 rounded-xl px-2.5 py-2 text-sm font-semibold transition duration-150 sm:px-3 ${
+                      !hasContent && editable ? "bg-violet-50 text-violet-700 hover:bg-violet-100" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`}
+                    onClick={() => onOpenDay(row.day.id)}
+                  >
+                    <span className="hidden sm:inline">{!editable ? "View content" : !hasContent ? "Add content" : "Edit"}</span>
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                   {editable ? (
-                    <button type="button" className={dangerButtonClass} disabled={busy} onClick={() => onDeleteDay(day.id)}>
-                      Delete
-                    </button>
+                    <ActionMenu
+                      label={`Actions for ${row.day.title}`}
+                      items={[{ label: "Delete", danger: true, disabled: busy, onClick: () => onDeleteDay(row.day.id) }]}
+                    />
                   ) : null}
                 </li>
               );
             })}
           </ul>
-          {addingDay && editable ? (
-            <DayCreateRow
-              nextNumber={week.days.length + 1}
-              busy={busy}
-              onCancel={onCancelAddDay}
-              onSubmit={onAddDay}
-            />
-          ) : editable && week.days.length > 0 ? (
-            <button
-              type="button"
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-violet-200 hover:bg-violet-50/60 hover:text-violet-800 disabled:opacity-50"
-              disabled={busy}
-              onClick={onStartAddDay}
-            >
-              <Plus className="h-4 w-4" />
-              Add day
-            </button>
+          {adding && editable ? (
+            <div className="mt-3">
+              <DayCreateRow
+                nextNumber={days.length + 1}
+                busy={busy}
+                onCancel={() => setAdding(false)}
+                onSubmit={addDay}
+              />
+            </div>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-            {/* Temporarily hide weekly quiz creation. */}
-            {/* {!hasWeeklyQuiz && editable ? (
-              <button type="button" className={ghostButtonClass} onClick={onAddWeeklyQuiz}>
-                + Weekly quiz
-              </button>
-            ) : null} */}
-            {!hasWeeklyExam && editable ? (
-              <button type="button" className={ghostButtonClass} onClick={onAddWeeklyExam}>
-                + Weekly exam
-              </button>
-            ) : null}
-            {week.quizzes.map((quiz) => (
-              <span key={quiz.id} className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                {quiz.title}
-              </span>
-            ))}
+          {canAddFinalExam || finalExams.length > 0 ? (
+            <div className="relative mt-3 overflow-hidden rounded-[1.4rem] border border-violet-200/70 bg-violet-50 p-4 sm:p-5">
+              <div className="pointer-events-none absolute -top-10 right-4 h-24 w-24 rounded-full bg-fuchsia-200/60 blur-2xl" />
+              <div className="relative flex items-center gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#211a42] text-violet-100 shadow-lg shadow-violet-200">
+                  <GraduationCap className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold tracking-[0.15em] text-violet-500 uppercase">Final checkpoint</p>
+                  <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">
+                    {finalExams[0]?.title ?? "Wrap it up with a final exam"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {finalExams.length > 0 ? "Your closing assessment is ready." : "Optional, but perfect for testing the full journey."}
+                  </p>
+                </div>
+                {canAddFinalExam ? (
+                  <button
+                    type="button"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-violet-700 shadow-sm ring-1 ring-violet-200 transition hover:-translate-y-0.5 hover:shadow-md"
+                    onClick={onAddFinalExam}
+                  >
+                    <span className="hidden sm:inline">Add exam</span>
+                    <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">Added</span>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </article>
+      ) : adding && editable ? (
+        <article className={CARD}>
+          <div className="px-4 py-3">
+            <DayCreateRow
+              nextNumber={1}
+              busy={busy}
+              onCancel={() => setAdding(false)}
+              onSubmit={addDay}
+            />
           </div>
-        </div>
-      )}
-    </article>
+        </article>
+      ) : null}
+    </div>
   );
 }
 
@@ -297,16 +306,20 @@ function DayCreateRow({
 
   return (
     <form
-      className="mt-2 rounded-xl border border-violet-100 bg-violet-50/50 px-3 py-3"
+      className="rounded-[1.4rem] border border-violet-200 bg-white p-4 shadow-[0_12px_35px_rgba(82,61,153,0.1)]"
       onSubmit={(event) => {
         event.preventDefault();
         void save();
       }}
     >
-      <p className="text-sm font-medium text-slate-800">New day</p>
-      <p className="mt-0.5 text-xs text-slate-500">Name it, or keep the default and add content next.</p>
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <span className="w-14 shrink-0 text-xs font-medium tracking-wide text-slate-400 uppercase">Day {nextNumber}</span>
+      <div className="flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-xs font-bold text-violet-700">{nextNumber}</span>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Name your next chapter</p>
+          <p className="text-xs text-slate-500">Keep the suggestion or make it yours.</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
         <input
           className={fieldClass}
           value={title}
@@ -325,74 +338,6 @@ function DayCreateRow({
         </div>
       </div>
       {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
-    </form>
-  );
-}
-
-function InlineCreate({
-  title,
-  placeholder,
-  descriptionPlaceholder,
-  submitLabel,
-  busy,
-  onCancel,
-  onSubmit,
-}: {
-  title: string;
-  placeholder: string;
-  descriptionPlaceholder?: string;
-  submitLabel: string;
-  busy: boolean;
-  onCancel: () => void;
-  onSubmit: (title: string, description?: string) => Promise<void>;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  return (
-    <form
-      className={`${CARD} grid gap-3 p-4`}
-      onSubmit={(event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const nextTitle = String(data.get("title") ?? "").trim();
-        const description = String(data.get("description") ?? "").trim();
-        if (!nextTitle) {
-          setError("A title is required");
-          return;
-        }
-        setPending(true);
-        setError(null);
-        void onSubmit(nextTitle, description || undefined)
-          .catch((err: unknown) => {
-            setError(err instanceof Error ? err.message : "Unable to add");
-          })
-          .finally(() => setPending(false));
-      }}
-    >
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <label className="grid gap-1 text-sm">
-        <span className="font-medium text-slate-800">
-          Title
-          <RequiredMark />
-        </span>
-        <input name="title" className={fieldClass} placeholder={placeholder} autoFocus disabled={busy || pending} />
-      </label>
-      {descriptionPlaceholder ? (
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium text-slate-800">Description</span>
-          <textarea name="description" rows={2} className={fieldClass} placeholder={descriptionPlaceholder} disabled={busy || pending} />
-        </label>
-      ) : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <div className="flex justify-end gap-2">
-        <button type="button" className={secondaryButtonClass} onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className={primaryButtonClass} disabled={busy || pending}>
-          {pending ? "Adding…" : submitLabel}
-        </button>
-      </div>
     </form>
   );
 }

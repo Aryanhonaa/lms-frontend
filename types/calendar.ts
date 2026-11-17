@@ -5,10 +5,10 @@ export type CalendarEventType =
   | "ASSIGNMENT"
   | "TASK"
   | "NOTIFICATION"
-  | "MILESTONE"
   | "DEADLINE"
   | "PROGRAM"
-  | "HOLIDAY";
+  | "HOLIDAY"
+  | "ACTIVITY";
 
 export type CalendarEvent = {
   id: string;
