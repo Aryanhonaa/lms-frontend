@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Lock, MessageSquareText, Sparkles } from "lucide-react";
+import { Lock } from "lucide-react";
 import { TraineeShell } from "@/components/trainee-shell";
 import { TraineeCourseFilters } from "@/components/trainee-course-filters";
 import { ContentTypeChip } from "@/components/learning/content-type-chip";
@@ -167,14 +167,6 @@ export default function TraineeAssignmentsPage() {
     return assignments.filter((item) => matchesEnrollment(item, filters.programId, filters.batchId));
   }, [assignments, filters.programId, filters.batchId]);
 
-  const feedbackReady = useMemo(() => {
-    return [...scoped.filter(hasTrainerFeedback)].sort((left, right) => {
-      const leftAt = left.submission.gradedAt ?? left.submission.submittedAt ?? "";
-      const rightAt = right.submission.gradedAt ?? right.submission.submittedAt ?? "";
-      return rightAt.localeCompare(leftAt);
-    });
-  }, [scoped]);
-
   const visible = useMemo(() => {
     if (statusFilter === "ALL") {
       return scoped;
@@ -232,80 +224,6 @@ export default function TraineeAssignmentsPage() {
                 }}
               />
             </div>
-          </section>
-        ) : null}
-
-        {feedbackReady.length > 0 ? (
-          <section className={`${traineeCardClass} overflow-hidden`}>
-            <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 via-white to-fuchsia-50 px-5 py-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm shadow-violet-600/20">
-                  <MessageSquareText className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-base font-semibold text-slate-900">Trainer feedback & grades</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {feedbackReady.length} assignment{feedbackReady.length === 1 ? "" : "s"} reviewed
-                    {filters.selected ? ` in ${filters.selected.program.title}` : ""}. Open one to read the
-                    score and comments from your trainer.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <ul className="divide-y divide-slate-100">
-              {feedbackReady.map((item) => {
-                const comment = item.submission.trainerComment?.trim();
-                const changes = item.submission.status === "CHANGES_REQUESTED";
-                return (
-                  <li
-                    key={`feedback-${assignmentKey(item)}`}
-                    className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <ContentTypeChip type="ASSIGNMENT" />
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            changes
-                              ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
-                              : "bg-violet-50 text-violet-700 ring-1 ring-violet-200"
-                          }`}
-                        >
-                          {changes ? "Needs revision" : "Feedback ready"}
-                        </span>
-                        {item.submission.score !== null ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-                            <Sparkles className="h-3 w-3" />
-                            {item.submission.score}/{item.assignment.maxScore}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-2 font-semibold text-slate-900">{item.assignment.title}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {item.assignment.programTitle}
-                        {item.assignment.batchName ? ` · ${item.assignment.batchName}` : ""}
-                        {` · ${item.assignment.location}`}
-                      </p>
-                      {comment ? (
-                        <p className="mt-2 line-clamp-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                          “{comment}”
-                        </p>
-                      ) : (
-                        <p className="mt-2 text-sm text-slate-500">
-                          {item.submission.gradedBy
-                            ? `Graded by ${item.submission.gradedBy.name}`
-                            : "Score posted — open to see details."}
-                        </p>
-                      )}
-                    </div>
-                    <Link href={assignmentHref(item, true)} className={traineePrimaryCtaClass}>
-                      View feedback
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
           </section>
         ) : null}
 
