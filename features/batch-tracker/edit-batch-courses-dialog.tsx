@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BookOpen, Check } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { CourseOrderList } from "@/features/batch-tracker/course-order-list";
@@ -37,15 +37,25 @@ export function EditBatchCoursesDialog({
   const [selectedIds, setSelectedIds] = useState(currentCourseIds);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const seedIdsRef = useRef(currentCourseIds);
+  seedIdsRef.current = currentCourseIds;
+  const seedPrimaryRef = useRef(primaryProgramId);
+  seedPrimaryRef.current = primaryProgramId;
+
+  // Re-seed only when the dialog opens. Parent rebuilds currentCourseIds every
+  // render; listing it as a dependency would wipe courses the user just added.
   useEffect(() => {
-    if (open) {
-      setSelectedIds(currentCourseIds.length > 0 ? currentCourseIds : [primaryProgramId]);
-      setQuery("");
-      setError(null);
+    if (!open) {
+      return;
     }
-  }, [open, currentCourseIds, primaryProgramId]);
+    const seed = seedIdsRef.current;
+    setSelectedIds(seed.length > 0 ? seed : [seedPrimaryRef.current]);
+    setQuery("");
+    setError(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -53,6 +63,7 @@ export function EditBatchCoursesDialog({
     }
     let cancelled = false;
     async function loadCourses() {
+      setLoadingCatalog(true);
       try {
         const payload = await getBatchCatalog();
         if (cancelled) {
@@ -97,6 +108,10 @@ export function EditBatchCoursesDialog({
             setCourses([]);
           }
         }
+      } finally {
+        if (!cancelled) {
+          setLoadingCatalog(false);
+        }
       }
     }
 
@@ -115,7 +130,20 @@ export function EditBatchCoursesDialog({
     setBusy(true);
     setError(null);
     try {
-      await updateProgramBatch(batchId, { programIds: ids });
+      const payload = await updateProgramBatch(batchId, { programIds: ids });
+      const savedCourses = payload.batch.courses;
+      if (!savedCourses) {
+        setError(
+          "Server accepted the request but did not update courses. Redeploy the backend (batch course linking) and try again.",
+        );
+        return;
+      }
+      const savedIds = new Set(savedCourses.map((course) => course.id));
+      const missing = ids.filter((id) => !savedIds.has(id));
+      if (missing.length > 0) {
+        setError("Some courses were not linked to this batch. Check approvals and try again.");
+        return;
+      }
       onSaved();
       onClose();
     } catch (err: unknown) {
@@ -169,8 +197,11 @@ export function EditBatchCoursesDialog({
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search approved courses"
         className={`${fieldClass} mb-3`}
+        disabled={busy || loadingCatalog}
       />
-      {filtered.length === 0 ? (
+      {loadingCatalog ? (
+        <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">Loading courses…</p>
+      ) : filtered.length === 0 ? (
         <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
           {courses.length === 0 ? "No approved courses available." : "No courses match that search."}
         </p>
