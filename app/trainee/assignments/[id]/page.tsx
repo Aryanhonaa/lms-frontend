@@ -16,6 +16,7 @@ function AssignmentDetailClient() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const batchId = searchParams.get("batchId") ?? undefined;
+  const focusFeedback = searchParams.get("focus") === "feedback";
   const [catalog, setCatalog] = useState<AssignmentCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +53,7 @@ function AssignmentDetailClient() {
           key={`${catalog.submission.id ?? catalog.assignment.id}-${batchId ?? ""}`}
           catalog={catalog}
           batchId={batchId}
+          focusFeedback={focusFeedback}
           onChange={setCatalog}
         />
       ) : null}

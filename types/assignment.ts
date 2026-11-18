@@ -49,6 +49,8 @@ export type AssignmentCatalog = {
     maxScore: number;
     programId: string;
     programTitle: string;
+    batchId?: string | null;
+    batchName?: string | null;
     location: string;
     status: AccessStatus;
     lifecycleStatus?: "DRAFT" | "PUBLISHED" | "CLOSED";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, FileText, UserRound } from "lucide-react";
+import { CheckCircle2, Clock3, FileText, PenLine, UserRound } from "lucide-react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TrainerCourseBatchFilters } from "@/components/trainer-course-batch-filters";
 import { TrainerShell } from "@/components/trainer-shell";
@@ -32,6 +32,20 @@ function statusLabel(status: string): string {
   return STATUS_FILTERS.find((item) => item.id === status)?.label ?? status.replaceAll("_", " ").toLowerCase();
 }
 
+function isGradedStatus(status: string): boolean {
+  return status === "GRADED" || status === "COMPLETED";
+}
+
+function statusTone(status: string): string {
+  if (status === "SUBMITTED" || status === "CHANGES_REQUESTED") {
+    return "bg-amber-50 text-amber-800";
+  }
+  if (isGradedStatus(status)) {
+    return "bg-emerald-50 text-emerald-800";
+  }
+  return "bg-slate-50 text-slate-600";
+}
+
 export default function TrainerAssignmentDetailPage() {
   const { user } = useAuth();
   const params = useParams<{ id: string }>();
@@ -49,6 +63,8 @@ export default function TrainerAssignmentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const requestedSubmissionId = searchParams.get("submissionId");
 
@@ -125,10 +141,12 @@ export default function TrainerAssignmentDetailPage() {
     submission: TrainerSubmission,
     status: "GRADED" | "CHANGES_REQUESTED" | "COMPLETED",
     form: HTMLFormElement,
+    enrollmentId: string,
   ) {
     const data = new FormData(form);
     setBusyId(submission.id);
     setError(null);
+    setFlash(null);
     try {
       await reviewAssignmentSubmission(submission.id, {
         status,
@@ -137,6 +155,19 @@ export default function TrainerAssignmentDetailPage() {
       });
       const next = await getTrainerAssignment(payload!.assignment.id, scope);
       setPayload(next);
+      setEditingId(null);
+      const nextPending =
+        next.roster.find(
+          (row) => row.enrollmentId !== enrollmentId && (row.status === "SUBMITTED" || row.status === "CHANGES_REQUESTED"),
+        )?.enrollmentId ?? null;
+      setOpenId(nextPending);
+      setFlash(
+        status === "COMPLETED"
+          ? "Marked complete. Panel closed."
+          : nextPending
+            ? "Grade saved. Opened the next submission to review."
+            : "Grade saved.",
+      );
     } catch (err: unknown) {
       setError(err instanceof ApiClientError ? err.message : "Unable to save review");
     } finally {
@@ -185,6 +216,9 @@ export default function TrainerAssignmentDetailPage() {
         />
       </div>
       {loadError ? <ErrorState message={loadError} /> : null}
+      {flash ? (
+        <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{flash}</p>
+      ) : null}
       {!payload && !loadError ? <LoadingState label="Loading submissions…" /> : null}
       {filters.ready && filters.batches.length === 0 && !loadError ? (
         <EmptyState title="No batches yet." description="Create a batch for this course to review submissions." />
@@ -275,52 +309,68 @@ export default function TrainerAssignmentDetailPage() {
             visibleRoster.map((row) => {
               const latest = row.latest;
               const submission = payload.submissions.find((item) => item.id === latest?.id);
+              const open = effectiveOpenId === row.enrollmentId;
+              const graded = isGradedStatus(row.status);
+              const editing = editingId === row.enrollmentId || (!graded && Boolean(submission));
               return (
                 <article
                   key={row.enrollmentId}
                   className={`overflow-hidden rounded-2xl bg-white transition ring-1 ${
-                    effectiveOpenId === row.enrollmentId ? "ring-violet-300 shadow-md" : "ring-slate-950/5"
+                    open ? "ring-violet-300 shadow-md" : "ring-slate-950/5"
                   }`}
                 >
                   <button
                     type="button"
                     className="flex w-full items-start justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
-                    onClick={() => setOpenId(effectiveOpenId === row.enrollmentId ? null : row.enrollmentId)}
+                    onClick={() => {
+                      const nextOpen = open ? null : row.enrollmentId;
+                      setOpenId(nextOpen);
+                      if (nextOpen !== row.enrollmentId) {
+                        setEditingId(null);
+                      }
+                    }}
                   >
                     <div className="flex min-w-0 gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-700">
-                        <UserRound className="h-4 w-4" />
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                          graded ? "bg-emerald-50 text-emerald-700" : "bg-violet-50 text-violet-700"
+                        }`}
+                      >
+                        {graded ? <CheckCircle2 className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}
                       </span>
                       <div className="min-w-0">
-                      <p className="font-medium text-slate-900">{row.trainee.name}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {latest?.submittedAt ? new Date(latest.submittedAt).toLocaleString() : "—"}
-                        {latest?.isLate ? " · submitted late" : ""}
-                        {latest ? ` · attempt ${latest.revision}` : ""}
-                      </p>
-                      {latest?.gradedBy ? (
-                        <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-700">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Marked by {latest.gradedBy.name}
+                        <p className="font-medium text-slate-900">{row.trainee.name}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {latest?.submittedAt ? new Date(latest.submittedAt).toLocaleString() : "—"}
+                          {latest?.isLate ? " · submitted late" : ""}
+                          {latest ? ` · attempt ${latest.revision}` : ""}
                         </p>
-                      ) : latest?.submittedAt ? (
-                        <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                          <Clock3 className="h-3.5 w-3.5" /> Waiting for a trainer
-                        </p>
-                      ) : null}
+                        {graded && latest?.score !== null && latest?.score !== undefined ? (
+                          <p className="mt-1 text-sm font-semibold tabular-nums text-slate-800">
+                            {latest.score}/{payload.assignment.maxScore}
+                            {latest.gradedBy ? (
+                              <span className="ml-2 font-medium text-emerald-700">· {latest.gradedBy.name}</span>
+                            ) : null}
+                          </p>
+                        ) : latest?.gradedBy ? (
+                          <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Marked by {latest.gradedBy.name}
+                          </p>
+                        ) : latest?.submittedAt ? (
+                          <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                            <Clock3 className="h-3.5 w-3.5" /> Waiting for a trainer
+                          </p>
+                        ) : null}
                       </div>
                     </div>
-                    <span className="rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium tracking-wide text-slate-600 uppercase">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium tracking-wide uppercase ${statusTone(row.status)}`}
+                    >
                       {statusLabel(row.status)}
                     </span>
                   </button>
-                  {effectiveOpenId === row.enrollmentId && submission ? (
-                    <form
-                      className="border-t border-slate-100 bg-slate-50/40 px-5 py-5"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        void review(submission, "GRADED", event.currentTarget);
-                      }}
-                    >
+                  {open && submission ? (
+                    <div className="border-t border-slate-100 bg-slate-50/40 px-5 py-5">
                       <div className="rounded-xl border border-slate-200 bg-white p-4">
                         <p className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                           <FileText className="h-4 w-4" /> Trainee response
@@ -332,7 +382,7 @@ export default function TrainerAssignmentDetailPage() {
                       {(submission.files ?? latest?.files ?? []).length > 0 ? (
                         <ul className="mt-3 space-y-2">
                           {(submission.files ?? latest?.files ?? []).map((file) => (
-                            <li key={file.id} className="rounded-xl bg-slate-50 px-3 py-2.5">
+                            <li key={file.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                               <FileActionsRow
                                 loader={() => getSubmissionFileAccess("trainer", submission.id, file.id)}
                                 fileName={file.fileName}
@@ -356,54 +406,113 @@ export default function TrainerAssignmentDetailPage() {
                               </p>
                             ))}
                         </div>
+                      ) : null}
+
+                      {graded && !editing ? (
+                        <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold tracking-wide text-emerald-800 uppercase">Grade</p>
+                              <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-950">
+                                {submission.score ?? "—"}
+                                <span className="text-base font-medium text-emerald-800/80">
+                                  /{payload.assignment.maxScore}
+                                </span>
+                              </p>
+                              {submission.gradedBy ? (
+                                <p className="mt-1 text-sm text-emerald-900">
+                                  Graded by {submission.gradedBy.name}
+                                  {submission.gradedAt
+                                    ? ` · ${new Date(submission.gradedAt).toLocaleString()}`
+                                    : ""}
+                                </p>
+                              ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              className={secondaryButtonClass}
+                              onClick={() => setEditingId(row.enrollmentId)}
+                            >
+                              <PenLine className="h-4 w-4" />
+                              Update grade
+                            </button>
+                          </div>
+                          {submission.trainerComment ? (
+                            <p className="mt-3 whitespace-pre-wrap rounded-xl bg-white/80 px-3 py-2.5 text-sm text-slate-700 ring-1 ring-emerald-100">
+                              {submission.trainerComment}
+                            </p>
+                          ) : null}
+                        </div>
                       ) : (
-                        <p className="mt-3 text-xs text-slate-500">No previous attempts.</p>
-                      )}
-                      <div className="mt-5 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
-                        <label className="text-sm font-medium text-slate-800">
-                          Score
-                          <RequiredMark />
-                          <input
-                            name="score"
-                            type="number"
-                            min={0}
-                            max={payload.assignment.maxScore}
-                            defaultValue={submission.score ?? ""}
-                            placeholder={`0 – ${payload.assignment.maxScore}`}
-                            className={`${fieldClass} mt-1`}
-                            disabled={busyId === submission.id}
-                            aria-label={`Score out of ${payload.assignment.maxScore}`}
-                          />
-                        </label>
-                        <label className="text-sm font-medium text-slate-800 md:col-span-2">
-                          Feedback
-                          <textarea
-                            name="comment"
-                            rows={4}
-                            defaultValue={submission.trainerComment}
-                            placeholder="Visible to the trainee"
-                            className={`${fieldClass} mt-1`}
-                            disabled={busyId === submission.id}
-                          />
-                        </label>
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <button type="submit" className={primaryButtonClass} disabled={busyId === submission.id}>
-                          {busyId === submission.id ? "Saving…" : "Save grade"}
-                        </button>
-                        <button
-                          type="button"
-                          className={secondaryButtonClass}
-                          disabled={busyId === submission.id}
-                          onClick={(event) => void review(submission, "COMPLETED", event.currentTarget.form!)}
+                        <form
+                          className="mt-5"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void review(submission, "GRADED", event.currentTarget, row.enrollmentId);
+                          }}
                         >
-                          Mark complete
-                        </button>
-                      </div>
-                    </form>
+                          <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
+                            <label className="text-sm font-medium text-slate-800">
+                              Score
+                              <RequiredMark />
+                              <input
+                                name="score"
+                                type="number"
+                                min={0}
+                                max={payload.assignment.maxScore}
+                                defaultValue={submission.score ?? ""}
+                                placeholder={`0 – ${payload.assignment.maxScore}`}
+                                className={`${fieldClass} mt-1`}
+                                disabled={busyId === submission.id}
+                                aria-label={`Score out of ${payload.assignment.maxScore}`}
+                              />
+                            </label>
+                            <label className="text-sm font-medium text-slate-800 md:col-span-2">
+                              Feedback
+                              <textarea
+                                name="comment"
+                                rows={4}
+                                defaultValue={submission.trainerComment}
+                                placeholder="Visible to the trainee"
+                                className={`${fieldClass} mt-1`}
+                                disabled={busyId === submission.id}
+                              />
+                            </label>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button type="submit" className={primaryButtonClass} disabled={busyId === submission.id}>
+                              {busyId === submission.id ? "Saving…" : graded ? "Save update" : "Save grade"}
+                            </button>
+                            {!graded ? (
+                              <button
+                                type="button"
+                                className={secondaryButtonClass}
+                                disabled={busyId === submission.id}
+                                onClick={(event) =>
+                                  void review(submission, "COMPLETED", event.currentTarget.form!, row.enrollmentId)
+                                }
+                              >
+                                Mark complete
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className={secondaryButtonClass}
+                                disabled={busyId === submission.id}
+                                onClick={() => setEditingId(null)}
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      )}
+                    </div>
                   ) : null}
-                  {effectiveOpenId === row.enrollmentId && !submission ? (
-                    <p className="mt-3 text-sm text-slate-500">This trainee has not submitted yet.</p>
+                  {open && !submission ? (
+                    <p className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">
+                      This trainee has not submitted yet.
+                    </p>
                   ) : null}
                 </article>
               );

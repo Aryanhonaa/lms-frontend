@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, MessageSquareText } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { ContentTypeChip } from "@/components/learning/content-type-chip";
 import { FileDropZone } from "@/components/files/file-drop-zone";
@@ -47,10 +47,12 @@ export function AssignmentWorkspace({
   catalog,
   batchId,
   onChange,
+  focusFeedback = false,
 }: {
   catalog: AssignmentCatalog;
   batchId?: string;
   onChange: (next: AssignmentCatalog) => void;
+  focusFeedback?: boolean;
 }) {
   const [body, setBody] = useState(catalog.submission.body);
   const [busy, setBusy] = useState(false);
@@ -60,6 +62,7 @@ export function AssignmentWorkspace({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const cancelUploadRef = useRef<(() => void) | null>(null);
   const lastFilesRef = useRef<File[] | null>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
 
   const allowText = catalog.assignment.allowTextResponse !== false;
   const allowFiles = catalog.assignment.allowFileUpload !== false;
@@ -68,6 +71,81 @@ export function AssignmentWorkspace({
   const locked = catalog.assignment.status === "LOCKED";
   const graded =
     catalog.submission.status === "GRADED" || catalog.submission.status === "COMPLETED";
+  const changesRequested = catalog.submission.status === "CHANGES_REQUESTED";
+  const showFeedback =
+    graded ||
+    changesRequested ||
+    catalog.submission.score !== null ||
+    Boolean(catalog.submission.trainerComment?.trim());
+
+  useEffect(() => {
+    if (!focusFeedback || !showFeedback) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusFeedback, showFeedback]);
+
+  const feedbackPanel = showFeedback ? (
+    <div
+      ref={feedbackRef}
+      id="trainer-feedback"
+      className={`rounded-2xl px-4 py-4 ring-1 ${
+        changesRequested ? "bg-amber-50 ring-amber-100" : "bg-violet-50 ring-violet-100"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${
+            changesRequested ? "bg-amber-600" : "bg-violet-600"
+          }`}
+        >
+          <MessageSquareText className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-semibold ${changesRequested ? "text-amber-950" : "text-violet-950"}`}>
+            {changesRequested ? "Trainer asked for changes" : "Trainer feedback & grade"}
+          </p>
+          {catalog.submission.score !== null ? (
+            <p className={`mt-2 text-2xl font-semibold ${changesRequested ? "text-amber-950" : "text-violet-950"}`}>
+              {catalog.submission.score} / {catalog.assignment.maxScore}
+            </p>
+          ) : null}
+          {catalog.submission.gradedBy ? (
+            <p className={`mt-1 text-sm ${changesRequested ? "text-amber-800" : "text-violet-800"}`}>
+              Graded by {catalog.submission.gradedBy.name}
+              {catalog.submission.gradedAt ? ` · ${formatWhen(catalog.submission.gradedAt)}` : ""}
+            </p>
+          ) : null}
+          {catalog.submission.score !== null ? (
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+              <div
+                className={`h-full ${changesRequested ? "bg-amber-500" : "bg-violet-600"}`}
+                style={{
+                  width: `${Math.min(100, (catalog.submission.score / catalog.assignment.maxScore) * 100)}%`,
+                }}
+              />
+            </div>
+          ) : null}
+          {catalog.submission.trainerComment?.trim() ? (
+            <p
+              className={`mt-3 whitespace-pre-wrap text-sm ${
+                changesRequested ? "text-amber-950" : "text-violet-950"
+              }`}
+            >
+              {catalog.submission.trainerComment}
+            </p>
+          ) : (
+            <p className={`mt-3 text-sm ${changesRequested ? "text-amber-800" : "text-violet-800"}`}>
+              No written feedback yet.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   async function persist(submit: boolean) {
     setBusy(true);
@@ -196,6 +274,8 @@ export function AssignmentWorkspace({
           </div>
         ) : null}
 
+        {feedbackPanel ? <div className="mt-5">{feedbackPanel}</div> : null}
+
         {locked ? (
           <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-950/5">
             This assignment is locked for now. {friendlyLockReason(catalog.assignment.reason)}
@@ -301,29 +381,6 @@ export function AssignmentWorkspace({
           </>
         )}
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
-
-        {graded && catalog.submission.score !== null ? (
-          <div className="mt-6 rounded-2xl bg-violet-50 px-4 py-4 ring-1 ring-violet-100">
-            <p className="text-sm font-medium text-violet-900">Score</p>
-            <p className="mt-1 text-2xl font-semibold text-violet-950">
-              {catalog.submission.score} / {catalog.assignment.maxScore}
-            </p>
-            {catalog.submission.gradedBy ? (
-              <p className="mt-1 text-sm text-violet-800">Graded by {catalog.submission.gradedBy.name}</p>
-            ) : null}
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-              <div
-                className="h-full bg-violet-600"
-                style={{ width: `${Math.min(100, (catalog.submission.score / catalog.assignment.maxScore) * 100)}%` }}
-              />
-            </div>
-            {catalog.submission.trainerComment ? (
-              <p className="mt-3 whitespace-pre-wrap text-sm text-violet-950">{catalog.submission.trainerComment}</p>
-            ) : (
-              <p className="mt-3 text-sm text-violet-800">No feedback yet.</p>
-            )}
-          </div>
-        ) : null}
 
         {attempts.length > 1 ? (
           <div className="mt-6">

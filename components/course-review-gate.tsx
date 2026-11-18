@@ -20,13 +20,17 @@ export function CourseReviewGate() {
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState(0);
 
   const refresh = useCallback(async () => {
     try {
       const payload = await listTraineeCertificates();
-      setPending(payload.pendingReviews?.[0] ?? null);
+      const reviews = payload.pendingReviews ?? [];
+      setPending(reviews[0] ?? null);
+      setRemaining(reviews.length);
     } catch {
       setPending(null);
+      setRemaining(0);
     }
   }, []);
 
@@ -91,7 +95,7 @@ export function CourseReviewGate() {
           </h2>
           <p className="mt-2 text-sm text-slate-600">
             {pending
-              ? "Your certificate for this course is ready. Another completed course still needs a review."
+              ? "Thanks. Review the remaining courses in this batch to receive your certificate."
               : "Your digital certificate is now available."}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
@@ -134,7 +138,9 @@ export function CourseReviewGate() {
           <p className="mt-1 text-sm font-medium text-slate-800">{pending.programTitle}</p>
           {pending.batchName ? <p className="mt-0.5 text-xs text-slate-500">{pending.batchName}</p> : null}
           <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900">
-            Submitting your review is required to receive your certificate.
+            {remaining > 1
+              ? "This batch has more than one course. Review each completed course to receive one certificate."
+              : "Submitting your review is required to receive your certificate."}
           </p>
           <div className="mt-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -174,7 +180,11 @@ export function CourseReviewGate() {
           </div>
           {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
           <button type="submit" className={`${primaryButtonClass} mt-5 w-full`} disabled={saving}>
-            {saving ? "Submitting…" : "Submit review and get certificate"}
+            {saving
+              ? "Submitting…"
+              : remaining > 1
+                ? "Submit review"
+                : "Submit review and get certificate"}
           </button>
         </form>
       </div>
