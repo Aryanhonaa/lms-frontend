@@ -25,7 +25,13 @@ import { useTraineeEnrollment } from "@/hooks/use-trainee-enrollment";
 import { getTraineeDashboard } from "@/lib/api/trainee";
 import { getTraineeLearnView } from "@/lib/api/learning";
 import { ApiClientError } from "@/lib/api/client";
-import { sequenceLabel } from "@/lib/batches/course-sequence";
+import {
+  courseOptionsFromEnrollments,
+  enrollmentFamilyId,
+  familyEnrollments,
+  journeyOptionsFromEnrollments,
+  preferredEnrollment,
+} from "@/lib/learning/enrollment-priority";
 import { traineeContinueHref, traineePathHref } from "@/lib/learning/path";
 import { currentDayItems, flattenLearnPath, isDoneStatus, locationLabel, progressHeadline } from "@/lib/learning/ux";
 import { traineePrimaryCtaClass } from "@/lib/ui/trainee";
@@ -214,7 +220,7 @@ function DashboardBody({ dashboard, onRetry }: { dashboard: TraineeDashboard; on
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard href="/trainee/courses" label="Your courses" value={`${statistics.enrolledPrograms.total}`} hint={`${statistics.enrolledPrograms.active} in progress · ${statistics.enrolledPrograms.failed} failed`} hintClass="text-violet-700" icon={BookOpen} iconClass="bg-violet-100 text-violet-700" />
-        <StatCard href="/trainee/progress" label="Overall progress" value={`${Math.round(statistics.overallProgress.percent)}%`} hint={statistics.overallProgress.percent >= 85 ? "Almost there" : "Keep going"} hintClass="text-emerald-600" icon={ClipboardCheck} iconClass="bg-emerald-100 text-emerald-700" />
+        <StatCard href="/trainee/courses" label="Overall progress" value={`${Math.round(statistics.overallProgress.percent)}%`} hint={statistics.overallProgress.percent >= 85 ? "Almost there" : "Keep going"} hintClass="text-emerald-600" icon={ClipboardCheck} iconClass="bg-emerald-100 text-emerald-700" />
         <StatCard href="/trainee/assignments" label="Pending assignments" value={`${statistics.pendingAssignments.total}`} hint="Due soon" hintClass="text-amber-600" icon={ListChecks} iconClass="bg-amber-100 text-amber-700" />
         <StatCard
           href="/trainee/assessments"
@@ -343,7 +349,7 @@ function CourseCard({
   error: string | null;
   onRetry: () => void;
 }) {
-  const filters = useTraineeEnrollment({ programId: initial?.program.id });
+  const filters = useTraineeEnrollment({ preferAvailable: true });
   const [learning, setLearning] = useState<TraineeCurrentLearning | null>(initial);
   const [learnView, setLearnView] = useState<LearnView | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -383,12 +389,28 @@ function CourseCard({
   const currentEnrollment = filters.enrollments.find(
     (row) => row.program.id === learning?.program.id && (!filters.batchId || row.batch?.id === filters.batchId),
   );
-  const familyId = currentEnrollment?.batch?.familyId ?? currentEnrollment?.batch?.id;
-  const familyCourses = familyId
-    ? filters.enrollments
-        .filter((row) => (row.batch?.familyId ?? row.batch?.id) === familyId)
-        .sort((a, b) => (a.batch?.sortOrder ?? 0) - (b.batch?.sortOrder ?? 0))
-    : [];
+  const familyCourses = familyEnrollments(filters.enrollments, currentEnrollment ?? filters.selected);
+  const journeys = journeyOptionsFromEnrollments(filters.enrollments);
+  const journeyId = currentEnrollment
+    ? enrollmentFamilyId(currentEnrollment)
+    : filters.selected
+      ? enrollmentFamilyId(filters.selected)
+      : "";
+  const journeyCourseOptions = courseOptionsFromEnrollments(familyCourses);
+  const focusCourse =
+    preferredEnrollment(familyCourses.length > 0 ? familyCourses : filters.enrollments) ?? currentEnrollment;
+  const viewingLocked = Boolean(currentEnrollment?.sequenceLocked);
+  const continueTarget =
+    viewingLocked && focusCourse && focusCourse.program.id !== currentEnrollment?.program.id
+      ? focusCourse
+      : currentEnrollment && !currentEnrollment.sequenceLocked
+        ? currentEnrollment
+        : focusCourse;
+  const continueHref = continueTarget
+    ? viewingLocked && continueTarget.program.id !== learning?.program.id
+      ? traineePathHref(continueTarget.program.id, null, continueTarget.batch?.id)
+      : learning?.continueHref ?? traineePathHref(continueTarget.program.id, null, continueTarget.batch?.id)
+    : learning?.continueHref ?? "/trainee/learn";
   const today = learnView ? currentDayItems(learnView, flattenLearnPath(learnView), null) : [];
   const todayDone = today.filter((item) => isDoneStatus(item.status)).length;
   const headline = learning
@@ -404,20 +426,41 @@ function CourseCard({
             <h2 className="mt-1 text-base font-semibold text-slate-900">{learning?.program.title ?? "Your course"}</h2>
           </div>
           {learning ? (
-            <Link href={learning.progressHref} className="text-xs font-medium text-violet-700 hover:text-violet-800">
-              Your Journey
+            <Link href={learning.continueHref} className="text-xs font-medium text-violet-700 hover:text-violet-800">
+              Continue
             </Link>
           ) : null}
         </div>
-        {filters.programs.length > 1 || filters.batches.length > 1 ? (
+        {journeys.length > 1 || journeyCourseOptions.length > 1 ? (
           <div className="mt-3">
             <TraineeCourseFilters
-              programs={filters.programs}
-              batches={filters.batches}
+              programs={journeyCourseOptions}
+              batches={[]}
               programId={filters.programId}
               batchId={filters.batchId}
-              onProgramChange={filters.setProgramId}
+              onProgramChange={(nextProgramId) => {
+                const next = journeyCourseOptions.find((course) => course.id === nextProgramId);
+                filters.setProgramId(nextProgramId);
+                if (next?.batchId) {
+                  filters.setBatchId(next.batchId);
+                }
+              }}
               onBatchChange={filters.setBatchId}
+              journeys={journeys}
+              journeyId={journeyId}
+              onJourneyChange={(nextJourneyId) => {
+                const rows = filters.enrollments.filter(
+                  (row) => enrollmentFamilyId(row) === nextJourneyId,
+                );
+                const next = preferredEnrollment(rows) ?? rows[0];
+                if (!next) {
+                  return;
+                }
+                filters.setProgramId(next.program.id);
+                if (next.batch?.id) {
+                  filters.setBatchId(next.batch.id);
+                }
+              }}
             />
           </div>
         ) : null}
@@ -462,30 +505,82 @@ function CourseCard({
               <CourseOutcomePanel course={learning.course} compact />
             </div>
           ) : null}
-          <Link href={learning.continueHref} className={`${traineePrimaryCtaClass} mt-4`}>
+          {viewingLocked ? (
+            <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              {currentEnrollment?.sequenceLockReason ?? "Finish the previous course before opening this one."}
+            </p>
+          ) : null}
+          <Link href={continueHref} className={`${traineePrimaryCtaClass} mt-4`}>
             <Play className="h-4 w-4 fill-current" />
-            {learning.course.outcome === "PENDING"
-              ? learning.percent > 0
-                ? "Resume learning"
-                : "Continue learning"
-              : "View course"}
+            {viewingLocked && continueTarget && continueTarget.program.id !== learning.program.id
+              ? `Continue ${continueTarget.program.title}`
+              : learning.course.outcome === "PENDING"
+                ? learning.percent > 0
+                  ? "Resume learning"
+                  : "Continue learning"
+                : "View course"}
           </Link>
           {familyCourses.length > 1 ? (
-            <ol className="mt-4 space-y-1 border-t border-slate-100 pt-4">
-              <li className="mb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">In this batch</li>
+            <ol className="mt-4 space-y-1.5 border-t border-slate-100 pt-4">
+              <li className="mb-1.5 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+                Course path
+              </li>
               {familyCourses.map((row, index) => {
                 const active = row.program.id === learning.program.id;
                 const done = row.course.outcome === "PASSED";
                 const locked = Boolean(row.sequenceLocked);
+                const available = !locked && !done;
+                const focus = focusCourse?.program.id === row.program.id;
+                const body = (
+                  <>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-[11px] font-semibold text-violet-700">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-sm ${active || focus ? "font-semibold text-slate-900" : "text-slate-700"}`}>
+                        {row.program.title}
+                      </span>
+                      <span className="block text-[11px] text-slate-400">
+                        {done
+                          ? "Completed"
+                          : locked
+                            ? row.sequenceLockReason ?? "Locked until previous course is done"
+                            : focus
+                              ? "Available now"
+                              : "Up next"}
+                      </span>
+                    </span>
+                    {done ? (
+                      <Check className="h-4 w-4 shrink-0 text-emerald-600" strokeWidth={3} />
+                    ) : locked ? (
+                      <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    ) : (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase">
+                        Open
+                      </span>
+                    )}
+                  </>
+                );
                 return (
-                  <li key={row.id} className="flex items-center gap-2 px-1 py-1 text-sm">
-                    <span className="w-14 shrink-0 text-[11px] font-semibold text-violet-700">{sequenceLabel(index)}</span>
-                    <span className={`min-w-0 flex-1 truncate ${active ? "font-medium text-slate-900" : "text-slate-600"}`}>
-                      {row.program.title}
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      {done ? "Done" : locked ? "Locked" : active ? "Now" : "Later"}
-                    </span>
+                  <li key={row.id}>
+                    {locked ? (
+                      <div className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-sm text-slate-500">{body}</div>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition ${
+                          active ? "bg-violet-50 ring-1 ring-violet-100" : "hover:bg-slate-50"
+                        }`}
+                        onClick={() => {
+                          filters.setProgramId(row.program.id);
+                          if (row.batch?.id) {
+                            filters.setBatchId(row.batch.id);
+                          }
+                        }}
+                      >
+                        {body}
+                      </button>
+                    )}
                   </li>
                 );
               })}

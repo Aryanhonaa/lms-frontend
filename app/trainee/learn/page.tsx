@@ -9,6 +9,13 @@ import { LearnWorkspace } from "@/features/learning/learn-workspace";
 import { useTraineeEnrollment } from "@/hooks/use-trainee-enrollment";
 import { getTraineeLearnView } from "@/lib/api/learning";
 import { ApiClientError } from "@/lib/api/client";
+import {
+  courseOptionsFromEnrollments,
+  enrollmentFamilyId,
+  familyEnrollments,
+  journeyOptionsFromEnrollments,
+  preferredEnrollment,
+} from "@/lib/learning/enrollment-priority";
 import { useAuth } from "@/providers/auth-provider";
 import { isLearnPathType } from "@/lib/learning/path";
 import { traineeCardClass, traineePrimaryCtaClass } from "@/lib/ui/trainee";
@@ -27,6 +34,7 @@ function LearnClient() {
   const filters = useTraineeEnrollment({
     programId: requestedId || undefined,
     batchId: requestedBatch || undefined,
+    preferAvailable: !requestedId,
   });
   const [view, setView] = useState<LearnView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +56,22 @@ function LearnClient() {
     if (!filters.ready || !filters.programId) {
       return;
     }
-    if (!requestedId && filters.programId) {
-      replaceScope(filters.programId, filters.batchId, false);
+    if (!requestedId) {
+      const focus = preferredEnrollment(filters.enrollments) ?? filters.selected;
+      if (focus) {
+        replaceScope(focus.program.id, focus.batch?.id ?? filters.batchId, false);
+        if (focus.program.id !== filters.programId) {
+          filters.setProgramId(focus.program.id);
+        }
+        if (focus.batch?.id && focus.batch.id !== filters.batchId) {
+          filters.setBatchId(focus.batch.id);
+        }
+      } else {
+        replaceScope(filters.programId, filters.batchId, false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync missing URL course once enrollments load
-  }, [filters.ready, filters.programId, filters.batchId, requestedId]);
+  }, [filters.ready, filters.programId, filters.batchId, requestedId, filters.enrollments]);
 
   useEffect(() => {
     if (!filters.ready || !filters.programId) {
@@ -87,22 +106,66 @@ function LearnClient() {
   }
 
   const loadError = error ?? filters.error;
+  const selectedEnrollment =
+    filters.enrollments.find(
+      (row) =>
+        row.program.id === filters.programId &&
+        (!filters.batchId || row.batch?.id === filters.batchId),
+    ) ?? filters.selected;
+  const familyCourses = familyEnrollments(filters.enrollments, selectedEnrollment);
+  const courseOptions = courseOptionsFromEnrollments(familyCourses);
+  const journeys = journeyOptionsFromEnrollments(filters.enrollments);
+  const journeyId = selectedEnrollment ? enrollmentFamilyId(selectedEnrollment) : "";
+
+  function selectEnrollment(
+    enrollment: (typeof filters.enrollments)[number],
+    keepItem = false,
+  ) {
+    filters.setProgramId(enrollment.program.id);
+    if (enrollment.batch?.id) {
+      filters.setBatchId(enrollment.batch.id);
+    }
+    replaceScope(enrollment.program.id, enrollment.batch?.id ?? "", keepItem);
+  }
+
   const toolbar = (
-    <TraineeCourseFilters
-      programs={filters.programs}
-      batches={filters.batches}
-      programId={filters.programId}
-      batchId={filters.batchId}
-      onProgramChange={(id) => {
-        filters.setProgramId(id);
-        const firstBatch = filters.enrollments.find((row) => row.program.id === id)?.batch?.id ?? "";
-        replaceScope(id, firstBatch, false);
-      }}
-      onBatchChange={(id) => {
-        filters.setBatchId(id);
-        replaceScope(filters.programId, id, true);
-      }}
-    />
+    <div className="space-y-3">
+      {journeys.length > 1 ? (
+        <div className="rounded-xl bg-violet-50 px-3 py-2.5">
+          <p className="text-[10px] font-semibold tracking-wide text-violet-600 uppercase">Active journey</p>
+          <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">
+            {journeys.find((journey) => journey.id === journeyId)?.name ?? "Your learning journey"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-500">
+            Choose a journey first, then continue its available course.
+          </p>
+        </div>
+      ) : null}
+      <TraineeCourseFilters
+        programs={courseOptions}
+        batches={[]}
+        programId={filters.programId}
+        batchId={filters.batchId}
+        onProgramChange={(id) => {
+          const next = familyCourses.find((row) => row.program.id === id);
+          if (next && !next.sequenceLocked) {
+            selectEnrollment(next);
+          }
+        }}
+        onBatchChange={() => undefined}
+        journeys={journeys}
+        journeyId={journeyId}
+        onJourneyChange={(nextJourneyId) => {
+          const rows = filters.enrollments.filter(
+            (row) => enrollmentFamilyId(row) === nextJourneyId,
+          );
+          const next = preferredEnrollment(rows) ?? rows[0];
+          if (next) {
+            selectEnrollment(next);
+          }
+        }}
+      />
+    </div>
   );
 
   return (

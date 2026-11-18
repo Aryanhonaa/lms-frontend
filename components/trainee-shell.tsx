@@ -6,15 +6,15 @@ import Link from "next/link";
 import { AppLogoIcon } from "@/components/learn-lab-logo";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Award,
   BookOpen,
   CalendarDays,
   ChevronDown,
   ClipboardCheck,
-  GraduationCap,
+  FileBadge2,
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Medal,
   Megaphone,
   Menu,
   PanelLeft,
@@ -39,24 +39,55 @@ import type { TraineeSearchHit, TraineeSearchResults } from "@/types/trainee-das
 type NavItem = {
   href: string;
   label: string;
+  hint?: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
+  featured?: boolean;
 };
 
-const TRAINEE_NAV: NavItem[] = [
-  { href: "/trainee", label: "Home", icon: LayoutDashboard, exact: true },
-  { href: "/trainee/courses", label: "My learning", icon: BookOpen },
-  { href: "/trainee/learn", label: "Continue", icon: PlayCircle },
-  { href: "/trainee/assessments", label: "Quizzes", icon: ClipboardCheck },
-  { href: "/trainee/assignments", label: "Assignments", icon: ListChecks },
-  { href: "/trainee/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/trainee/progress", label: "Progress", icon: GraduationCap },
-  { href: "/trainee/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/trainee/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/trainee/achievements", label: "Achievements", icon: Award },
-  { href: "/trainee/certificates", label: "Certificates", icon: Award },
-  { href: "/trainee/profile", label: "Profile", icon: User },
+type NavSection = {
+  id: string;
+  label: string;
+  items: NavItem[];
+};
+
+const TRAINEE_NAV: NavSection[] = [
+  {
+    id: "learn",
+    label: "Learn",
+    items: [
+      { href: "/trainee", label: "Home", hint: "Today at a glance", icon: LayoutDashboard, exact: true },
+      { href: "/trainee/courses", label: "My learning", hint: "All courses & journeys", icon: BookOpen },
+      { href: "/trainee/learn", label: "Continue", hint: "Pick up where you left off", icon: PlayCircle, featured: true },
+    ],
+  },
+  {
+    id: "work",
+    label: "Your work",
+    items: [
+      { href: "/trainee/assessments", label: "Quizzes", hint: "Practice & exams", icon: ClipboardCheck },
+      { href: "/trainee/assignments", label: "Assignments", hint: "Tasks to submit", icon: ListChecks },
+      { href: "/trainee/calendar", label: "Calendar", hint: "Sessions & deadlines", icon: CalendarDays },
+    ],
+  },
+  {
+    id: "community",
+    label: "Community",
+    items: [
+      { href: "/trainee/announcements", label: "Announcements", hint: "Updates from trainers", icon: Megaphone },
+      { href: "/trainee/leaderboard", label: "Leaderboard", hint: "See top performers", icon: Trophy },
+      { href: "/trainee/achievements", label: "Achievements", hint: "Badges you earned", icon: Medal },
+      { href: "/trainee/certificates", label: "Certificates", hint: "Completed courses", icon: FileBadge2 },
+    ],
+  },
 ];
+
+const PROFILE_NAV: NavItem = {
+  href: "/trainee/profile",
+  label: "Profile",
+  hint: "Account settings",
+  icon: User,
+};
 
 type TraineeShellProps = {
   title: string;
@@ -178,15 +209,17 @@ export function TraineeShell({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[260px] shrink-0 flex-col border-r border-slate-200/80 bg-[#f3f4f8] transition-[width,transform] duration-200 ease-out lg:static lg:h-full ${
-          collapsed ? "lg:w-[76px]" : "lg:w-[260px]"
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[272px] shrink-0 flex-col border-r border-slate-200/80 bg-[#eef0f5] transition-[width,transform] duration-200 ease-out lg:static lg:h-full ${
+          collapsed ? "lg:w-[80px]" : "lg:w-[272px]"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? "lg:justify-center lg:px-3" : ""}`}>
+        <div className={`flex items-center gap-3 border-b border-slate-200/70 px-4 py-4 ${collapsed ? "lg:justify-center lg:px-3" : ""}`}>
           <AppLogoIcon size={40} />
-          <div className={collapsed ? "lg:hidden" : ""}>
-            <p className="text-sm font-semibold tracking-tight text-slate-900">Learn Lab</p>
-            <p className="text-xs text-slate-500">Trainee</p>
+          <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
+            <p className="truncate text-sm font-semibold tracking-tight text-slate-900">Learn Lab</p>
+            <p className="mt-0.5 inline-flex items-center rounded-md bg-violet-100/80 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-violet-700 uppercase">
+              Trainee
+            </p>
           </div>
           <button
             type="button"
@@ -198,31 +231,98 @@ export function TraineeShell({
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4" aria-label="Trainee">
-          {TRAINEE_NAV.map((item) => {
-            const Icon = item.icon;
-            const active = isActivePath(pathname, item.href, item.exact);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition duration-200 ${
-                  active ? "bg-violet-50 font-medium text-violet-700" : "text-slate-600 hover:bg-white hover:text-slate-900"
-                } ${collapsed ? "lg:justify-center lg:px-0" : ""}`}
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Trainee">
+          {TRAINEE_NAV.map((section) => (
+            <div key={section.id}>
+              <p
+                className={`mb-1.5 px-3 text-[10px] font-semibold tracking-[0.14em] text-slate-400 uppercase ${
+                  collapsed ? "lg:px-0 lg:text-center" : ""
+                }`}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
-                <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
-              </Link>
-            );
-          })}
+                <span className={collapsed ? "lg:hidden" : ""}>{section.label}</span>
+                <span className={`hidden ${collapsed ? "lg:inline" : ""}`} aria-hidden>
+                  ·
+                </span>
+              </p>
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActivePath(pathname, item.href, item.exact);
+                  const title = collapsed
+                    ? item.hint
+                      ? `${item.label} — ${item.hint}`
+                      : item.label
+                    : item.hint;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        title={title}
+                        aria-current={active ? "page" : undefined}
+                        className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition duration-150 ${
+                          active
+                            ? item.featured
+                              ? "bg-violet-600 font-semibold text-white shadow-sm shadow-violet-600/20"
+                              : "bg-white font-medium text-violet-800 shadow-sm ring-1 ring-violet-100"
+                            : item.featured
+                              ? "bg-violet-50 font-medium text-violet-800 hover:bg-violet-100/80"
+                              : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
+                        } ${collapsed ? "lg:justify-center lg:px-0" : ""}`}
+                      >
+                        {active && !item.featured ? (
+                          <span
+                            className={`absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full bg-violet-600 ${
+                              collapsed ? "lg:hidden" : ""
+                            }`}
+                            aria-hidden
+                          />
+                        ) : null}
+                        <Icon
+                          className={`h-[18px] w-[18px] shrink-0 ${
+                            active && item.featured
+                              ? "text-white"
+                              : active
+                                ? "text-violet-700"
+                                : item.featured
+                                  ? "text-violet-700"
+                                  : "text-slate-500 group-hover:text-slate-700"
+                          }`}
+                          strokeWidth={1.75}
+                        />
+                        <span className={`min-w-0 flex-1 ${collapsed ? "lg:hidden" : ""}`}>
+                          <span className="block truncate leading-5">{item.label}</span>
+                          {item.featured && !active ? (
+                            <span className="mt-0.5 block truncate text-[11px] font-normal text-violet-600/80">
+                              {item.hint}
+                            </span>
+                          ) : null}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
-        <div className="space-y-1 border-t border-slate-200/80 px-3 py-4">
+        <div className="space-y-1 border-t border-slate-200/80 px-3 py-3">
+          <Link
+            href={PROFILE_NAV.href}
+            title={collapsed ? PROFILE_NAV.label : PROFILE_NAV.hint}
+            aria-current={isActivePath(pathname, PROFILE_NAV.href) ? "page" : undefined}
+            className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition duration-150 ${
+              isActivePath(pathname, PROFILE_NAV.href)
+                ? "bg-white font-medium text-violet-800 shadow-sm ring-1 ring-violet-100"
+                : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
+            } ${collapsed ? "lg:justify-center lg:px-0" : ""}`}
+          >
+            <User className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+            <span className={`min-w-0 flex-1 truncate ${collapsed ? "lg:hidden" : ""}`}>{PROFILE_NAV.label}</span>
+          </Link>
           <button
             type="button"
-            className={`hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition duration-200 hover:bg-white hover:text-slate-900 lg:flex ${
+            className={`hidden w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 transition duration-150 hover:bg-white/80 hover:text-slate-900 lg:flex ${
               collapsed ? "justify-center px-0" : ""
             }`}
             onClick={() => setCollapsed((open) => !open)}
@@ -233,12 +333,12 @@ export function TraineeShell({
             <span className={collapsed ? "lg:hidden" : ""}>Collapse</span>
           </button>
           <SignOutButton
-            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-white hover:text-slate-900 ${
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 transition duration-150 hover:bg-white/80 hover:text-slate-900 ${
               collapsed ? "lg:justify-center lg:px-0" : ""
             }`}
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
-            <span className={collapsed ? "lg:hidden" : ""}>Logout</span>
+            <span className={collapsed ? "lg:hidden" : ""}>Log out</span>
           </SignOutButton>
         </div>
       </aside>

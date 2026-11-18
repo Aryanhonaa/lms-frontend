@@ -2,12 +2,14 @@
 
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import { TraineeShell } from "@/components/trainee-shell";
 import { CourseOutcomeBadge, CourseOutcomePanel } from "@/components/course-outcome";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useTraineeEnrollment } from "@/hooks/use-trainee-enrollment";
 import { sequenceLabel } from "@/lib/batches/course-sequence";
+import { preferredEnrollment } from "@/lib/learning/enrollment-priority";
 import { traineePathHref } from "@/lib/learning/path";
 import {
   courseListCategory,
@@ -30,17 +32,17 @@ function courseHref(row: EnrollmentSummary) {
   return traineePathHref(row.program.id, null, row.batch?.id);
 }
 
-function courseState(row: EnrollmentSummary): "completed" | "current" | "upcoming" {
+function courseState(row: EnrollmentSummary, focusId?: string): "completed" | "current" | "upcoming" {
   if (row.course.outcome === "PASSED") {
     return "completed";
   }
   if (row.sequenceLocked) {
     return "upcoming";
   }
-  if (row.course.outcome === "FAILED") {
-    return "current";
+  if (focusId) {
+    return row.program.id === focusId ? "current" : "upcoming";
   }
-  if (row.progress.percent > 0) {
+  if (row.course.outcome === "FAILED" || row.progress.percent > 0) {
     return "current";
   }
   return "upcoming";
@@ -79,13 +81,14 @@ function CourseCard({
     : state === "completed"
       ? "Completed"
       : state === "current"
-        ? "You're here"
+        ? "Available now"
         : "Up next";
   return (
-    <article className={`${traineeCardClass} flex flex-col p-5`}>
+    <article className={`${traineeCardClass} flex flex-col p-5 ${locked ? "opacity-95" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-wide text-violet-700 uppercase">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-violet-700 uppercase">
+            {locked ? <Lock className="h-3 w-3 text-slate-400" aria-hidden /> : null}
             {sequenceLabel(sequence)} · {stateCopy}
           </p>
           <h2 className="mt-1 text-base font-semibold text-slate-900">{row.program.title}</h2>
@@ -194,7 +197,7 @@ function CoursesClient() {
         <EmptyState title={`No ${FILTERS.find((row) => row.id === tab)?.label.toLowerCase()} courses`} description="Try another filter." />
       ) : null}
       {grouped.map((group) => {
-        const currentIndex = group.rows.findIndex((row) => courseState(row) !== "completed");
+        const focus = preferredEnrollment(group.rows);
         return (
           <section key={group.name + group.rows[0]?.id} className="mb-8">
             <h2 className="mb-3 text-sm font-semibold text-slate-900">{group.name}</h2>
@@ -204,17 +207,7 @@ function CoursesClient() {
                   key={row.id}
                   row={row}
                   sequence={index}
-                  state={
-                    currentIndex < 0
-                      ? "completed"
-                      : index === currentIndex
-                        ? "current"
-                        : index < currentIndex
-                          ? "completed"
-                          : courseState(row) === "current"
-                            ? "current"
-                            : "upcoming"
-                  }
+                  state={courseState(row, focus?.program.id)}
                 />
               ))}
             </div>

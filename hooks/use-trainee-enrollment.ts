@@ -1,21 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listTraineeEnrollments } from "@/lib/api/learning";
+import {
+  courseOptionsFromEnrollments,
+  preferredEnrollment,
+} from "@/lib/learning/enrollment-priority";
 import type { EnrollmentSummary } from "@/types/learning";
 
-export function useTraineeEnrollment(initial?: { programId?: string; batchId?: string }) {
+type Options = {
+  programId?: string;
+  batchId?: string;
+  /** When true, ignore a locked initial course and select the first available one. */
+  preferAvailable?: boolean;
+};
+
+export function useTraineeEnrollment(initial?: Options) {
   const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [programId, setProgramIdState] = useState(initial?.programId ?? "");
   const [batchId, setBatchId] = useState(initial?.batchId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const userPickedRef = useRef(false);
+  const preferAvailable = Boolean(initial?.preferAvailable);
 
   useEffect(() => {
-    if (initial?.programId) {
-      setProgramIdState(initial.programId);
+    if (!initial?.programId || preferAvailable) {
+      return;
     }
-  }, [initial?.programId]);
+    setProgramIdState(initial.programId);
+  }, [initial?.programId, preferAvailable]);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,7 +39,25 @@ export function useTraineeEnrollment(initial?: { programId?: string; batchId?: s
           return;
         }
         setEnrollments(payload.enrollments);
-        setProgramIdState((current) => current || initial?.programId || payload.enrollments[0]?.program.id || "");
+        setProgramIdState((current) => {
+          if (userPickedRef.current && current) {
+            return current;
+          }
+          const preferred = preferredEnrollment(payload.enrollments, {
+            programId: preferAvailable ? undefined : initial?.programId,
+            batchId: preferAvailable ? undefined : initial?.batchId,
+          });
+          if (preferAvailable) {
+            return preferred?.program.id ?? current ?? "";
+          }
+          if (initial?.programId) {
+            const exact = payload.enrollments.find((row) => row.program.id === initial.programId);
+            if (exact) {
+              return exact.program.id;
+            }
+          }
+          return current || preferred?.program.id || "";
+        });
         setError(null);
         setReady(true);
       })
@@ -38,17 +70,9 @@ export function useTraineeEnrollment(initial?: { programId?: string; batchId?: s
     return () => {
       cancelled = true;
     };
-  }, [initial?.programId]);
+  }, [initial?.programId, initial?.batchId, preferAvailable]);
 
-  const programs = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const row of enrollments) {
-      if (!seen.has(row.program.id)) {
-        seen.set(row.program.id, row.program.title);
-      }
-    }
-    return [...seen.entries()].map(([id, title]) => ({ id, title }));
-  }, [enrollments]);
+  const programs = useMemo(() => courseOptionsFromEnrollments(enrollments), [enrollments]);
 
   const batches = useMemo(
     () =>
@@ -70,18 +94,45 @@ export function useTraineeEnrollment(initial?: { programId?: string; batchId?: s
       if (initial?.batchId && batches.some((row) => row.id === initial.batchId)) {
         return initial.batchId;
       }
-      return batches[0]?.id ?? "";
+      const preferred = preferredEnrollment(
+        enrollments.filter((row) => row.program.id === programId),
+        { programId, batchId: initial?.batchId },
+      );
+      return preferred?.batch?.id ?? batches[0]?.id ?? "";
     });
-  }, [programId, batches, initial?.batchId]);
+  }, [programId, batches, enrollments, initial?.batchId]);
+
+  // If preferAvailable and the selected course is locked, jump to the unlocked one once.
+  useEffect(() => {
+    if (!preferAvailable || !ready || userPickedRef.current || enrollments.length === 0) {
+      return;
+    }
+    const selected = enrollments.find((row) => row.program.id === programId);
+    if (selected && !selected.sequenceLocked) {
+      return;
+    }
+    const preferred = preferredEnrollment(enrollments);
+    if (preferred && preferred.program.id !== programId) {
+      setProgramIdState(preferred.program.id);
+      setBatchId(preferred.batch?.id ?? "");
+    }
+  }, [preferAvailable, ready, enrollments, programId]);
 
   const setProgramId = useCallback((id: string) => {
+    userPickedRef.current = true;
     setProgramIdState(id);
     setBatchId("");
   }, []);
 
-  const selected = enrollments.find(
-    (row) => row.program.id === programId && (!batchId || row.batch?.id === batchId),
-  ) ?? enrollments.find((row) => row.program.id === programId) ?? null;
+  const setBatchIdTracked = useCallback((id: string) => {
+    userPickedRef.current = true;
+    setBatchId(id);
+  }, []);
+
+  const selected =
+    enrollments.find((row) => row.program.id === programId && (!batchId || row.batch?.id === batchId)) ??
+    enrollments.find((row) => row.program.id === programId) ??
+    null;
 
   return {
     enrollments,
@@ -91,7 +142,7 @@ export function useTraineeEnrollment(initial?: { programId?: string; batchId?: s
     batchId,
     selected,
     setProgramId,
-    setBatchId,
+    setBatchId: setBatchIdTracked,
     error,
     ready,
   };
