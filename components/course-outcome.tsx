@@ -15,7 +15,7 @@ export function CourseOutcomeBadge({
   progress?: number;
 }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${courseOutcomeTone(course.outcome)}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${courseOutcomeTone(course.outcome, progress)}`}>
       <span aria-hidden>{courseOutcomeMark(course.outcome)}</span>
       {courseOutcomeLabel(course.outcome, progress)}
     </span>

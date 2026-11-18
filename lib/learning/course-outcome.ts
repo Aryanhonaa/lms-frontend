@@ -25,12 +25,15 @@ export function courseOutcomeLabel(outcome: CourseOutcome, progress = 0): string
   return "In Progress";
 }
 
-export function courseOutcomeTone(outcome: CourseOutcome): string {
+export function courseOutcomeTone(outcome: CourseOutcome, progress = 0): string {
   if (outcome === "PASSED") {
     return "bg-emerald-50 text-emerald-800";
   }
   if (outcome === "FAILED") {
     return "bg-rose-50 text-rose-800";
+  }
+  if (progress <= 0) {
+    return "bg-slate-100 text-slate-600";
   }
   return "bg-amber-50 text-amber-800";
 }
