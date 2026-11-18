@@ -36,12 +36,13 @@ export function DeleteBatchDialog({ batch, open, onClose, onDeleted }: Props) {
     return null;
   }
 
-  const traineeCount = batch.funnel.actualHc;
+  const target = batch;
+  const traineeCount = target.funnel.actualHc;
   const hasTrainees = traineeCount > 0;
-  const title = batchTitle(batch);
-  const confirmToken = (batch.code ?? batch.name).trim();
+  const title = batchTitle(target);
+  const confirmToken = (target.code ?? target.name).trim();
   const confirmed = confirmText.trim().toLowerCase() === confirmToken.toLowerCase();
-  const courseTitles = (batch.courses?.length ? batch.courses : [batch.program]).map((course) => course.title);
+  const courseTitles = (target.courses?.length ? target.courses : [target.program]).map((course) => course.title);
 
   async function remove() {
     if (!confirmed || busy) {
@@ -50,8 +51,8 @@ export function DeleteBatchDialog({ batch, open, onClose, onDeleted }: Props) {
     setBusy(true);
     setError(null);
     try {
-      await deleteProgramBatch(batch.id);
-      onDeleted(batch.id);
+      await deleteProgramBatch(target.id);
+      onDeleted(target.id);
       onClose();
     } catch (err: unknown) {
       setError(err instanceof ApiClientError ? err.message : "Unable to delete this batch.");
@@ -112,9 +113,9 @@ export function DeleteBatchDialog({ batch, open, onClose, onDeleted }: Props) {
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3.5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Batch</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{batch.name}</p>
-          {batch.code ? (
-            <p className="mt-0.5 font-mono text-xs font-medium tracking-wide text-violet-700">{batch.code}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{target.name}</p>
+          {target.code ? (
+            <p className="mt-0.5 font-mono text-xs font-medium tracking-wide text-violet-700">{target.code}</p>
           ) : null}
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             <div>
@@ -124,7 +125,7 @@ export function DeleteBatchDialog({ batch, open, onClose, onDeleted }: Props) {
             <div>
               <dt className="text-xs text-slate-400">Schedule</dt>
               <dd className="mt-0.5 tabular-nums text-slate-700">
-                {batch.startDate ? `Started ${formatDay(batch.startDate, true)}` : "No start date"}
+                {target.startDate ? `Started ${formatDay(target.startDate, true)}` : "No start date"}
               </dd>
             </div>
             <div>
@@ -135,9 +136,9 @@ export function DeleteBatchDialog({ batch, open, onClose, onDeleted }: Props) {
               <dt className="text-xs text-slate-400">Team</dt>
               <dd className="mt-0.5 truncate text-slate-700">
                 {[
-                  batch.salesTrainer ? `${batch.salesTrainer.name} (Lead)` : null,
-                  ...(batch.collaborators?.map((row) => row.name) ??
-                    (batch.supportTrainer ? [batch.supportTrainer.name] : [])),
+                  target.salesTrainer ? `${target.salesTrainer.name} (Lead)` : null,
+                  ...(target.collaborators?.map((row) => row.name) ??
+                    (target.supportTrainer ? [target.supportTrainer.name] : [])),
                 ]
                   .filter(Boolean)
                   .join(" · ") || "—"}
