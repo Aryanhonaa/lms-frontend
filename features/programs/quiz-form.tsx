@@ -42,6 +42,7 @@ type QuizFormProps = {
   disabled?: boolean;
   initial?: Quiz;
   draftKey?: string;
+  onDirtyChange?: (dirty: boolean) => void;
   onSubmit: (input: QuizInput) => Promise<void>;
 };
 
@@ -128,6 +129,27 @@ function loadFormState(draftKey: string | undefined, quiz?: Quiz) {
   };
 }
 
+function formSnapshot(values: {
+  title: string;
+  description: string;
+  passingScore: number;
+  timeLimitMin: string;
+  maxAttempts: string;
+  questionDrawCount: string;
+  randomized: boolean;
+  shuffleOptions: boolean;
+  questions: QuestionDraft[];
+}) {
+  return JSON.stringify(values);
+}
+
+function baselineSnapshot(quiz?: Quiz) {
+  return formSnapshot({
+    ...metaFromQuiz(quiz),
+    questions: questionsFromQuiz(quiz),
+  });
+}
+
 function TypeToggle({
   value,
   disabled,
@@ -166,7 +188,7 @@ function TypeToggle({
   );
 }
 
-export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }: QuizFormProps) {
+export function QuizForm({ submitLabel, disabled, initial, draftKey, onDirtyChange, onSubmit }: QuizFormProps) {
   const [boot] = useState(() => loadFormState(draftKey, initial));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -181,7 +203,85 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
   const [questions, setQuestions] = useState<QuestionDraft[]>(boot.questions);
   const [draftStatus, setDraftStatus] = useState<SaveState>(boot.restored ? "saved" : "idle");
   const [restoredDraft, setRestoredDraft] = useState(boot.restored);
+  const [baseline, setBaseline] = useState(() => baselineSnapshot(initial));
+  const [allowClose, setAllowClose] = useState(false);
   const skipFirstSaveRef = useRef(true);
+  const onDirtyChangeRef = useRef(onDirtyChange);
+
+  const currentSnapshot = formSnapshot({
+    title,
+    description,
+    passingScore,
+    timeLimitMin,
+    maxAttempts,
+    questionDrawCount,
+    randomized,
+    shuffleOptions,
+    questions,
+  });
+  const dirty = !allowClose && currentSnapshot !== baseline;
+  const draftKeyRef = useRef(draftKey);
+
+  useEffect(() => {
+    onDirtyChangeRef.current = onDirtyChange;
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    onDirtyChangeRef.current?.(dirty);
+  }, [dirty]);
+  const draftSnapshotRef = useRef({
+    title,
+    description,
+    passingScore,
+    timeLimitMin,
+    maxAttempts,
+    questionDrawCount,
+    randomized,
+    shuffleOptions,
+    questions,
+  });
+
+  useEffect(() => {
+    draftKeyRef.current = draftKey;
+    draftSnapshotRef.current = {
+      title,
+      description,
+      passingScore,
+      timeLimitMin,
+      maxAttempts,
+      questionDrawCount,
+      randomized,
+      shuffleOptions,
+      questions,
+    };
+  }, [
+    draftKey,
+    title,
+    description,
+    passingScore,
+    timeLimitMin,
+    maxAttempts,
+    questionDrawCount,
+    randomized,
+    shuffleOptions,
+    questions,
+  ]);
+
+  function persistDraft(draft = draftSnapshotRef.current, key = draftKeyRef.current) {
+    if (!key) {
+      return false;
+    }
+    if (!quizDraftHasContent(draft)) {
+      clearQuizDraft(key);
+      setDraftStatus("idle");
+      setRestoredDraft(false);
+      return false;
+    }
+    writeQuizDraft(key, draft);
+    setDraftStatus("saved");
+    setRestoredDraft(true);
+    return true;
+  }
 
   useEffect(() => {
     if (!draftKey) {
@@ -191,7 +291,8 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
       skipFirstSaveRef.current = false;
       return;
     }
-    const draft = {
+    setDraftStatus("saving");
+    const snapshot = {
       title,
       description,
       passingScore,
@@ -203,16 +304,7 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
       questions,
     };
     const timer = window.setTimeout(() => {
-      if (!quizDraftHasContent(draft)) {
-        clearQuizDraft(draftKey);
-        setDraftStatus("idle");
-        setRestoredDraft(false);
-        return;
-      }
-      setDraftStatus("saving");
-      writeQuizDraft(draftKey, draft);
-      setDraftStatus("saved");
-      setRestoredDraft(true);
+      persistDraft(snapshot, draftKey);
     }, 400);
     return () => window.clearTimeout(timer);
   }, [
@@ -227,6 +319,19 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
     shuffleOptions,
     questions,
   ]);
+
+  useEffect(() => {
+    return () => {
+      const key = draftKeyRef.current;
+      if (!key) {
+        return;
+      }
+      const draft = draftSnapshotRef.current;
+      if (quizDraftHasContent(draft)) {
+        writeQuizDraft(key, draft);
+      }
+    };
+  }, []);
 
   function resetToInitial() {
     const next = metaFromQuiz(initial);
@@ -247,8 +352,27 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
       clearQuizDraft(draftKey);
     }
     resetToInitial();
+    setBaseline(baselineSnapshot(initial));
+    setAllowClose(false);
     setRestoredDraft(false);
     setDraftStatus("idle");
+  }
+
+  function saveDraftNow() {
+    const snapshot = {
+      title,
+      description,
+      passingScore,
+      timeLimitMin,
+      maxAttempts,
+      questionDrawCount,
+      randomized,
+      shuffleOptions,
+      questions,
+    };
+    draftSnapshotRef.current = snapshot;
+    setDraftStatus("saving");
+    persistDraft(snapshot, draftKey);
   }
 
   function updateQuestion(index: number, nextQuestion: QuestionDraft) {
@@ -373,6 +497,8 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
 
     setBusy(true);
     setError(null);
+    setAllowClose(true);
+    onDirtyChangeRef.current?.(false);
     try {
       await onSubmit(payload);
       if (draftKey) {
@@ -382,8 +508,13 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
       setDraftStatus("idle");
       if (!initial) {
         resetToInitial();
+        setBaseline(baselineSnapshot(undefined));
+      } else {
+        setBaseline(currentSnapshot);
       }
     } catch (err) {
+      setAllowClose(false);
+      onDirtyChangeRef.current?.(true);
       setError(err instanceof Error ? err.message : "Unable to save quiz");
     } finally {
       setBusy(false);
@@ -749,10 +880,15 @@ export function QuizForm({ submitLabel, disabled, initial, draftKey, onSubmit }:
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <button type="submit" className={primaryButtonClass} disabled={locked}>
           {busy ? "Saving…" : submitLabel}
         </button>
+        {draftKey ? (
+          <button type="button" className={secondaryButtonClass} disabled={locked} onClick={saveDraftNow}>
+            Save draft
+          </button>
+        ) : null}
       </div>
     </form>
   );

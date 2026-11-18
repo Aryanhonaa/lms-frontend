@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AudioLines, FileText, Film, Link as LinkIcon, ListChecks, Play, ClipboardCheck, ChevronLeft } from "lucide-react";
 import { QuizForm } from "@/features/programs/quiz-form";
 import { quizDraftStorageKey } from "@/features/programs/quiz-draft";
@@ -58,6 +58,7 @@ type ContentEditorProps = {
   disabled: boolean;
   onChange: (state: EditorState) => void;
   onClose: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
   onAddWeek: (input: { title: string; description?: string }) => Promise<void>;
   onAddDay: (weekId: string, title: string) => Promise<void>;
   onAddLesson: (dayId: string, input: { title: string; description?: string; durationMin?: number }) => Promise<void>;
@@ -161,8 +162,16 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 export function ContentEditor(props: ContentEditorProps) {
-  const { programId, state, disabled, onChange, onClose } = props;
+  const { programId, state, disabled, onChange, onClose, onDirtyChange } = props;
   const draftKey = quizEditorDraftKey(programId, state);
+  const isQuizEditor = Boolean(draftKey) || state.view === "edit-quiz";
+
+  useEffect(() => {
+    if (!isQuizEditor) {
+      onDirtyChange?.(false);
+    }
+  }, [isQuizEditor, onDirtyChange]);
+
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -271,6 +280,7 @@ export function ContentEditor(props: ContentEditorProps) {
           disabled={disabled || busy}
           initial={state.quiz}
           draftKey={draftKey}
+          onDirtyChange={onDirtyChange}
           onSubmit={async (input) => {
             await props.onUpdateQuiz(state.quiz.id, input);
             onClose();
@@ -289,6 +299,7 @@ export function ContentEditor(props: ContentEditorProps) {
           submitLabel={state.view === "final-exam" ? "Create final exam" : state.view === "weekly-exam" ? "Create checkpoint exam" : "Create quiz"}
           disabled={disabled || busy}
           draftKey={draftKey}
+          onDirtyChange={onDirtyChange}
           onSubmit={async (input) => {
             if (state.view === "final-exam") {
               await props.onAddFinalExam(input);
@@ -317,6 +328,7 @@ export function ContentEditor(props: ContentEditorProps) {
           submitLabel="Create practice quiz"
           disabled={disabled || busy}
           draftKey={draftKey}
+          onDirtyChange={onDirtyChange}
           onSubmit={async (input) => {
             await props.onAddPracticeQuiz(state.dayId, input);
             onClose();

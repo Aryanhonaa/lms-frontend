@@ -12,11 +12,14 @@ import {
   type ProgramBatch,
 } from "@/lib/api/batches";
 import { ApiClientError } from "@/lib/api/client";
+import { listTrainerPrograms } from "@/lib/api/programs";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import type { BatchCodePreview, LineOfBusiness } from "@/types/batch-tracker";
 import type { ProgramTrainerAssignment } from "@/types/program";
 import { formatDay } from "./format";
 import { CourseOrderList } from "./course-order-list";
+
+const BATCHABLE_COURSE_STATUSES = new Set(["APPROVED", "PUBLISHED"]);
 
 type Kind = LineOfBusiness | "GENERAL";
 type CatalogCourse = BatchCatalog["programs"][number];
@@ -93,19 +96,23 @@ export function CreateBatchDialog({
   const [preview, setPreview] = useState<BatchCodePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const tracked = kind !== "GENERAL";
 
   const courseOptions: CatalogCourse[] = useMemo(() => {
     if (catalog?.programs.length) {
       return catalog.programs;
     }
-    return (programs ?? []).map((program) => ({
-      id: program.id,
-      title: program.title,
-      category: program.category ?? "Course",
-      durationWeeks: program.durationWeeks ?? 0,
-      status: program.status ?? "APPROVED",
-    }));
+    return (programs ?? [])
+      .filter((program) => !program.status || BATCHABLE_COURSE_STATUSES.has(program.status))
+      .map((program) => ({
+        id: program.id,
+        title: program.title,
+        category: program.category ?? "Course",
+        durationWeeks: program.durationWeeks ?? 0,
+        status: program.status ?? "APPROVED",
+      }));
   }, [catalog, programs]);
 
   const trainerOptions: CatalogTrainer[] = useMemo(() => {
@@ -129,17 +136,74 @@ export function CreateBatchDialog({
       return;
     }
     let cancelled = false;
-    getBatchCatalog()
-      .then((payload) => {
-        if (!cancelled) {
+
+    async function loadCourses() {
+      await Promise.resolve();
+      if (cancelled) {
+        return;
+      }
+      setCatalogLoading(true);
+      setCatalogError(null);
+      try {
+        const payload = await getBatchCatalog();
+        if (cancelled) {
+          return;
+        }
+        if (payload.programs.length > 0) {
           setCatalog(payload);
+          return;
         }
-      })
-      .catch(() => {
-        if (!cancelled) {
+        const fallback = await listTrainerPrograms();
+        if (cancelled) {
+          return;
+        }
+        const approved = fallback.programs
+          .filter((program) => BATCHABLE_COURSE_STATUSES.has(program.status))
+          .map((program) => ({
+            id: program.id,
+            title: program.title,
+            category: program.category,
+            durationWeeks: program.durationWeeks,
+            status: program.status,
+            trainingMode: program.trainingMode,
+          }));
+        setCatalog({
+          programs: approved,
+          trainers: payload.trainers,
+        });
+      } catch (err: unknown) {
+        if (cancelled) {
+          return;
+        }
+        try {
+          const fallback = await listTrainerPrograms();
+          if (cancelled) {
+            return;
+          }
+          const approved = fallback.programs
+            .filter((program) => BATCHABLE_COURSE_STATUSES.has(program.status))
+            .map((program) => ({
+              id: program.id,
+              title: program.title,
+              category: program.category,
+              durationWeeks: program.durationWeeks,
+              status: program.status,
+              trainingMode: program.trainingMode,
+            }));
+          setCatalog({ programs: approved, trainers: [] });
+          setCatalogError(null);
+        } catch {
           setCatalog(null);
+          setCatalogError(err instanceof ApiClientError ? err.message : "Unable to load approved courses.");
         }
-      });
+      } finally {
+        if (!cancelled) {
+          setCatalogLoading(false);
+        }
+      }
+    }
+
+    void loadCourses();
     return () => {
       cancelled = true;
     };
@@ -355,9 +419,11 @@ export function CreateBatchDialog({
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-slate-900">Your approved courses</p>
             <p className="text-sm leading-relaxed text-slate-500">
-              Only courses you created that an admin approved. Pick how they should be grouped below.
+              Courses you own or are assigned to, once an admin has approved them. Scheduled and progression courses both
+              appear here.
             </p>
           </div>
+          {catalogError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{catalogError}</p> : null}
           {selectedIds.length > 1 ? (
             <label className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3.5 text-sm text-slate-700 ring-1 ring-slate-200">
               <input
@@ -384,10 +450,12 @@ export function CreateBatchDialog({
               className={`${fieldClass} pl-10`}
             />
           </div>
-          {filteredCourses.length === 0 ? (
+          {catalogLoading ? (
+            <p className="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Loading courses…</p>
+          ) : filteredCourses.length === 0 ? (
             <p className="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
               {courseOptions.length === 0
-                ? "No approved courses of yours yet. Create a course in Programs and wait for admin approval."
+                ? "No approved courses available yet. Create a course in Programs, submit it, and wait for admin approval."
                 : "No courses match that search."}
             </p>
           ) : (

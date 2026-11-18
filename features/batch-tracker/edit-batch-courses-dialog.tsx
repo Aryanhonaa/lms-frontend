@@ -6,7 +6,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { CourseOrderList } from "@/features/batch-tracker/course-order-list";
 import { getBatchCatalog, updateProgramBatch } from "@/lib/api/batches";
 import { ApiClientError } from "@/lib/api/client";
+import { listTrainerPrograms } from "@/lib/api/programs";
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+
+const BATCHABLE_COURSE_STATUSES = new Set(["APPROVED", "PUBLISHED"]);
 
 type CourseOption = {
   id: string;
@@ -49,17 +52,55 @@ export function EditBatchCoursesDialog({
       return;
     }
     let cancelled = false;
-    getBatchCatalog()
-      .then((payload) => {
-        if (!cancelled) {
+    async function loadCourses() {
+      try {
+        const payload = await getBatchCatalog();
+        if (cancelled) {
+          return;
+        }
+        if (payload.programs.length > 0) {
           setCourses(payload.programs);
+          return;
         }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setCourses([]);
+        const fallback = await listTrainerPrograms();
+        if (cancelled) {
+          return;
         }
-      });
+        setCourses(
+          fallback.programs
+            .filter((program) => BATCHABLE_COURSE_STATUSES.has(program.status))
+            .map((program) => ({
+              id: program.id,
+              title: program.title,
+              category: program.category,
+              durationWeeks: program.durationWeeks,
+            })),
+        );
+      } catch {
+        try {
+          const fallback = await listTrainerPrograms();
+          if (cancelled) {
+            return;
+          }
+          setCourses(
+            fallback.programs
+              .filter((program) => BATCHABLE_COURSE_STATUSES.has(program.status))
+              .map((program) => ({
+                id: program.id,
+                title: program.title,
+                category: program.category,
+                durationWeeks: program.durationWeeks,
+              })),
+          );
+        } catch {
+          if (!cancelled) {
+            setCourses([]);
+          }
+        }
+      }
+    }
+
+    void loadCourses();
     return () => {
       cancelled = true;
     };

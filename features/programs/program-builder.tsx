@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, Eye, Menu, Sparkles, X } from "lucide-react";
@@ -55,6 +55,7 @@ import {
 import { primaryButtonClass, secondaryButtonClass } from "@/features/programs/builder/ui";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { RejectionBanner } from "@/features/programs/rejection-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorState } from "@/components/ui/empty-state";
 import { SaveStatus, type SaveState } from "@/components/ui/save-status";
@@ -69,6 +70,8 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const editorDirtyRef = useRef(false);
+  const [closeEditorConfirm, setCloseEditorConfirm] = useState(false);
   const [fileManager, setFileManager] = useState<{
     kind: "lesson" | "assignment";
     id: string;
@@ -101,6 +104,24 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const handleEditorDirtyChange = useCallback((dirty: boolean) => {
+    editorDirtyRef.current = dirty;
+  }, []);
+
+  function closeEditor() {
+    setCloseEditorConfirm(false);
+    editorDirtyRef.current = false;
+    setEditor(null);
+  }
+
+  function requestCloseEditor() {
+    if (editorDirtyRef.current) {
+      setCloseEditorConfirm(true);
+      return;
+    }
+    closeEditor();
+  }
 
   async function mutate(action: () => Promise<{ program: ProgramTree }>) {
     setError(null);
@@ -425,14 +446,15 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
         ) : null}
       </Dialog>
 
-      <Dialog open={Boolean(editor)} title={editor ? editorTitle(editor) : ""} side wide onClose={() => setEditor(null)}>
+      <Dialog open={Boolean(editor)} title={editor ? editorTitle(editor) : ""} side wide onClose={requestCloseEditor}>
         {editor ? (
           <ContentEditor
             programId={program.id}
             state={editor}
             disabled={!editable || busy}
             onChange={setEditor}
-            onClose={() => setEditor(null)}
+            onClose={requestCloseEditor}
+            onDirtyChange={handleEditorDirtyChange}
             onAddWeek={(input) => mutate(() => addWeek(program.id, input)).then(() => undefined)}
             onAddDay={(weekId, title) => mutate(() => addDay(weekId, { title })).then(() => undefined)}
             onAddLesson={(dayId, input) => mutate(() => addLesson(dayId, input)).then(() => undefined)}
@@ -455,6 +477,16 @@ export function ProgramBuilder({ initialProgram }: { initialProgram: ProgramTree
           />
         ) : null}
       </Dialog>
+
+      <ConfirmDialog
+        open={closeEditorConfirm}
+        title="Close without finishing?"
+        description="A draft is saved on this device. You can reopen this quiz anytime and pick up where you left off."
+        cancelLabel="Keep editing"
+        confirmLabel="Close"
+        onCancel={() => setCloseEditorConfirm(false)}
+        onConfirm={closeEditor}
+      />
     </div>
   );
 }

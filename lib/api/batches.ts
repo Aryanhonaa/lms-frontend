@@ -54,6 +54,7 @@ export type BatchCatalog = {
     category: string;
     durationWeeks: number;
     status: string;
+    trainingMode?: string;
   }>;
   trainers: Array<{ id: string; name: string; email: string }>;
 };
