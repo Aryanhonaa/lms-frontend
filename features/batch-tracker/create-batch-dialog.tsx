@@ -419,8 +419,8 @@ export function CreateBatchDialog({
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-slate-900">Your approved courses</p>
             <p className="text-sm leading-relaxed text-slate-500">
-              Courses you own or are assigned to, once an admin has approved them. Scheduled and progression courses both
-              appear here.
+              Admin-approved courses (scheduled or progression). Pick one or more — extra courses are linked into this
+              batch.
             </p>
           </div>
           {catalogError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{catalogError}</p> : null}

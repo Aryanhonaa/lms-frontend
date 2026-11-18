@@ -148,7 +148,7 @@ export function EditBatchCoursesDialog({
             Cancel
           </button>
           <button type="button" className={primaryButtonClass} onClick={() => void save()} disabled={busy}>
-            {busy ? "Saving…" : "Save order"}
+            {busy ? "Saving…" : "Save courses"}
           </button>
         </div>
       }
