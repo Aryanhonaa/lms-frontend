@@ -23,6 +23,7 @@ import {
   PanelLeft,
   Search,
   Settings,
+  Trophy,
   Users,
   X,
 } from "lucide-react";
@@ -87,6 +88,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/usage", label: "App Usage", icon: Clock3 },
   { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/admin/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/admin/trainers", label: "Trainers", icon: GraduationCap },
   { href: "/admin/trainees", label: "Trainees", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -94,7 +96,6 @@ const ADMIN_NAV: NavItem[] = [
 
 const SUPER_ADMIN_ONLY_PREFIXES = [
   "/admin/users",
-  "/admin/leaderboard",
   "/admin/announcements",
   "/admin/feedback",
   "/admin/certificates",

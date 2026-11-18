@@ -8,10 +8,11 @@ import type {
   FeedbackOptions,
   FeedbackTargetKind,
   LeaderboardBoard,
+  LeaderboardFiltersPayload,
   NotificationInbox,
 } from "@/types/engagement";
 
-export async function getTraineeLeaderboard(programId?: string, batchId?: string): Promise<{ boards: LeaderboardBoard[] }> {
+function leaderboardQuery(programId?: string, batchId?: string): string {
   const params = new URLSearchParams();
   if (programId) {
     params.set("programId", programId);
@@ -19,32 +20,32 @@ export async function getTraineeLeaderboard(programId?: string, batchId?: string
   if (batchId) {
     params.set("batchId", batchId);
   }
-  const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient(`/trainee/leaderboard${query}`);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function getTraineeLeaderboardFilters(): Promise<LeaderboardFiltersPayload> {
+  return apiClient("/trainee/leaderboard/filters");
+}
+
+export async function getTraineeLeaderboard(programId?: string, batchId?: string): Promise<{ boards: LeaderboardBoard[] }> {
+  return apiClient(`/trainee/leaderboard${leaderboardQuery(programId, batchId)}`);
+}
+
+export async function getTrainerLeaderboardFilters(): Promise<LeaderboardFiltersPayload> {
+  return apiClient("/trainer/leaderboard/filters");
 }
 
 export async function getTrainerLeaderboard(programId?: string, batchId?: string): Promise<{ boards: LeaderboardBoard[] }> {
-  const params = new URLSearchParams();
-  if (programId) {
-    params.set("programId", programId);
-  }
-  if (batchId) {
-    params.set("batchId", batchId);
-  }
-  const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient(`/trainer/leaderboard${query}`);
+  return apiClient(`/trainer/leaderboard${leaderboardQuery(programId, batchId)}`);
+}
+
+export async function getAdminLeaderboardFilters(): Promise<LeaderboardFiltersPayload> {
+  return apiClient("/admin/leaderboard/filters");
 }
 
 export async function getAdminLeaderboard(programId?: string, batchId?: string): Promise<{ boards: LeaderboardBoard[] }> {
-  const params = new URLSearchParams();
-  if (programId) {
-    params.set("programId", programId);
-  }
-  if (batchId) {
-    params.set("batchId", batchId);
-  }
-  const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient(`/admin/leaderboard${query}`);
+  return apiClient(`/admin/leaderboard${leaderboardQuery(programId, batchId)}`);
 }
 
 export async function listTraineeAchievements(): Promise<{ achievements: AchievementItem[] }> {

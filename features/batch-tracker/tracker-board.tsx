@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
@@ -13,11 +13,13 @@ import {
   RotateCcw,
   Search,
   Table2,
+  Trash2,
   X,
 } from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { CreateBatchDialog } from "@/features/batch-tracker/create-batch-dialog";
+import { DeleteBatchDialog } from "@/features/batch-tracker/delete-batch-dialog";
 import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
 import { getBatchTracker, type TrackerRole } from "@/lib/api/batch-tracker";
 import type { ProgramBatch } from "@/lib/api/batches";
@@ -88,6 +90,9 @@ function Metric({
   );
 }
 
+const BATCH_LIST_COLS =
+  "md:grid-cols-[minmax(14rem,1.5fr)_minmax(10rem,1fr)_9rem_13rem_5.5rem_2.5rem] md:gap-6";
+
 function FunnelInline({ funnel, status }: { funnel: BatchFunnel; status: TrackerBatch["status"] }) {
   const reached = status !== "UPCOMING";
   const steps = [
@@ -97,16 +102,13 @@ function FunnelInline({ funnel, status }: { funnel: BatchFunnel; status: Tracker
     { label: "Handed over", value: funnel.handover, show: funnel.certified > 0 },
   ];
   return (
-    <ol className="flex items-center gap-1.5 text-sm">
-      {steps.map((step, index) => (
-        <li key={step.label} className="flex items-center gap-1.5">
-          {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-slate-300" aria-hidden /> : null}
-          <span className="flex flex-col items-center leading-tight">
-            <span className={`font-semibold tabular-nums ${step.show ? "text-slate-900" : "text-slate-300"}`}>
-              {step.show ? step.value : "–"}
-            </span>
-            <span className="text-[10px] text-slate-400">{step.label}</span>
+    <ol className="grid w-[13rem] grid-cols-4 items-start gap-1 text-sm">
+      {steps.map((step) => (
+        <li key={step.label} className="min-w-0 text-center leading-tight">
+          <span className={`block font-semibold tabular-nums ${step.show ? "text-slate-900" : "text-slate-300"}`}>
+            {step.show ? step.value : "–"}
           </span>
+          <span className="block truncate text-[10px] text-slate-400">{step.label}</span>
         </li>
       ))}
     </ol>
@@ -114,32 +116,43 @@ function FunnelInline({ funnel, status }: { funnel: BatchFunnel; status: Tracker
 }
 
 function BatchProgress({ batch }: { batch: TrackerBatch }) {
+  let body: ReactNode;
   if (batch.status === "UPCOMING") {
-    return <p className="text-sm text-slate-500">Starts {formatDay(batch.startDate)}</p>;
+    body = <p className="text-sm text-slate-500">Starts {formatDay(batch.startDate)}</p>;
+  } else if (batch.status === "COMPLETED") {
+    body = <p className="text-sm text-slate-500">Completed {formatDay(batch.actualCompletionDate)}</p>;
+  } else if (!batch.startDate) {
+    body = <p className="text-sm text-slate-400">No start date</p>;
+  } else {
+    body = (
+      <>
+        <p className="mb-1 text-xs text-slate-500 tabular-nums">
+          Day {batch.trainingDay} of {batch.totalDays}
+        </p>
+        <ProgressBar value={(batch.trainingDay / batch.totalDays) * 100} tone="violet" />
+      </>
+    );
   }
-  if (batch.status === "COMPLETED") {
-    return <p className="text-sm text-slate-500">Completed {formatDay(batch.actualCompletionDate)}</p>;
-  }
-  if (!batch.startDate) {
-    return <p className="text-sm text-slate-400">No start date</p>;
-  }
-  return (
-    <div className="w-36">
-      <p className="mb-1 text-xs text-slate-500 tabular-nums">
-        Day {batch.trainingDay} of {batch.totalDays}
-      </p>
-      <ProgressBar value={(batch.trainingDay / batch.totalDays) * 100} tone="violet" />
-    </div>
-  );
+  return <div className="w-36 min-w-0">{body}</div>;
 }
 
-function BatchRow({ batch, href }: { batch: TrackerBatch; href: string }) {
+function BatchRow({
+  batch,
+  href,
+  canDelete,
+  onDelete,
+}: {
+  batch: TrackerBatch;
+  href: string;
+  canDelete: boolean;
+  onDelete: () => void;
+}) {
   const funnel = batch.funnel;
   return (
-    <li>
+    <li className="group relative">
       <Link
         href={href}
-        className="grid gap-3 px-5 py-4 transition duration-150 hover:bg-slate-50/80 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto_auto_5rem] md:items-center md:gap-6"
+        className={`grid gap-3 px-5 py-4 transition duration-150 hover:bg-slate-50/80 md:items-center ${BATCH_LIST_COLS}`}
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -165,20 +178,35 @@ function BatchRow({ batch, href }: { batch: TrackerBatch; href: string }) {
             {batch.funnel.actualHc} trainee{batch.funnel.actualHc === 1 ? "" : "s"}
           </p>
         </div>
-        <p className="truncate text-sm text-slate-600">{trainerNames(batch)}</p>
+        <p className="min-w-0 truncate text-sm text-slate-600">{trainerNames(batch)}</p>
         <BatchProgress batch={batch} />
         <FunnelInline funnel={funnel} status={batch.status} />
-        <div className="text-right">
-          <p className="text-sm font-semibold text-slate-900 tabular-nums">{formatPct(funnel.throughputPct)}</p>
-          <p className="text-[10px] text-slate-400">Throughput</p>
+        <div className="w-[5.5rem] text-right">
+          <p className="text-sm font-semibold tabular-nums text-slate-900">{formatPct(funnel.throughputPct)}</p>
         </div>
+        <span className="hidden w-10 md:block" aria-hidden />
         {funnel.handoverPending > 0 ? (
-          <p className="text-xs text-amber-700 md:col-span-5 md:-mt-2">
+          <p className="text-xs text-amber-700 md:col-span-6 md:-mt-2">
             {funnel.handoverPending} certified {funnel.handoverPending === 1 ? "trainee is" : "trainees are"} waiting for
             handover
           </p>
         ) : null}
       </Link>
+      {canDelete ? (
+        <button
+          type="button"
+          title="Delete batch"
+          aria-label={`Delete ${batch.name}`}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-4 right-4 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      ) : null}
     </li>
   );
 }
@@ -240,6 +268,8 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
   const [reloadKey, setReloadKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [enrollBatch, setEnrollBatch] = useState<ProgramBatch | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TrackerBatch | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const canCreate = role === "trainer" && Boolean(user);
 
   const setParam = useCallback(
@@ -370,6 +400,9 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
       </div>
 
       {error ? <ErrorState message={error} /> : null}
+      {notice ? (
+        <p className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{notice}</p>
+      ) : null}
       {!data && !error ? <LoadingState label="Loading batches…" /> : null}
 
       {summary && funnel ? (
@@ -647,22 +680,42 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
             <SheetView batches={data.batches} basePath={basePath} />
           ) : (
             <section className={`${cardClass} overflow-hidden`}>
-              <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto_auto_5rem] gap-6 border-b border-slate-100 px-5 py-2.5 text-xs font-medium text-slate-400 md:grid">
+              <div
+                className={`hidden border-b border-slate-100 px-5 py-2.5 text-xs font-medium text-slate-400 md:grid md:items-center ${BATCH_LIST_COLS}`}
+              >
                 <span>Batch</span>
                 <span>Trainers</span>
                 <span className="w-36">Progress</span>
-                <span>Funnel</span>
-                <span className="text-right">Throughput</span>
+                <span className="w-[13rem]">Funnel</span>
+                <span className="w-[5.5rem] text-right">Throughput</span>
+                <span className="sr-only">Actions</span>
               </div>
               <ul className="divide-y divide-slate-100">
                 {data.batches.map((batch) => (
-                  <BatchRow key={batch.id} batch={batch} href={`${basePath}/${batch.id}`} />
+                  <BatchRow
+                    key={batch.id}
+                    batch={batch}
+                    href={`${basePath}/${batch.id}`}
+                    canDelete={role === "trainer"}
+                    onDelete={() => setDeleteTarget(batch)}
+                  />
                 ))}
               </ul>
             </section>
           )}
         </>
       ) : null}
+
+      <DeleteBatchDialog
+        open={Boolean(deleteTarget)}
+        batch={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => {
+          setDeleteTarget(null);
+          setNotice("Batch deleted.");
+          setReloadKey((key) => key + 1);
+        }}
+      />
 
       {canCreate && user ? (
         <>

@@ -30,9 +30,31 @@ export type LeaderboardBatch = {
   memberCount?: number;
 };
 
+export type LeaderboardCourse = {
+  id: string;
+  title: string;
+  batchId: string;
+  sequence?: number;
+  label?: string;
+  isPrimary?: boolean;
+};
+
+export type LeaderboardFilterBatch = {
+  id: string;
+  name: string;
+  courses: LeaderboardCourse[];
+};
+
+export type LeaderboardFiltersPayload = {
+  batches: LeaderboardFilterBatch[];
+};
+
 export type LeaderboardBoard = {
   program: { id: string; title: string };
   batch?: LeaderboardBatch | null;
+  /** Member batch id for the selected course within a multi-course family. */
+  courseBatchId?: string;
+  courses?: LeaderboardCourse[];
   batches?: LeaderboardBatch[];
   yourBatch?: { id: string; name: string } | null;
   you: OwnLeaderboardEntry | null;

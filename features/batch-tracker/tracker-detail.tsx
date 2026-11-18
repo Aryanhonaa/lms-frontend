@@ -18,6 +18,7 @@ import {
   UserX,
   type LucideIcon,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/empty-state";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -33,6 +34,7 @@ import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog"
 import { cardClass, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import type { TrackerBatch, TrackerDetail, TrackerTrainee } from "@/types/batch-tracker";
 import { BatchStatusBadge, LateTag, LobChip, TraineeStageBadge } from "./badges";
+import { DeleteBatchDialog } from "./delete-batch-dialog";
 import { EditBatchCoursesDialog } from "./edit-batch-courses-dialog";
 import { EditBatchTeamDialog } from "./edit-batch-team-dialog";
 import { GLOSSARY, STAGE_META, batchTitle, downloadCsv, formatDay, formatPct, isExited } from "./format";
@@ -465,6 +467,7 @@ export function BatchTrackerDetail({
   batchId: string;
   onLoaded?: (title: string) => void;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<TrackerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -477,6 +480,7 @@ export function BatchTrackerDetail({
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [courseFilter, setCourseFilter] = useState<string>("all");
   const [busy, setBusy] = useState(false);
 
@@ -764,6 +768,16 @@ export function BatchTrackerDetail({
               Hand over{handoverCandidates.length > 0 ? ` (${handoverCandidates.length})` : ""}
             </button>
           ) : null}
+          {role === "trainer" && data.canManage ? (
+            <button
+              type="button"
+              className={`${secondaryButtonClass} border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50`}
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -1029,6 +1043,15 @@ export function BatchTrackerDetail({
               onSaved={() => void refresh("Team updated.")}
             />
           ) : null}
+          <DeleteBatchDialog
+            open={deleteOpen}
+            batch={batch}
+            onClose={() => setDeleteOpen(false)}
+            onDeleted={() => {
+              setDeleteOpen(false);
+              router.push(`/${role}/batch-tracker`);
+            }}
+          />
           <EnrollTraineesDialog
             open={enrollOpen}
             programId={batch.program.id}

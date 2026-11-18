@@ -84,10 +84,6 @@ export default function ProgramTraineesPage() {
   }, [params.id]);
 
   async function onDeleteBatch(batch: ProgramBatch) {
-    if (batch.memberCount > 0) {
-      setError("Cannot delete a batch that has enrollments.");
-      return;
-    }
     setBusyId(batch.id);
     setError(null);
     try {
