@@ -459,7 +459,7 @@ export function CreateBatchDialog({
                 : "No courses match that search."}
             </p>
           ) : (
-            <ul className="grid max-h-80 auto-rows-fr grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+            <ul className="grid max-h-80 grid-cols-1 content-start gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
               {filteredCourses.map((course) => {
                 const selected = selectedIds.includes(course.id);
                 const locked = course.id === programId;
@@ -468,7 +468,7 @@ export function CreateBatchDialog({
                     <button
                       type="button"
                       onClick={() => toggleCourse(course.id)}
-                      className={`flex h-full w-full items-center gap-3 rounded-xl border px-4 py-4 text-left transition ${
+                      className={`flex min-h-[4.5rem] w-full items-center gap-3 rounded-xl border px-4 py-4 text-left transition ${
                         selected
                           ? "border-violet-300 bg-violet-50 ring-1 ring-violet-200"
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
