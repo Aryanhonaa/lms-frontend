@@ -8,7 +8,7 @@ import { BatchTrackerBoard } from "@/features/batch-tracker/tracker-board";
 export default function AdminBatchTrackerPage() {
   return (
     <>
-      <AdminPageHeader title="Batch Tracker" subtitle="Headcount, certification and handover for every NHT batch." />
+      <AdminPageHeader title="Batch Tracker" subtitle="Every batch first — open one to see its assigned courses." />
       <Suspense fallback={<LoadingState label="Loading batches…" />}>
         <BatchTrackerBoard
           role="admin"

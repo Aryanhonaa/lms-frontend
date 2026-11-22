@@ -31,7 +31,7 @@ import {
 } from "@/lib/api/batch-tracker";
 import { ApiClientError } from "@/lib/api/client";
 import { EnrollTraineesDialog } from "@/features/trainer/enroll-trainees-dialog";
-import { cardClass, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
+import { cardClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui/form-classes";
 import type { TrackerBatch, TrackerDetail, TrackerTrainee } from "@/types/batch-tracker";
 import { BatchStatusBadge, LateTag, LobChip, TraineeStageBadge } from "./badges";
 import { DeleteBatchDialog } from "./delete-batch-dialog";
@@ -784,8 +784,10 @@ export function BatchTrackerDetail({
       <section className={`${cardClass} px-5 py-4`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Learning order</h3>
-            <p className="mt-0.5 text-sm text-slate-500">Trainees take these courses in this sequence.</p>
+            <h3 className="text-sm font-semibold text-slate-900">Courses in this batch</h3>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Trainees take these courses in this order. Select a course to see its progress and exams below.
+            </p>
           </div>
           {role === "trainer" && data.canManage ? (
             <button type="button" className={secondaryButtonClass} onClick={() => setCoursesOpen(true)}>
@@ -793,23 +795,58 @@ export function BatchTrackerDetail({
             </button>
           ) : null}
         </div>
-        {(batch.courses?.length ? batch.courses : [batch.program]).length === 0 ? (
+        {courseOptions.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No courses assigned yet.</p>
         ) : (
-          <ol className="mt-3 grid gap-2 sm:grid-cols-2">
-            {(batch.courses?.length ? batch.courses : [batch.program]).map((course, index) => (
-              <li key={course.id} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-semibold text-violet-800 ring-1 ring-slate-200">
-                  {index + 1}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-slate-900">{course.title}</span>
-                  <span className="text-[11px] font-medium text-slate-400">
-                    {course.label ?? (index === 0 ? "First" : `Course ${index + 1}`)}
+          <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {courseOptions.length > 1 ? (
+              <li>
+                <button
+                  type="button"
+                  aria-pressed={activeCourseId === "all"}
+                  onClick={() => setCourseFilter("all")}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                    activeCourseId === "all"
+                      ? "bg-violet-50 ring-1 ring-violet-200"
+                      : "bg-slate-50 hover:bg-slate-100"
+                  }`}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-violet-800 ring-1 ring-slate-200">
+                    <BookOpen className="h-4 w-4" />
                   </span>
-                </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-slate-900">All courses</span>
+                    <span className="text-[11px] font-medium text-slate-400">Average across the batch</span>
+                  </span>
+                </button>
               </li>
-            ))}
+            ) : null}
+            {courseOptions.map((course, index) => {
+              const active = activeCourseId === course.id;
+              const label = batch.courses?.find((row) => row.id === course.id)?.label;
+              return (
+                <li key={course.id}>
+                  <button
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setCourseFilter(course.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                      active ? "bg-violet-50 ring-1 ring-violet-200" : "bg-slate-50 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-semibold text-violet-800 ring-1 ring-slate-200">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-900">{course.title}</span>
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {label ?? (index === 0 ? "First" : `Course ${index + 1}`)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         )}
       </section>
@@ -838,32 +875,6 @@ export function BatchTrackerDetail({
       {error ? <ErrorState message={error} /> : null}
 
       <FunnelStrip batch={batch} active={filter} onSelect={setFilter} />
-
-      <div className={`${cardClass} flex flex-wrap items-center justify-between gap-3 px-5 py-3`}>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Filter by course</p>
-          <p className="mt-0.5 text-sm text-slate-500">
-            {activeCourseId === "all"
-              ? "Showing average progress across every course in this batch"
-              : "Showing progress and exam for the selected course"}
-          </p>
-        </div>
-        <label className="flex min-w-[14rem] flex-col gap-1 text-sm">
-          <span className="sr-only">Course</span>
-          <select
-            value={activeCourseId}
-            onChange={(event) => setCourseFilter(event.target.value)}
-            className={`${fieldClass} w-auto min-w-[14rem]`}
-          >
-            {courseOptions.length > 1 ? <option value="all">All courses</option> : null}
-            {courseOptions.map((course, index) => (
-              <option key={course.id} value={course.id}>
-                {index + 1}. {course.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
 
       <section className={`${cardClass} overflow-hidden`}>
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3">

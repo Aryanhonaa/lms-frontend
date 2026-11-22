@@ -389,7 +389,9 @@ export function BatchTrackerBoard({ role, basePath, emptyHint }: Props) {
             Start with a batch: pick approved courses, invite co-trainers, then enroll trainees.
           </p>
         ) : (
-          <p className="max-w-xl text-sm text-slate-500">Track batch progress, headcount, and handover across courses.</p>
+          <p className="max-w-xl text-sm text-slate-500">
+            Pick a batch to see the courses assigned to it, then progress, headcount, and handover.
+          </p>
         )}
         {canCreate ? (
           <button type="button" className={primaryButtonClass} onClick={() => setCreateOpen(true)}>
